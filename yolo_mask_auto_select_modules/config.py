@@ -70,8 +70,6 @@ STRUCTURE_WEIGHTS = {
     "boundary_geometry_artifact_ratio": 0.05,
     "external_edge_destruction_score": 0.10,  # <-- NEU: Bestraft Zerstörung von UI-Elementen außerhalb der Box
 }
-TEXT_DETAIL_WEIGHT_WITH_OCR = 0.65
-TEXT_OCR_WEIGHT_WITH_OCR = 0.35
 
 TEXT_SCORE_TOLERANCE_FLOOR = 0.02
 TEXT_SCORE_TOLERANCE_CEILING = 0.035

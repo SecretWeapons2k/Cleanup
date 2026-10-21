@@ -545,7 +545,6 @@ def score_candidate(
     box_mask: np.ndarray,
     body_box_mask: np.ndarray,
     yolo_reference_mask: np.ndarray,
-    ocr_residual_ratio: float | None = None,
     outline_leak_precomputed: dict[str, float] | None = None,
 ) -> dict[str, float]:
     distance_to_box = cv2.distanceTransform((~box_mask).astype(np.uint8), cv2.DIST_L2, cv2.DIST_MASK_PRECISE)
@@ -787,13 +786,7 @@ def score_candidate(
         if outline_leak_precomputed is not None
         else outline_leak_metrics(source_detail, original_alpha, body_box_mask, mask)
     )
-    if ocr_residual_ratio is None:
-        base_text_quality = visual_text_residual
-    else:
-        base_text_quality = (
-            TEXT_DETAIL_WEIGHT_WITH_OCR * visual_text_residual
-            + TEXT_OCR_WEIGHT_WITH_OCR * float(np.clip(ocr_residual_ratio, 0.0, 1.0))
-        )
+    base_text_quality = visual_text_residual
     text_quality_score = float(np.clip(
         (1.0 - OUTLINE_LEAK_TEXT_WEIGHT) * base_text_quality
         + OUTLINE_LEAK_TEXT_WEIGHT * leak["outline_leak_score"], 0.0, 1.0
@@ -801,7 +794,7 @@ def score_candidate(
 
     # Alternative Textbewertung für den Vergleich:
     # Nur der Inside-Anteil wird auf den Textkorridor eingeschränkt.
-    # Halo, Blob-Metrik, OCR-Anteil und Leak-Gewichtung bleiben gleich.
+    # Halo, Blob-Metrik und Leak-Gewichtung bleiben gleich.
     if np.any(halo_text_region):
         corridor_residual_text_detail = float(np.clip(
             0.85 * corridor_inside_residual
@@ -820,14 +813,7 @@ def score_candidate(
         1.0,
     ))
 
-    if ocr_residual_ratio is None:
-        corridor_base_text_quality = corridor_visual_text_residual
-    else:
-        corridor_base_text_quality = (
-            TEXT_DETAIL_WEIGHT_WITH_OCR * corridor_visual_text_residual
-            + TEXT_OCR_WEIGHT_WITH_OCR
-            * float(np.clip(ocr_residual_ratio, 0.0, 1.0))
-        )
+    corridor_base_text_quality = corridor_visual_text_residual
 
     corridor_text_quality_score = float(np.clip(
         (1.0 - OUTLINE_LEAK_TEXT_WEIGHT) * corridor_base_text_quality
@@ -940,7 +926,6 @@ def score_candidate(
         **peak_diagnostics,
         "residual_blob_contrast_ratio": residual_blob,
         "visual_text_residual_score": visual_text_residual,
-        "ocr_text_residual_ratio": float(ocr_residual_ratio) if ocr_residual_ratio is not None else float("nan"),
         "text_quality_base_score": float(np.clip(base_text_quality, 0.0, 1.0)),
         "text_quality_score": text_quality_score,
         **leak,

@@ -1,4 +1,4 @@
-"""Source discovery, CSV/box utilities, alpha post-processing and optional OCR."""
+"""Source discovery, CSV/box utilities and alpha post-processing."""
 from __future__ import annotations
 
 import csv
@@ -6,9 +6,7 @@ import math
 import os
 import random
 import shutil
-import subprocess
 import sys
-import tempfile
 import time
 from collections import defaultdict
 from pathlib import Path
@@ -237,102 +235,4 @@ def remove_small_alpha_islands(
     })
     return rgb_out, alpha_out, metadata
 
-def discover_tesseract() -> tuple[str, str] | None:
-    """Return an optional Tesseract executable and usable installed languages."""
-    executable = shutil.which("tesseract")
-    if not executable:
-        return None
-    try:
-        proc = subprocess.run(
-            [executable, "--list-langs"], capture_output=True, text=True,
-            timeout=10, check=False,
-        )
-        available = {
-            line.strip() for line in proc.stdout.splitlines()
-            if line.strip() and not line.lower().startswith("list of available")
-        }
-        available.discard("osd")
-        if not available:
-            return None
-        preferred = [lang for lang in ("jpn", "eng") if lang in available]
-        if not preferred:
-            preferred = [lang for lang in ("deu", "chi_sim", "chi_tra", "kor", "fra", "spa", "ita", "por", "rus") if lang in available][:2]
-        if not preferred:
-            preferred = [sorted(available)[0]]
-        return executable, "+".join(preferred)
-    except (OSError, subprocess.SubprocessError):
-        return None
 
-def tesseract_target_char_count(
-    tesseract: tuple[str, str] | None,
-    rgb: np.ndarray,
-    alpha: np.ndarray,
-    target_region: np.ndarray,
-) -> float | None:
-    """Count OCR-recognized characters in OCR boxes and their local halo.
-
-    The RGBA image is composited over white before OCR. Only OCR boxes overlapping
-    the target region count. None means OCR was unavailable or failed, so all six
-    candidates can consistently fall back to the image-based residual measurement.
-    """
-    if tesseract is None:
-        return None
-    executable, languages = tesseract
-    alpha_f = alpha.astype(np.float32)[..., None] / 255.0
-    visible_rgb = np.clip(rgb.astype(np.float32) * alpha_f + 255.0 * (1.0 - alpha_f), 0, 255).astype(np.uint8)
-    temp_name = None
-    try:
-        with tempfile.NamedTemporaryFile(prefix="cleanup_ocr_", suffix=".png", delete=False) as temp:
-            temp_name = temp.name
-        Image.fromarray(visible_rgb, mode="RGB").save(temp_name)
-        h, w = target_region.shape
-
-        def count_from_psm(psm: str) -> float | None:
-            proc = subprocess.run(
-                [executable, temp_name, "stdout", "-l", languages, "--oem", "1", "--psm", psm, "tsv"],
-                capture_output=True, text=True, timeout=25, check=False,
-            )
-            if proc.returncode != 0 or not proc.stdout.strip():
-                return None
-            count = 0.0
-            reader = csv.DictReader(io.StringIO(proc.stdout), delimiter="\t")
-            for row in reader:
-                if row.get("level") != "5":
-                    continue
-                token = (row.get("text") or "").strip()
-                chars = sum(ch.isalnum() for ch in token)
-                if chars == 0:
-                    continue
-                try:
-                    confidence = float(row.get("conf", "-1"))
-                    x, y = int(row.get("left", "0")), int(row.get("top", "0"))
-                    tw, th = int(row.get("width", "0")), int(row.get("height", "0"))
-                except (TypeError, ValueError):
-                    continue
-                if confidence < 5 or tw <= 0 or th <= 0:
-                    continue
-                x0, y0, x1, y1 = max(0, x), max(0, y), min(w, x + tw), min(h, y + th)
-                if x0 >= x1 or y0 >= y1:
-                    continue
-                overlap = float(np.mean(target_region[y0:y1, x0:x1]))
-                cx = min(max(x + tw // 2, 0), w - 1)
-                cy = min(max(y + th // 2, 0), h - 1)
-                if not target_region[cy, cx] and overlap < 0.15:
-                    continue
-                count += chars * float(np.clip(confidence / 100.0, 0.15, 1.0))
-            return count
-
-        # Sparse-text mode fits manga pages; block mode rescues small/short text
-        # that sparse mode sometimes misses. Take the larger count, not their sum.
-        sparse_count = count_from_psm("11")
-        block_count = count_from_psm("6")
-        usable_counts = [value for value in (sparse_count, block_count) if value is not None]
-        return max(usable_counts) if usable_counts else None
-    except (OSError, subprocess.SubprocessError):
-        return None
-    finally:
-        if temp_name:
-            try:
-                Path(temp_name).unlink(missing_ok=True)
-            except OSError:
-                pass

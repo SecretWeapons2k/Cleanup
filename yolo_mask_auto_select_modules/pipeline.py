@@ -20,10 +20,18 @@ from .cli import parse_args
 from .config import *
 from .debug_output import build_debug_mask_overlay, save_debug_contact_sheet, save_debug_side_by_side_sheet
 from .io_utils import (
-    choose_output_dir, choose_random_sample, discover_sources, discover_tesseract,
-    find_iopaint, image_name_from, make_box_only_mask, read_anchor_csv,
-    read_box_mask, read_routing_rows, remove_small_alpha_islands, rgb_array,
-    tesseract_target_char_count, write_filtered_anchors,
+    choose_output_dir,
+    choose_random_sample,
+    discover_sources,
+    find_iopaint,
+    image_name_from,
+    make_box_only_mask,
+    read_anchor_csv,
+    read_box_mask,
+    read_routing_rows,
+    remove_small_alpha_islands,
+    rgb_array,
+    write_filtered_anchors,
 )
 from .reports import write_csv_with_union_fields
 from .scoring import (
@@ -99,7 +107,6 @@ def main() -> int:
 
         iopaint = find_iopaint()
         output_dir = choose_output_dir(args.output, project)
-        residual_ocr = discover_tesseract()
     except Exception as exc:
         print(f"ERROR: {type(exc).__name__}: {exc}", file=sys.stderr)
         return 2
@@ -370,34 +377,16 @@ def main() -> int:
                         final_composites[cid] = (f_rgb, f_alpha)
                         alpha_postprocess_by_candidate[cid] = a_meta
 
-                    # OCR Check
-                    dist_to_box = cv2.distanceTransform((~box_mask).astype(np.uint8), cv2.DIST_L2, cv2.DIST_MASK_PRECISE)
-                    ocr_region = dist_to_box <= 10.000001
-                    src_ocr = tesseract_target_char_count(residual_ocr, original_rgb, original_alpha, ocr_region)
-                    cand_ocr: dict[int | str, float | None] = {}
-                    if residual_ocr is not None and src_ocr is not None and src_ocr >= 3.0:
-                        for cid in candidate_ids:
-                            c_rgb, c_alpha = final_composites[cid]
-                            cand_ocr[cid] = tesseract_target_char_count(residual_ocr, c_rgb, c_alpha, ocr_region)
-                        if any(v is None for v in cand_ocr.values()):
-                            cand_ocr = {cid: None for cid in candidate_ids}
-                    else:
-                        cand_ocr = {cid: None for cid in candidate_ids}
-                    ocr_usable = src_ocr is not None and src_ocr >= 3.0 and all(cand_ocr[cid] is not None for cid in candidate_ids)
-
                     for cid in candidate_ids:
                         c_rgb, c_alpha = final_composites[cid]
                         c_mask = candidate_masks[cid]
-                        ocr_ratio = float(np.clip(cand_ocr[cid] / max(src_ocr, 1e-6), 0.0, 1.0)) if ocr_usable else None
                         metrics = score_candidate(
                             original_rgb, original_alpha, c_rgb, c_alpha,
                             c_mask, scoring_envelope, box_mask, body_box_mask,
-                            yolo_reference_mask, ocr_residual_ratio=ocr_ratio,
+                            yolo_reference_mask,
                             outline_leak_precomputed=outline_leak_cache[(name, cid)],
                         )
                         metrics.update(alpha_postprocess_by_candidate[cid])
-                        metrics["ocr_source_char_count"] = float(src_ocr) if ocr_usable else float("nan")
-                        metrics["ocr_candidate_char_count"] = float(cand_ocr[cid]) if ocr_usable else float("nan")
                         scored.append((metrics["score"], cid, c_mask, metrics))
 
                         final_rgba = np.dstack((c_rgb, c_alpha)).astype(np.uint8)
