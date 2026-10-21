@@ -1,0 +1,15 @@
+Seed: 20261018
+Requested images: 10
+Minimum M-series: 3
+Selected M-series: 3
+
+l011_034.png
+m008_012.png
+q001_000.png
+m004_015.png
+q000_000.png
+m005_015.png
+f001_000.png
+f002_004.png
+l007_008.png
+a003_001.png

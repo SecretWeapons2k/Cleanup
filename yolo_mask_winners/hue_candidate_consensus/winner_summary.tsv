@@ -1,0 +1,15 @@
+case	candidate_count	score_winner	score	small_blob_count	small_blob_area_px	rare_area_px	common_area_px
+m003_009	10	distance_10px	0.429339	5	43	0	36
+m003_014	10	distance_10px	0.419634	3	30	0	30
+m004_003	10	distance_10px	0.438058	0	0	0	0
+m004_004	10	distance_10px	0.468765	4	10	0	10
+a003_001	2	box_only	0.13908	0	0	0	0
+f001_000	2	box_only	0.472067	4	15	15	0
+f002_004	2	smart_ink	0.555997	0	0	0	0
+l007_008	8	box_only	0.0	0	0	0	0
+l011_034	2	smart_ink	0.252486	0	0	0	0
+m004_015	8	distance_08px	0.569538	0	0	0	0
+m005_015	8	distance_10px	0.342611	0	0	0	0
+m008_012	8	distance_00px	0.372896	0	0	0	0
+q000_000	8	box_only	0.439534	0	0	0	0
+q001_000	8	distance_00px	0.016436	0	0	0	0
