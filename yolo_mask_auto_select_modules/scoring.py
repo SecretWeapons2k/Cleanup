@@ -826,15 +826,14 @@ def score_candidate(
     candidate_nontext_region = mask & source_visible & ~text_corridor
 
     contour_debug: dict[str, float] = {}
-    contour_displacement, contour_orientation_loss = sprite_contour_metrics(
+    candidate_contour_displacement, contour_orientation_loss = sprite_contour_metrics(
         original_rgb, final_rgb, original_alpha, final_alpha,
         candidate_nontext_region, available_nontext_region,
         diagnostics=contour_debug,
     )
 
-    # ZUSÄTZLICHE DIAGNOSTIK:
-    # Alle Kandidaten zusätzlich im selben räumlichen Bereich bewerten.
-    # Die bisherige kandidatenabhängige Konturwertung bleibt unverändert.
+    # Gemeinsame Konturwertung: Alle Kandidaten im selben räumlichen Bereich.
+    # Die kandidatenabhängige Konturwertung bleibt als Diagnosewert erhalten.
     common_contour_region = (
         np.asarray(scoring_envelope, dtype=bool)
         & available_nontext_region
@@ -868,6 +867,10 @@ def score_candidate(
         },
     }
 
+
+    # Produktive Konturverschiebung auf gemeinsamer Vergleichsregion.
+    # Die Orientierungskomponente bleibt unverändert.
+    contour_displacement = common_contour_displacement
 
     _src_gx, _src_gy, src_mag = gradient_features(original_rgb)
     _fin_gx, _fin_gy, fin_mag = gradient_features(final_rgb)
@@ -931,6 +934,8 @@ def score_candidate(
         **leak,
         **contour_debug,
         **common_contour_components,
+        "diagnostic_candidate_contour_displacement_ratio":
+            candidate_contour_displacement,
         "sprite_contour_displacement_ratio": contour_displacement,
         "sprite_contour_orientation_loss_ratio": contour_orientation_loss,
         "sprite_texture_distortion_ratio": texture_distortion,
