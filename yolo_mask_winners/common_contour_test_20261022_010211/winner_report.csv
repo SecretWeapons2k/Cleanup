@@ -1,0 +1,5 @@
+﻿image,route,routing_audit_suggestion,selected_distance_px,selected_score,selected_text_quality_score,selected_structure_score,best_text_quality_score,text_quality_tolerance,outline_leak_score,residual_inside_box_ratio,source_transparent_ratio,box_only_rescue_applied,box_only_rescue_reason_code,box_only_rescue_final_text_advantage,box_only_rescue_inside_detail_advantage,reason
+m003_009.png,YOLO_CONF005_AUTO_SELECTED,YOLO_CANDIDATE,0,0.358052,0.480026,0.358052,0.468072,0.020000,0.041092,0.549636,0.420637,0,0,0.000000,0.000000,best two-stage score
+m003_014.png,YOLO_CONF005_AUTO_SELECTED,YOLO_CANDIDATE,0,0.411104,0.499164,0.411104,0.497060,0.020000,0.022216,0.544688,0.420637,0,0,0.000000,0.000000,best two-stage score
+m004_003.png,YOLO_CONF005_AUTO_SELECTED,YOLO_CANDIDATE,0,0.369418,0.488550,0.369418,0.477449,0.020000,0.045418,0.548681,0.420637,0,0,0.000000,0.000000,best two-stage score
+m004_004.png,YOLO_CONF005_AUTO_SELECTED,YOLO_CANDIDATE,0,0.278140,0.502416,0.278140,0.494927,0.020000,0.011271,0.531943,0.420637,0,0,0.000000,0.000000,best two-stage score
