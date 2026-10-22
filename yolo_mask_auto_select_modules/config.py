@@ -90,6 +90,12 @@ BOX_ONLY_RESCUE_MIN_YOLO_LEAK_SCORE = 0.08
 BOX_ONLY_RESCUE_MIN_YOLO_INSIDE_RESIDUAL = 0.10
 BOX_ONLY_RESCUE_INSIDE_DETAIL_ADVANTAGE = 0.025
 
+# Sekundäre Auswahlregel: kleine verbliebene Textreste nur bei nahezu gleichem Struktur-Score
+# Ein saubererer Kandidat darf den strukturell besten Kandidaten nur innerhalb dieser Toleranz ersetzen.
+RESIDUAL_MICRO_COMPONENT_MAX_AREA = 24
+RESIDUAL_SPOT_STRUCTURE_TOLERANCE = 0.05
+RESIDUAL_SPOT_MIN_AREA_REDUCTION_PX = 2.0
+
 # Multi-Scale Blob-Erkennung gegen Zensurbalken & Verfärbungen
 RESIDUAL_BLOB_VISUAL_WEIGHT = 0.30
 RESIDUAL_BLOB_LUMA_SCALE = 32.0

@@ -487,6 +487,18 @@ def main() -> int:
                             rescue_reason_code,
                             f"BOX_ONLY rescue: unknown reason code {rescue_reason_code}",
                         )
+                    elif bool(best_metrics.get("residual_spot_tiebreak_applied", 0.0)):
+                        area_reduction = float(
+                            best_metrics.get("residual_spot_tiebreak_area_reduction", 0.0)
+                        )
+                        structure_margin = float(
+                            best_metrics.get("residual_spot_tiebreak_structure_margin", 0.0)
+                        )
+                        rsn = (
+                            "residual micro-component tie-break: "
+                            f"area reduced by {area_reduction:.0f}px; "
+                            f"structure cost +{structure_margin:.3f}"
+                        )
                     else:
                         rsn = "best two-stage score"
 

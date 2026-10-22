@@ -4,7 +4,11 @@ from __future__ import annotations
 import unittest
 import numpy as np
 
-from yolo_mask_auto_select_modules.scoring import _retained_detail_ratio, select_candidate
+from yolo_mask_auto_select_modules.scoring import (
+    _retained_detail_ratio,
+    residual_micro_component_metrics,
+    select_candidate,
+)
 from yolo_mask_routing_audit import body_box_coverage_metrics
 
 
@@ -71,6 +75,91 @@ class MeaningfulBodyCoverageTests(unittest.TestCase):
         result = body_box_coverage_metrics(mask, self.detail, self.alpha, self.box)
         self.assertTrue(result["meaningfully_covered"])
         self.assertGreaterEqual(result["detail_energy_coverage_ratio"], 0.99)
+
+
+class ResidualMicroComponentTests(unittest.TestCase):
+    def test_counts_small_retained_components_but_excludes_larger_components(self):
+        source = np.full((20, 20), 0.9, dtype=np.float32)
+        final = np.zeros((20, 20), dtype=np.float32)
+        # Two small components with areas 2 and 6 pixels.
+        final[1, 1:3] = 0.9
+        final[5:7, 5:8] = 0.9
+        # A 25-pixel component is outside the configured micro-component range.
+        final[10:15, 10:15] = 0.9
+        region = np.ones((20, 20), dtype=bool)
+        visible = np.ones((20, 20), dtype=bool)
+
+        result = residual_micro_component_metrics(
+            source, final, region, visible, visible,
+            threshold=0.28, max_component_area=24,
+        )
+
+        self.assertEqual(result["residual_micro_component_area"], 8.0)
+        self.assertEqual(result["residual_micro_component_count"], 2.0)
+        self.assertEqual(result["residual_micro_component_peak_area"], 6.0)
+
+    def test_tiebreak_prefers_materially_cleaner_candidate_within_structure_margin(self):
+        def item(candidate, structure, residual_area):
+            metrics = {
+                "text_quality_score": 0.30,
+                "text_quality_base_score": 0.30,
+                "structure_score": structure,
+                "residual_inside_box_ratio": 0.10,
+                "outline_leak_score": 0.0,
+                "max_text_anchor_retained_detail_ratio": 0.10,
+                "residual_micro_component_area": residual_area,
+                "residual_micro_component_count": 1.0 if residual_area else 0.0,
+                "residual_micro_component_peak_area": residual_area,
+            }
+            return (structure, candidate, np.zeros((2, 2), dtype=bool), metrics)
+
+        near = [item(0, 0.200, 7.0), item(2, 0.208, 0.0), item(4, 0.400, 0.0)]
+        winner, _best_text, _tolerance = select_candidate(near)
+        self.assertEqual(winner[1], 2)
+        self.assertEqual(winner[3]["residual_spot_tiebreak_applied"], 1.0)
+        self.assertAlmostEqual(winner[3]["residual_spot_tiebreak_structure_margin"], 0.008)
+        self.assertEqual(winner[3]["residual_spot_tiebreak_area_reduction"], 7.0)
+
+    def test_tiebreak_accepts_lower_micro_area_with_moderate_structure_cost(self):
+        def item(candidate, structure, residual_area):
+            metrics = {
+                "text_quality_score": 0.30,
+                "text_quality_base_score": 0.30,
+                "structure_score": structure,
+                "residual_inside_box_ratio": 0.10,
+                "outline_leak_score": 0.0,
+                "max_text_anchor_retained_detail_ratio": 0.10,
+                "residual_micro_component_area": residual_area,
+                "residual_micro_component_count": 1.0 if residual_area else 0.0,
+                "residual_micro_component_peak_area": residual_area,
+            }
+            return (structure, candidate, np.zeros((2, 2), dtype=bool), metrics)
+
+        # A +0.041 structure cost was visually judged acceptable in the saved candidates.
+        candidates = [item(0, 0.200, 907.0), item(2, 0.241, 813.0), item(4, 0.400, 100.0)]
+        winner, _best_text, _tolerance = select_candidate(candidates)
+        self.assertEqual(winner[1], 2)
+        self.assertEqual(winner[3]["residual_spot_tiebreak_applied"], 1.0)
+        self.assertAlmostEqual(winner[3]["residual_spot_tiebreak_structure_margin"], 0.041)
+        self.assertEqual(winner[3]["residual_spot_tiebreak_area_reduction"], 94.0)
+
+    def test_tiebreak_does_not_accept_excessive_structure_cost(self):
+        def item(candidate, structure, residual_area):
+            metrics = {
+                "text_quality_score": 0.30,
+                "text_quality_base_score": 0.30,
+                "structure_score": structure,
+                "residual_inside_box_ratio": 0.10,
+                "outline_leak_score": 0.0,
+                "max_text_anchor_retained_detail_ratio": 0.10,
+                "residual_micro_component_area": residual_area,
+            }
+            return (structure, candidate, np.zeros((2, 2), dtype=bool), metrics)
+
+        candidates = [item(0, 0.200, 7.0), item(2, 0.270, 0.0), item(4, 0.400, 0.0)]
+        winner, _best_text, _tolerance = select_candidate(candidates)
+        self.assertEqual(winner[1], 0)
+        self.assertEqual(winner[3]["residual_spot_tiebreak_applied"], 0.0)
 
 
 if __name__ == "__main__":

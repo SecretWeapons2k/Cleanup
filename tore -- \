@@ -1,0 +1,188 @@
+[1mdiff --git a/yolo_mask_auto_select_modules/scoring.py b/yolo_mask_auto_select_modules/scoring.py[m
+[1mindex 8761e4d..c9032d1 100644[m
+[1m--- a/yolo_mask_auto_select_modules/scoring.py[m
+[1m+++ b/yolo_mask_auto_select_modules/scoring.py[m
+[36m@@ -363,10 +363,65 @@[m [mdef residual_blob_contrast_ratio([m
+ [m
+     ac_excess = max(0.0, target_signal - context_signal)[m
+     ac_blob = float(np.clip(ac_excess / max(RESIDUAL_BLOB_FULL_SCALE, 1e-6), 0.0, 1.0))[m
+     return max(ac_blob, dc_smudge_penalty)[m
+ [m
+[32m+[m[32mdef residual_micro_component_metrics([m
+[32m+[m[32m    source_detail: np.ndarray,[m
+[32m+[m[32m    final_detail: np.ndarray,[m
+[32m+[m[32m    text_region: np.ndarray,[m
+[32m+[m[32m    source_visible: np.ndarray,[m
+[32m+[m[32m    final_visible: np.ndarray,[m
+[32m+[m[32m    threshold: float = OUTLINE_LEAK_DETAIL_THRESHOLD,[m
+[32m+[m[32m    max_component_area: int = RESIDUAL_MICRO_COMPONENT_MAX_AREA,[m
+[32m+[m[32m) -> dict[str, float]:[m
+[32m+[m[32m    """Measure tiny high-contrast details retained at source-text locations.[m
+[32m+[m
+[32m+[m[32m    Aggregate text-detail metrics can dilute isolated small remnants. This[m
+[32m+[m[32m    metric counts connected components that are high-detail in both source[m
+[32m+[m[32m    and candidate, inside the OCR-linked text corridor. Components larger[m
+[32m+[m[32m    than max_component_area remain covered by the existing aggregate metrics.[m
+[32m+[m[32m    """[m
+[32m+[m[32m    target = ([m
+[32m+[m[32m        np.asarray(text_region, dtype=bool)[m
+[32m+[m[32m        & np.asarray(source_visible, dtype=bool)[m
+[32m+[m[32m        & np.asarray(final_visible, dtype=bool)[m
+[32m+[m[32m    )[m
+[32m+[m[32m    retained_components = ([m
+[32m+[m[32m        target[m
+[32m+[m[32m        & (np.asarray(source_detail) >= float(threshold))[m
+[32m+[m[32m        & (np.asarray(final_detail) >= float(threshold))[m
+[32m+[m[32m    )[m
+[32m+[m
+[32m+[m[32m    if not np.any(retained_components):[m
+[32m+[m[32m        return {[m
+[32m+[m[32m            "residual_micro_component_area": 0.0,[m
+[32m+[m[32m            "residual_micro_component_count": 0.0,[m
+[32m+[m[32m            "residual_micro_component_peak_area": 0.0,[m
+[32m+[m[32m        }[m
+[32m+[m
+[32m+[m[32m    component_count, _labels, stats, _centroids = cv2.connectedComponentsWithStats([m
+[32m+[m[32m        retained_components.astype(np.uint8),[m
+[32m+[m[32m        connectivity=8,[m
+[32m+[m[32m    )[m
+[32m+[m[32m    if component_count <= 1:[m
+[32m+[m[32m        small_areas = np.empty((0,), dtype=np.int32)[m
+[32m+[m[32m    else:[m
+[32m+[m[32m        areas = stats[1:, cv2.CC_STAT_AREA][m
+[32m+[m[32m        small_areas = areas[[m
+[32m+[m[32m            (areas > 0) & (areas <= max(1, int(max_component_area)))[m
+[32m+[m[32m        ][m
+[32m+[m
+[32m+[m[32m    return {[m
+[32m+[m[32m        "residual_micro_component_area": float(np.sum(small_areas)),[m
+[32m+[m[32m        "residual_micro_component_count": float(small_areas.size),[m
+[32m+[m[32m        "residual_micro_component_peak_area": ([m
+[32m+[m[32m            float(np.max(small_areas)) if small_areas.size else 0.0[m
+[32m+[m[32m        ),[m
+[32m+[m[32m    }[m
+[32m+[m
+[32m+[m
+ def estimate_ocr_linked_text_corridor([m
+     source_detail: np.ndarray,[m
+     box_mask: np.ndarray,[m
+     near_ring: np.ndarray,[m
+     yolo_reference_mask: np.ndarray,[m
+[36m@@ -760,10 +815,18 @@[m [mdef score_candidate([m
+         corridor_inside_energy = inside_energy[m
+         corridor_inside_peak = inside_peak[m
+         corridor_inside_residual = inside_residual[m
+         corridor_inside_fallback_used = 1.0[m
+ [m
+[32m+[m[32m    micro_component_metrics = residual_micro_component_metrics([m
+[32m+[m[32m        source_detail,[m
+[32m+[m[32m        final_detail,[m
+[32m+[m[32m        box_expanded & text_corridor,[m
+[32m+[m[32m        source_visible,[m
+[32m+[m[32m        final_visible,[m
+[32m+[m[32m    )[m
+[32m+[m
+     halo_text_region = near_ring & text_corridor & ~box_mask[m
+     if np.any(halo_text_region):[m
+         halo_energy = _retained_detail_ratio(source_detail, final_detail, halo_text_region, source_visible, final_visible)[m
+         halo_peak = _peak_residual_ratio(source_detail, final_detail, halo_text_region, source_visible, final_visible)[m
+         halo_residual = float(np.clip(0.55 * halo_energy + 0.45 * halo_peak, 0.0, 1.0))[m
+[36m@@ -930,10 +993,11 @@[m [mdef score_candidate([m
+         "residual_blob_contrast_ratio": residual_blob,[m
+         "visual_text_residual_score": visual_text_residual,[m
+         "text_quality_base_score": float(np.clip(base_text_quality, 0.0, 1.0)),[m
+         "text_quality_score": text_quality_score,[m
+         **leak,[m
+[32m+[m[32m        **micro_component_metrics,[m
+         **contour_debug,[m
+         **common_contour_components,[m
+         "diagnostic_candidate_contour_displacement_ratio":[m
+             candidate_contour_displacement,[m
+         "sprite_contour_displacement_ratio": contour_displacement,[m
+[36m@@ -1147,17 +1211,14 @@[m [mdef select_candidate([m
+ [m
+         default_eligible = anchor_eligible and ([m
+             text_eligible or anchor_fallback_mode[m
+         )[m
+ [m
+[31m-        # Auch Box-Only muss die lokale Schranke einhalten.[m
+[32m+[m[32m        # Eine evidenzbasierte BOX_ONLY-Rescue darf die globale Textscore-Grenze[m
+[32m+[m[32m        # übergehen. Die lokale Anker-/Detail-Schranke bleibt weiterhin aktiv.[m
+         if box_rescue:[m
+[31m-            eligible = ([m
+[31m-                candidate_id == "BOX_ONLY"[m
+[31m-                and anchor_eligible[m
+[31m-                and (text_eligible or anchor_fallback_mode)[m
+[31m-            )[m
+[32m+[m[32m            eligible = candidate_id == "BOX_ONLY" and anchor_eligible[m
+         else:[m
+             eligible = default_eligible[m
+ [m
+         metrics["anchor_detail_eligible"] = ([m
+             1.0 if anchor_eligible else 0.0[m
+[36m@@ -1177,10 +1238,13 @@[m [mdef select_candidate([m
+         metrics["box_only_rescue_best_yolo_leak_score"] = rescue_yolo_leak[m
+         metrics["box_only_rescue_inside_detail_advantage"] = rescue_inside_advantage[m
+         metrics["box_only_rescue_box_inside_residual"] = rescue_box_inside_residual[m
+         metrics["box_only_rescue_best_yolo_inside_residual"] = rescue_best_yolo_inside_residual[m
+         metrics["box_only_rescue_reason_code"] = rescue_reason[m
+[32m+[m[32m        metrics["residual_spot_tiebreak_applied"] = 0.0[m
+[32m+[m[32m        metrics["residual_spot_tiebreak_structure_margin"] = 0.0[m
+[32m+[m[32m        metrics["residual_spot_tiebreak_area_reduction"] = 0.0[m
+         metrics["score"] = metrics["structure_score"] if eligible else 2.0 + metrics["structure_score"][m
+ [m
+     def tie_break(candidate_id: int | str) -> tuple[int, int]:[m
+         if isinstance(candidate_id, int):[m
+             return (0, candidate_id)[m
+[36m@@ -1189,6 +1253,50 @@[m [mdef select_candidate([m
+         return (2, 9999)[m
+ [m
+     winner = min(scored, key=lambda item: ([m
+         item[3]["score"], item[3]["structure_score"], item[3]["text_quality_score"], tie_break(item[1])[m
+     ))[m
+[32m+[m[32m    # Konservative Zweitentscheidung: Bei nahezu gleichem Struktur-Score[m
+[32m+[m[32m    # darf ein Kandidat mit deutlich weniger kleinen Textresten gewinnen.[m
+[32m+[m[32m    baseline_winner = winner[m
+[32m+[m[32m    baseline_structure = float(baseline_winner[3]["structure_score"])[m
+[32m+[m[32m    baseline_micro_area = float([m
+[32m+[m[32m        baseline_winner[3].get("residual_micro_component_area", 0.0)[m
+[32m+[m[32m    )[m
+[32m+[m[32m    near_optimal = [[m
+[32m+[m[32m        item[m
+[32m+[m[32m        for item in scored[m
+[32m+[m[32m        if float(item[3].get("score", 2.0)) < 2.0[m
+[32m+[m[32m        and float(item[3]["structure_score"])[m
+[32m+[m[32m        <= baseline_structure + RESIDUAL_SPOT_STRUCTURE_TOLERANCE + 1e-9[m
+[32m+[m[32m    ][m
+[32m+[m[32m    if near_optimal:[m
+[32m+[m[32m        cleanest_area = min([m
+[32m+[m[32m            float(item[3].get("residual_micro_component_area", 0.0))[m
+[32m+[m[32m            for item in near_optimal[m
+[32m+[m[32m        )[m
+[32m+[m[32m        area_reduction = baseline_micro_area - cleanest_area[m
+[32m+[m[32m        if area_reduction >= RESIDUAL_SPOT_MIN_AREA_REDUCTION_PX:[m
+[32m+[m[32m            cleaner_candidates = [[m
+[32m+[m[32m                item[m
+[32m+[m[32m                for item in near_optimal[m
+[32m+[m[32m                if float(item[3].get("residual_micro_component_area", 0.0))[m
+[32m+[m[32m                == cleanest_area[m
+[32m+[m[32m            ][m
+[32m+[m[32m            cleaner_winner = min(cleaner_candidates, key=lambda item: ([m
+[32m+[m[32m                item[3]["structure_score"],[m
+[32m+[m[32m                item[3]["text_quality_score"],[m
+[32m+[m[32m                tie_break(item[1]),[m
+[32m+[m[32m            ))[m
+[32m+[m[32m            if cleaner_winner[1] != baseline_winner[1]:[m
+[32m+[m[32m                cleaner_winner[3]["residual_spot_tiebreak_applied"] = 1.0[m
+[32m+[m[32m                cleaner_winner[3]["residual_spot_tiebreak_structure_margin"] = max([m
+[32m+[m[32m                    0.0,[m
+[32m+[m[32m                    float(cleaner_winner[3]["structure_score"]) - baseline_structure,[m
+[32m+[m[32m                )[m
+[32m+[m[32m                cleaner_winner[3]["residual_spot_tiebreak_area_reduction"] = float([m
+[32m+[m[32m                    area_reduction[m
+[32m+[m[32m                )[m
+[32m+[m[32m                winner = cleaner_winner[m
+[32m+[m
+[32m+[m
+     return winner, float(best_text), tolerance[m
+\ No newline at end of file[m

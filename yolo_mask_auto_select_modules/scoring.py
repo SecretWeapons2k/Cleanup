@@ -365,6 +365,61 @@ def residual_blob_contrast_ratio(
     ac_blob = float(np.clip(ac_excess / max(RESIDUAL_BLOB_FULL_SCALE, 1e-6), 0.0, 1.0))
     return max(ac_blob, dc_smudge_penalty)
 
+def residual_micro_component_metrics(
+    source_detail: np.ndarray,
+    final_detail: np.ndarray,
+    text_region: np.ndarray,
+    source_visible: np.ndarray,
+    final_visible: np.ndarray,
+    threshold: float = OUTLINE_LEAK_DETAIL_THRESHOLD,
+    max_component_area: int = RESIDUAL_MICRO_COMPONENT_MAX_AREA,
+) -> dict[str, float]:
+    """Measure tiny high-contrast details retained at source-text locations.
+
+    Aggregate text-detail metrics can dilute isolated small remnants. This
+    metric counts connected components that are high-detail in both source
+    and candidate, inside the OCR-linked text corridor. Components larger
+    than max_component_area remain covered by the existing aggregate metrics.
+    """
+    target = (
+        np.asarray(text_region, dtype=bool)
+        & np.asarray(source_visible, dtype=bool)
+        & np.asarray(final_visible, dtype=bool)
+    )
+    retained_components = (
+        target
+        & (np.asarray(source_detail) >= float(threshold))
+        & (np.asarray(final_detail) >= float(threshold))
+    )
+
+    if not np.any(retained_components):
+        return {
+            "residual_micro_component_area": 0.0,
+            "residual_micro_component_count": 0.0,
+            "residual_micro_component_peak_area": 0.0,
+        }
+
+    component_count, _labels, stats, _centroids = cv2.connectedComponentsWithStats(
+        retained_components.astype(np.uint8),
+        connectivity=8,
+    )
+    if component_count <= 1:
+        small_areas = np.empty((0,), dtype=np.int32)
+    else:
+        areas = stats[1:, cv2.CC_STAT_AREA]
+        small_areas = areas[
+            (areas > 0) & (areas <= max(1, int(max_component_area)))
+        ]
+
+    return {
+        "residual_micro_component_area": float(np.sum(small_areas)),
+        "residual_micro_component_count": float(small_areas.size),
+        "residual_micro_component_peak_area": (
+            float(np.max(small_areas)) if small_areas.size else 0.0
+        ),
+    }
+
+
 def estimate_ocr_linked_text_corridor(
     source_detail: np.ndarray,
     box_mask: np.ndarray,
@@ -762,6 +817,14 @@ def score_candidate(
         corridor_inside_residual = inside_residual
         corridor_inside_fallback_used = 1.0
 
+    micro_component_metrics = residual_micro_component_metrics(
+        source_detail,
+        final_detail,
+        box_expanded & text_corridor,
+        source_visible,
+        final_visible,
+    )
+
     halo_text_region = near_ring & text_corridor & ~box_mask
     if np.any(halo_text_region):
         halo_energy = _retained_detail_ratio(source_detail, final_detail, halo_text_region, source_visible, final_visible)
@@ -932,6 +995,7 @@ def score_candidate(
         "text_quality_base_score": float(np.clip(base_text_quality, 0.0, 1.0)),
         "text_quality_score": text_quality_score,
         **leak,
+        **micro_component_metrics,
         **contour_debug,
         **common_contour_components,
         "diagnostic_candidate_contour_displacement_ratio":
@@ -1149,13 +1213,10 @@ def select_candidate(
             text_eligible or anchor_fallback_mode
         )
 
-        # Auch Box-Only muss die lokale Schranke einhalten.
+        # Eine evidenzbasierte BOX_ONLY-Rescue darf die globale Textscore-Grenze
+        # übergehen. Die lokale Anker-/Detail-Schranke bleibt weiterhin aktiv.
         if box_rescue:
-            eligible = (
-                candidate_id == "BOX_ONLY"
-                and anchor_eligible
-                and (text_eligible or anchor_fallback_mode)
-            )
+            eligible = candidate_id == "BOX_ONLY" and anchor_eligible
         else:
             eligible = default_eligible
 
@@ -1179,6 +1240,9 @@ def select_candidate(
         metrics["box_only_rescue_box_inside_residual"] = rescue_box_inside_residual
         metrics["box_only_rescue_best_yolo_inside_residual"] = rescue_best_yolo_inside_residual
         metrics["box_only_rescue_reason_code"] = rescue_reason
+        metrics["residual_spot_tiebreak_applied"] = 0.0
+        metrics["residual_spot_tiebreak_structure_margin"] = 0.0
+        metrics["residual_spot_tiebreak_area_reduction"] = 0.0
         metrics["score"] = metrics["structure_score"] if eligible else 2.0 + metrics["structure_score"]
 
     def tie_break(candidate_id: int | str) -> tuple[int, int]:
@@ -1191,4 +1255,48 @@ def select_candidate(
     winner = min(scored, key=lambda item: (
         item[3]["score"], item[3]["structure_score"], item[3]["text_quality_score"], tie_break(item[1])
     ))
+    # Konservative Zweitentscheidung: Bei nahezu gleichem Struktur-Score
+    # darf ein Kandidat mit deutlich weniger kleinen Textresten gewinnen.
+    baseline_winner = winner
+    baseline_structure = float(baseline_winner[3]["structure_score"])
+    baseline_micro_area = float(
+        baseline_winner[3].get("residual_micro_component_area", 0.0)
+    )
+    near_optimal = [
+        item
+        for item in scored
+        if float(item[3].get("score", 2.0)) < 2.0
+        and float(item[3]["structure_score"])
+        <= baseline_structure + RESIDUAL_SPOT_STRUCTURE_TOLERANCE + 1e-9
+    ]
+    if near_optimal:
+        cleanest_area = min(
+            float(item[3].get("residual_micro_component_area", 0.0))
+            for item in near_optimal
+        )
+        area_reduction = baseline_micro_area - cleanest_area
+        if area_reduction >= RESIDUAL_SPOT_MIN_AREA_REDUCTION_PX:
+            cleaner_candidates = [
+                item
+                for item in near_optimal
+                if float(item[3].get("residual_micro_component_area", 0.0))
+                == cleanest_area
+            ]
+            cleaner_winner = min(cleaner_candidates, key=lambda item: (
+                item[3]["structure_score"],
+                item[3]["text_quality_score"],
+                tie_break(item[1]),
+            ))
+            if cleaner_winner[1] != baseline_winner[1]:
+                cleaner_winner[3]["residual_spot_tiebreak_applied"] = 1.0
+                cleaner_winner[3]["residual_spot_tiebreak_structure_margin"] = max(
+                    0.0,
+                    float(cleaner_winner[3]["structure_score"]) - baseline_structure,
+                )
+                cleaner_winner[3]["residual_spot_tiebreak_area_reduction"] = float(
+                    area_reduction
+                )
+                winner = cleaner_winner
+
+
     return winner, float(best_text), tolerance
