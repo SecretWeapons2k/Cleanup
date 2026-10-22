@@ -427,6 +427,7 @@ def estimate_ocr_linked_text_corridor(
     yolo_reference_mask: np.ndarray,
     threshold: float = INK_STRENGTH_THRESHOLD,
     extra_padding: int = 2,
+    source_visible: np.ndarray | None = None,
     diagnostics: dict[str, float] | None = None,
 ) -> np.ndarray:
     """Find text-linked detail, with a narrow fallback for OCR boxes lacking linked ink.
@@ -437,6 +438,14 @@ def estimate_ocr_linked_text_corridor(
     one-pixel edge margin. Do not fall back to the entire OCR box: its other
     pixels may belong to sprite structure that must remain protected.
     """
+    visible_mask = (
+        np.ones(box_mask.shape, dtype=bool)
+        if source_visible is None
+        else np.asarray(source_visible, dtype=bool)
+    )
+    if visible_mask.shape != box_mask.shape:
+        raise ValueError("source_visible and box_mask must have identical shapes")
+
     detail_binary = (source_detail >= threshold).astype(np.uint8)
     close_kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (3, 3))
     detail_binary = cv2.morphologyEx(detail_binary, cv2.MORPH_CLOSE, close_kernel)
@@ -487,11 +496,13 @@ def estimate_ocr_linked_text_corridor(
 
     for anchor_id in range(1, anchor_count):
         anchor_region = anchor_labels == anchor_id
-        current_energy = float(np.sum(source_detail[linked & anchor_region]))
+        current_energy = float(
+            np.sum(source_detail[linked & anchor_region & visible_mask])
+        )
         if current_energy > 1e-6:
             continue
 
-        fallback_core = (detail_binary > 0) & anchor_region
+        fallback_core = (detail_binary > 0) & anchor_region & visible_mask
         core_count = int(np.count_nonzero(fallback_core))
         if core_count == 0:
             continue
@@ -523,7 +534,9 @@ def estimate_ocr_linked_text_corridor(
                 np.count_nonzero(added_pixels)
             ),
             "text_corridor_fallback_added_detail_pixels": float(
-                np.count_nonzero(added_pixels & (source_detail >= threshold))
+                np.count_nonzero(
+                    added_pixels & visible_mask & (source_detail >= threshold)
+                )
             ),
         })
 
@@ -740,6 +753,7 @@ def score_candidate(
     text_corridor = estimate_ocr_linked_text_corridor(
         source_detail, box_mask, near_ring, yolo_reference_mask,
         extra_padding=TEXT_CORRIDOR_DILATION_PX,
+        source_visible=source_visible,
         diagnostics=corridor_fallback_diagnostics,
     )
     if not np.any(text_corridor):
