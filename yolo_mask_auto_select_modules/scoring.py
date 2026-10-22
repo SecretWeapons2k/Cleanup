@@ -427,32 +427,106 @@ def estimate_ocr_linked_text_corridor(
     yolo_reference_mask: np.ndarray,
     threshold: float = INK_STRENGTH_THRESHOLD,
     extra_padding: int = 2,
+    diagnostics: dict[str, float] | None = None,
 ) -> np.ndarray:
+    """Find text-linked detail, with a narrow fallback for OCR boxes lacking linked ink.
+
+    Normal path: use high-contrast connected components linked to the YOLO mask.
+    Fallback path: if an individual OCR box has no source-detail energy in that
+    corridor, include only thresholded detail components inside that box plus a
+    one-pixel edge margin. Do not fall back to the entire OCR box: its other
+    pixels may belong to sprite structure that must remain protected.
+    """
     detail_binary = (source_detail >= threshold).astype(np.uint8)
     close_kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (3, 3))
     detail_binary = cv2.morphologyEx(detail_binary, cv2.MORPH_CLOSE, close_kernel)
     component_count, labels = cv2.connectedComponents(detail_binary, connectivity=8)
-    if component_count <= 1:
-        return np.zeros(box_mask.shape, dtype=bool)
 
-    link_radius = max(1, min(extra_padding, 3))
-    link_size = 2 * link_radius + 1
-    link_kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (link_size, link_size))
-    linked_yolo_core = cv2.dilate(yolo_reference_mask.astype(np.uint8), link_kernel) > 0
-    seed = (detail_binary > 0) & box_mask & linked_yolo_core
-    component_labels = np.unique(labels[seed])
-    component_labels = component_labels[component_labels != 0]
-    if component_labels.size == 0:
-        return np.zeros(box_mask.shape, dtype=bool)
+    allowed_region = np.asarray(box_mask, dtype=bool) | np.asarray(near_ring, dtype=bool)
+    linked = np.zeros(box_mask.shape, dtype=bool)
 
-    linked = np.isin(labels, component_labels)
-    allowed_region = box_mask | near_ring
-    linked &= allowed_region
-    if extra_padding > 0 and np.any(linked):
-        size = 2 * extra_padding + 1
-        kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (size, size))
-        linked = cv2.dilate(linked.astype(np.uint8), kernel) > 0
-        linked &= allowed_region
+    if component_count > 1:
+        link_radius = max(1, min(extra_padding, 3))
+        link_size = 2 * link_radius + 1
+        link_kernel = cv2.getStructuringElement(
+            cv2.MORPH_ELLIPSE, (link_size, link_size)
+        )
+        linked_yolo_core = cv2.dilate(
+            yolo_reference_mask.astype(np.uint8), link_kernel
+        ) > 0
+        seed = (detail_binary > 0) & box_mask & linked_yolo_core
+        component_labels = np.unique(labels[seed])
+        component_labels = component_labels[component_labels != 0]
+
+        if component_labels.size:
+            linked = np.isin(labels, component_labels)
+            linked &= allowed_region
+            if extra_padding > 0:
+                size = 2 * extra_padding + 1
+                kernel = cv2.getStructuringElement(
+                    cv2.MORPH_ELLIPSE, (size, size)
+                )
+                linked = cv2.dilate(linked.astype(np.uint8), kernel) > 0
+                linked &= allowed_region
+
+    # Recover only high-detail pixels inside an OCR box when the YOLO-linked
+    # corridor contributes no measurable source-detail energy to that box.
+    # The recovery is restricted to the actual detail components and a 1px
+    # margin around them, never to the whole rectangular OCR anchor.
+    anchor_count, anchor_labels = cv2.connectedComponents(
+        np.asarray(box_mask, dtype=np.uint8), connectivity=8
+    )
+    fallback_mask = np.zeros(box_mask.shape, dtype=bool)
+    fallback_anchor_count = 0
+    fallback_core_pixels = 0
+    padding_px = min(max(int(extra_padding), 0), 1)
+    if padding_px:
+        pad_kernel = cv2.getStructuringElement(
+            cv2.MORPH_ELLIPSE, (2 * padding_px + 1, 2 * padding_px + 1)
+        )
+
+    for anchor_id in range(1, anchor_count):
+        anchor_region = anchor_labels == anchor_id
+        current_energy = float(np.sum(source_detail[linked & anchor_region]))
+        if current_energy > 1e-6:
+            continue
+
+        fallback_core = (detail_binary > 0) & anchor_region
+        core_count = int(np.count_nonzero(fallback_core))
+        if core_count == 0:
+            continue
+
+        fallback_anchor_count += 1
+        fallback_core_pixels += core_count
+
+        if padding_px:
+            local_allowed = cv2.dilate(
+                anchor_region.astype(np.uint8), pad_kernel
+            ) > 0
+            recovered = cv2.dilate(
+                fallback_core.astype(np.uint8), pad_kernel
+            ) > 0
+            recovered &= local_allowed & allowed_region
+        else:
+            recovered = fallback_core & allowed_region
+
+        fallback_mask |= recovered
+
+    added_pixels = fallback_mask & ~linked
+    linked |= fallback_mask
+
+    if diagnostics is not None:
+        diagnostics.update({
+            "text_corridor_fallback_anchor_count": float(fallback_anchor_count),
+            "text_corridor_fallback_core_pixels": float(fallback_core_pixels),
+            "text_corridor_fallback_added_pixels": float(
+                np.count_nonzero(added_pixels)
+            ),
+            "text_corridor_fallback_added_detail_pixels": float(
+                np.count_nonzero(added_pixels & (source_detail >= threshold))
+            ),
+        })
+
     return linked
 
 def outline_leak_metrics(
@@ -662,9 +736,11 @@ def score_candidate(
         max_anchor_id = 0
         max_anchor_retention = 0.0
 
+    corridor_fallback_diagnostics: dict[str, float] = {}
     text_corridor = estimate_ocr_linked_text_corridor(
         source_detail, box_mask, near_ring, yolo_reference_mask,
         extra_padding=TEXT_CORRIDOR_DILATION_PX,
+        diagnostics=corridor_fallback_diagnostics,
     )
     if not np.any(text_corridor):
         fallback_target = box_mask & (source_detail >= OUTLINE_LEAK_DETAIL_THRESHOLD) & source_visible
@@ -996,6 +1072,7 @@ def score_candidate(
         "text_quality_score": text_quality_score,
         **leak,
         **micro_component_metrics,
+        **corridor_fallback_diagnostics,
         **contour_debug,
         **common_contour_components,
         "diagnostic_candidate_contour_displacement_ratio":
