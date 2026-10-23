@@ -1,0 +1,31 @@
+H008_001 structure-edge diagnostic (CPU only)
+Source: /home/secret/Downloads/yabai proj/yabaiproject - Copy/mit_kanji/h008_001.png
+Old corridor pixels: 40325
+Current corridor pixels: 43644
+Fallback-added pixels: 3319
+Fallback-added visible high-detail pixels: 1424
+Structure comparison region pixels: 17758
+Source edges in structure comparison region: 398
+
+candidate: distance_10px
+structure_region_pixels: 17758
+source_edges_in_structure_region: 398
+final_edges_in_structure_region: 831
+source_final_edge_exact_overlap: 385
+contour_displacement_ratio: 0.228548
+contour_orientation_loss_ratio: 0.0
+diagnostic_source_point_count: 398
+diagnostic_final_point_count: 831
+
+candidate: hybrid_d6
+structure_region_pixels: 17758
+source_edges_in_structure_region: 398
+final_edges_in_structure_region: 637
+source_final_edge_exact_overlap: 6
+contour_displacement_ratio: 0.981514
+contour_orientation_loss_ratio: 0.017588
+diagnostic_source_point_count: 398
+diagnostic_final_point_count: 637
+
+Image: /home/secret/Downloads/Cleanup/yolo_mask_winners/cleanup_h008_001_corridor_diagnostic/structure_edges_20261023_043042/h008_001_structure_edges.png
+CSV: /home/secret/Downloads/Cleanup/yolo_mask_winners/cleanup_h008_001_corridor_diagnostic/structure_edges_20261023_043042/structure_edge_counts.csv

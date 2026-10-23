@@ -1,0 +1,23 @@
+H008_001 current-code re-score
+Winner under current selection logic: 10
+Current best text-quality score: 0.441039
+Current text-quality tolerance: 0.020000
+Rebuilt distance-10 mask XOR against stored winner mask: 0
+Rebuilt distance-10 mask IoU against stored winner mask: 1.00000000
+
+candidate | previous score | new score | text quality | structure | eligible | fallback anchors | added detail px
+0 | 2.063181 | 2.130130108587328 | 0.49556761151893414 | 0.13013010858732782 | 0.0 | 5.0 | 1424.0
+2 | 2.064578 | 2.122630977059221 | 0.4883258688101993 | 0.12263097705922117 | 0.0 | 5.0 | 1424.0
+4 | 2.096973 | 2.1620619304488904 | 0.4853878673034633 | 0.16206193044889047 | 0.0 | 5.0 | 1424.0
+6 | 2.124127 | 2.191380765077348 | 0.472664844465856 | 0.19138076507734786 | 0.0 | 5.0 | 1424.0
+8 | 2.147328 | 2.2194979435224766 | 0.4679544942642547 | 0.21949794352247642 | 0.0 | 5.0 | 1424.0
+10 | 0.166205 | 0.23994661639092255 | 0.45939397408915783 | 0.23994661639092255 | 1.0 | 5.0 | 1424.0
+SMART_INK | 2.482230 | 2.300445861624535 | 0.47374236039039563 | 0.3004458616245353 | 0.0 | 5.0 | 1424.0
+HYBRID_D2 | 2.540630 | 0.5188755995111638 | 0.46063953920044143 | 0.5188755995111638 | 1.0 | 5.0 | 1424.0
+HYBRID_D6 | 0.614665 | 0.5981734199742824 | 0.4410388497069772 | 0.5981734199742824 | 1.0 | 5.0 | 1424.0
+BOX_ONLY | 2.521524 | 2.4991587122840264 | 0.46772458026068636 | 0.49915871228402636 | 0.0 | 5.0 | 1424.0
+
+CSV: /home/secret/Downloads/Cleanup/yolo_mask_winners/cleanup_h008_001_corridor_diagnostic/mask_rescore_20261023_040952/h008_001_rescore_current_code.csv
+YOLO audit: /home/secret/Downloads/Cleanup/yolo_mask_winners/cleanup_h008_001_corridor_diagnostic/mask_rescore_20261023_040952/mask_audit
+GPU work: one-image YOLO mask inference only; LaMa was not run.
+Existing cleaned candidate images and original full-run outputs were not modified.
