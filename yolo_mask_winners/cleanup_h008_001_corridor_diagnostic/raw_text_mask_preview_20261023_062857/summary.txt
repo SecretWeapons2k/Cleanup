@@ -1,0 +1,11 @@
+h008_001: Raw Japanese-text mask preview
+Source: /home/secret/Downloads/yabai proj/yabaiproject - Copy/mit_kanji/h008_001.png
+Anchors: /home/secret/Downloads/yabai proj/processed_output/anchors.csv
+Image size: 594 x 125
+OCR boxes: 30
+Local-contrast threshold: 0.28
+Morphological closing: 3x3 rectangle
+ROI inset: 1 px left/right, 2 px top/bottom
+Selected mask pixels: 22795
+Output folder: /home/secret/Downloads/Cleanup/yolo_mask_winners/cleanup_h008_001_corridor_diagnostic/raw_text_mask_preview_20261023_062857
+This is a first-pass mask; pixels are selected by local contrast within OCR boxes, not by semantic glyph recognition.
