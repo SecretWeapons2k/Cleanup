@@ -74,6 +74,8 @@ STRUCTURE_WEIGHTS = {
 TEXT_SCORE_TOLERANCE_FLOOR = 0.02
 TEXT_SCORE_TOLERANCE_CEILING = 0.035
 TEXT_SCORE_TOLERANCE_RANGE_FRACTION = 0.05
+# Minimaler Spielraum gegen harte Grenzfälle bei der Textscore-Zulässigkeit.
+TEXT_SCORE_BOUNDARY_SLACK = 0.0001
 INK_STRENGTH_THRESHOLD = 0.28
 # The T38 contrast-mask candidate joins the normal LaMa/scoring competition.
 # T38 was selected from the previously inspected hard-image sweep.
@@ -99,6 +101,8 @@ BOX_ONLY_RESCUE_INSIDE_DETAIL_ADVANTAGE = 0.025
 RESIDUAL_MICRO_COMPONENT_MAX_AREA = 24
 RESIDUAL_SPOT_STRUCTURE_TOLERANCE = 0.05
 RESIDUAL_SPOT_MIN_AREA_REDUCTION_PX = 2.0
+# Micro-Component-Tiebreak darf die Sprite-Kontur nicht deutlich verschlechtern.
+RESIDUAL_SPOT_MAX_CONTOUR_DISPLACEMENT_INCREASE = 0.05
 
 # Multi-Scale Blob-Erkennung gegen Zensurbalken & Verfärbungen
 RESIDUAL_BLOB_VISUAL_WEIGHT = 0.30

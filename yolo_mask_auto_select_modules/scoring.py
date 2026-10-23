@@ -1230,7 +1230,7 @@ def select_candidate(
     ]
 
     text_quality_flags = [
-        float(item[3]["text_quality_score"]) <= ceiling + 1e-9
+        float(item[3]["text_quality_score"]) <= ceiling + TEXT_SCORE_BOUNDARY_SLACK + 1e-9
         for item in scored
     ]
 
@@ -1366,7 +1366,7 @@ def select_candidate(
 
     for _score, candidate_id, _mask, metrics in scored:
         text_eligible = (
-            metrics["text_quality_score"] <= ceiling + 1e-9
+            metrics["text_quality_score"] <= ceiling + TEXT_SCORE_BOUNDARY_SLACK + 1e-9
         )
 
         anchor_eligible = (
@@ -1436,6 +1436,25 @@ def select_candidate(
         and float(item[3]["structure_score"])
         <= baseline_structure + RESIDUAL_SPOT_STRUCTURE_TOLERANCE + 1e-9
     ]
+    if near_optimal:
+        # Zusätzlicher Sprite-Schutz: ein Kandidat mit deutlich mehr
+        # Konturverlust darf den Basisgewinner nicht nur wegen weniger
+        # kleiner Restkomponenten verdrängen.
+        baseline_contour_displacement = float(
+            baseline_winner[3].get("sprite_contour_displacement_ratio", 0.0)
+        )
+        max_allowed_contour_displacement = (
+            baseline_contour_displacement
+            + RESIDUAL_SPOT_MAX_CONTOUR_DISPLACEMENT_INCREASE
+        )
+        near_optimal = [
+            item for item in near_optimal
+            if float(item[3].get(
+                "sprite_contour_displacement_ratio",
+                baseline_contour_displacement,
+            )) <= max_allowed_contour_displacement + 1e-9
+        ]
+
     if near_optimal:
         cleanest_area = min(
             float(item[3].get("residual_micro_component_area", 0.0))
