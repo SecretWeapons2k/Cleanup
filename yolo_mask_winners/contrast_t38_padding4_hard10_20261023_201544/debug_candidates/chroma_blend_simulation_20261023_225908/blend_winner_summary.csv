@@ -1,0 +1,631 @@
+﻿image,actual_production_winner,structure_only_minimum_before_special_tiebreak,zone_radius_px,chroma_tolerance_ab,chroma_weight,template_coverage,coverage_ratio,status,simulated_blend_winner,winner_changed_vs_actual,winner_blended_score,winner_color_residual_index,note
+h007_000.png,6,,0,12,0.0,0/4,0.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,6,0,,,No blend applied: insufficient repeated-template coverage; actual winner shown unchanged.
+h007_000.png,6,,0,12,0.25,0/4,0.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,6,0,,,No blend applied: insufficient repeated-template coverage; actual winner shown unchanged.
+h007_000.png,6,,0,12,0.5,0/4,0.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,6,0,,,No blend applied: insufficient repeated-template coverage; actual winner shown unchanged.
+h007_000.png,6,,0,12,0.75,0/4,0.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,6,0,,,No blend applied: insufficient repeated-template coverage; actual winner shown unchanged.
+h007_000.png,6,,0,12,1.0,0/4,0.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,6,0,,,No blend applied: insufficient repeated-template coverage; actual winner shown unchanged.
+h007_000.png,6,,0,12,1.25,0/4,0.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,6,0,,,No blend applied: insufficient repeated-template coverage; actual winner shown unchanged.
+h007_000.png,6,,0,12,1.5,0/4,0.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,6,0,,,No blend applied: insufficient repeated-template coverage; actual winner shown unchanged.
+h007_000.png,6,,0,20,0.0,0/4,0.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,6,0,,,No blend applied: insufficient repeated-template coverage; actual winner shown unchanged.
+h007_000.png,6,,0,20,0.25,0/4,0.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,6,0,,,No blend applied: insufficient repeated-template coverage; actual winner shown unchanged.
+h007_000.png,6,,0,20,0.5,0/4,0.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,6,0,,,No blend applied: insufficient repeated-template coverage; actual winner shown unchanged.
+h007_000.png,6,,0,20,0.75,0/4,0.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,6,0,,,No blend applied: insufficient repeated-template coverage; actual winner shown unchanged.
+h007_000.png,6,,0,20,1.0,0/4,0.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,6,0,,,No blend applied: insufficient repeated-template coverage; actual winner shown unchanged.
+h007_000.png,6,,0,20,1.25,0/4,0.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,6,0,,,No blend applied: insufficient repeated-template coverage; actual winner shown unchanged.
+h007_000.png,6,,0,20,1.5,0/4,0.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,6,0,,,No blend applied: insufficient repeated-template coverage; actual winner shown unchanged.
+h007_000.png,6,,0,28,0.0,0/4,0.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,6,0,,,No blend applied: insufficient repeated-template coverage; actual winner shown unchanged.
+h007_000.png,6,,0,28,0.25,0/4,0.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,6,0,,,No blend applied: insufficient repeated-template coverage; actual winner shown unchanged.
+h007_000.png,6,,0,28,0.5,0/4,0.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,6,0,,,No blend applied: insufficient repeated-template coverage; actual winner shown unchanged.
+h007_000.png,6,,0,28,0.75,0/4,0.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,6,0,,,No blend applied: insufficient repeated-template coverage; actual winner shown unchanged.
+h007_000.png,6,,0,28,1.0,0/4,0.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,6,0,,,No blend applied: insufficient repeated-template coverage; actual winner shown unchanged.
+h007_000.png,6,,0,28,1.25,0/4,0.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,6,0,,,No blend applied: insufficient repeated-template coverage; actual winner shown unchanged.
+h007_000.png,6,,0,28,1.5,0/4,0.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,6,0,,,No blend applied: insufficient repeated-template coverage; actual winner shown unchanged.
+h007_000.png,6,,1,12,0.0,0/4,0.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,6,0,,,No blend applied: insufficient repeated-template coverage; actual winner shown unchanged.
+h007_000.png,6,,1,12,0.25,0/4,0.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,6,0,,,No blend applied: insufficient repeated-template coverage; actual winner shown unchanged.
+h007_000.png,6,,1,12,0.5,0/4,0.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,6,0,,,No blend applied: insufficient repeated-template coverage; actual winner shown unchanged.
+h007_000.png,6,,1,12,0.75,0/4,0.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,6,0,,,No blend applied: insufficient repeated-template coverage; actual winner shown unchanged.
+h007_000.png,6,,1,12,1.0,0/4,0.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,6,0,,,No blend applied: insufficient repeated-template coverage; actual winner shown unchanged.
+h007_000.png,6,,1,12,1.25,0/4,0.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,6,0,,,No blend applied: insufficient repeated-template coverage; actual winner shown unchanged.
+h007_000.png,6,,1,12,1.5,0/4,0.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,6,0,,,No blend applied: insufficient repeated-template coverage; actual winner shown unchanged.
+h007_000.png,6,,1,20,0.0,0/4,0.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,6,0,,,No blend applied: insufficient repeated-template coverage; actual winner shown unchanged.
+h007_000.png,6,,1,20,0.25,0/4,0.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,6,0,,,No blend applied: insufficient repeated-template coverage; actual winner shown unchanged.
+h007_000.png,6,,1,20,0.5,0/4,0.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,6,0,,,No blend applied: insufficient repeated-template coverage; actual winner shown unchanged.
+h007_000.png,6,,1,20,0.75,0/4,0.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,6,0,,,No blend applied: insufficient repeated-template coverage; actual winner shown unchanged.
+h007_000.png,6,,1,20,1.0,0/4,0.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,6,0,,,No blend applied: insufficient repeated-template coverage; actual winner shown unchanged.
+h007_000.png,6,,1,20,1.25,0/4,0.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,6,0,,,No blend applied: insufficient repeated-template coverage; actual winner shown unchanged.
+h007_000.png,6,,1,20,1.5,0/4,0.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,6,0,,,No blend applied: insufficient repeated-template coverage; actual winner shown unchanged.
+h007_000.png,6,,1,28,0.0,0/4,0.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,6,0,,,No blend applied: insufficient repeated-template coverage; actual winner shown unchanged.
+h007_000.png,6,,1,28,0.25,0/4,0.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,6,0,,,No blend applied: insufficient repeated-template coverage; actual winner shown unchanged.
+h007_000.png,6,,1,28,0.5,0/4,0.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,6,0,,,No blend applied: insufficient repeated-template coverage; actual winner shown unchanged.
+h007_000.png,6,,1,28,0.75,0/4,0.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,6,0,,,No blend applied: insufficient repeated-template coverage; actual winner shown unchanged.
+h007_000.png,6,,1,28,1.0,0/4,0.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,6,0,,,No blend applied: insufficient repeated-template coverage; actual winner shown unchanged.
+h007_000.png,6,,1,28,1.25,0/4,0.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,6,0,,,No blend applied: insufficient repeated-template coverage; actual winner shown unchanged.
+h007_000.png,6,,1,28,1.5,0/4,0.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,6,0,,,No blend applied: insufficient repeated-template coverage; actual winner shown unchanged.
+h007_000.png,6,,2,12,0.0,0/4,0.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,6,0,,,No blend applied: insufficient repeated-template coverage; actual winner shown unchanged.
+h007_000.png,6,,2,12,0.25,0/4,0.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,6,0,,,No blend applied: insufficient repeated-template coverage; actual winner shown unchanged.
+h007_000.png,6,,2,12,0.5,0/4,0.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,6,0,,,No blend applied: insufficient repeated-template coverage; actual winner shown unchanged.
+h007_000.png,6,,2,12,0.75,0/4,0.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,6,0,,,No blend applied: insufficient repeated-template coverage; actual winner shown unchanged.
+h007_000.png,6,,2,12,1.0,0/4,0.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,6,0,,,No blend applied: insufficient repeated-template coverage; actual winner shown unchanged.
+h007_000.png,6,,2,12,1.25,0/4,0.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,6,0,,,No blend applied: insufficient repeated-template coverage; actual winner shown unchanged.
+h007_000.png,6,,2,12,1.5,0/4,0.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,6,0,,,No blend applied: insufficient repeated-template coverage; actual winner shown unchanged.
+h007_000.png,6,,2,20,0.0,0/4,0.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,6,0,,,No blend applied: insufficient repeated-template coverage; actual winner shown unchanged.
+h007_000.png,6,,2,20,0.25,0/4,0.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,6,0,,,No blend applied: insufficient repeated-template coverage; actual winner shown unchanged.
+h007_000.png,6,,2,20,0.5,0/4,0.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,6,0,,,No blend applied: insufficient repeated-template coverage; actual winner shown unchanged.
+h007_000.png,6,,2,20,0.75,0/4,0.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,6,0,,,No blend applied: insufficient repeated-template coverage; actual winner shown unchanged.
+h007_000.png,6,,2,20,1.0,0/4,0.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,6,0,,,No blend applied: insufficient repeated-template coverage; actual winner shown unchanged.
+h007_000.png,6,,2,20,1.25,0/4,0.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,6,0,,,No blend applied: insufficient repeated-template coverage; actual winner shown unchanged.
+h007_000.png,6,,2,20,1.5,0/4,0.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,6,0,,,No blend applied: insufficient repeated-template coverage; actual winner shown unchanged.
+h007_000.png,6,,2,28,0.0,0/4,0.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,6,0,,,No blend applied: insufficient repeated-template coverage; actual winner shown unchanged.
+h007_000.png,6,,2,28,0.25,0/4,0.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,6,0,,,No blend applied: insufficient repeated-template coverage; actual winner shown unchanged.
+h007_000.png,6,,2,28,0.5,0/4,0.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,6,0,,,No blend applied: insufficient repeated-template coverage; actual winner shown unchanged.
+h007_000.png,6,,2,28,0.75,0/4,0.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,6,0,,,No blend applied: insufficient repeated-template coverage; actual winner shown unchanged.
+h007_000.png,6,,2,28,1.0,0/4,0.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,6,0,,,No blend applied: insufficient repeated-template coverage; actual winner shown unchanged.
+h007_000.png,6,,2,28,1.25,0/4,0.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,6,0,,,No blend applied: insufficient repeated-template coverage; actual winner shown unchanged.
+h007_000.png,6,,2,28,1.5,0/4,0.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,6,0,,,No blend applied: insufficient repeated-template coverage; actual winner shown unchanged.
+h009_000.png,CONTRAST_T38,,0,12,0.0,0/8,0.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,CONTRAST_T38,0,,,No blend applied: insufficient repeated-template coverage; actual winner shown unchanged.
+h009_000.png,CONTRAST_T38,,0,12,0.25,0/8,0.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,CONTRAST_T38,0,,,No blend applied: insufficient repeated-template coverage; actual winner shown unchanged.
+h009_000.png,CONTRAST_T38,,0,12,0.5,0/8,0.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,CONTRAST_T38,0,,,No blend applied: insufficient repeated-template coverage; actual winner shown unchanged.
+h009_000.png,CONTRAST_T38,,0,12,0.75,0/8,0.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,CONTRAST_T38,0,,,No blend applied: insufficient repeated-template coverage; actual winner shown unchanged.
+h009_000.png,CONTRAST_T38,,0,12,1.0,0/8,0.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,CONTRAST_T38,0,,,No blend applied: insufficient repeated-template coverage; actual winner shown unchanged.
+h009_000.png,CONTRAST_T38,,0,12,1.25,0/8,0.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,CONTRAST_T38,0,,,No blend applied: insufficient repeated-template coverage; actual winner shown unchanged.
+h009_000.png,CONTRAST_T38,,0,12,1.5,0/8,0.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,CONTRAST_T38,0,,,No blend applied: insufficient repeated-template coverage; actual winner shown unchanged.
+h009_000.png,CONTRAST_T38,,0,20,0.0,0/8,0.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,CONTRAST_T38,0,,,No blend applied: insufficient repeated-template coverage; actual winner shown unchanged.
+h009_000.png,CONTRAST_T38,,0,20,0.25,0/8,0.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,CONTRAST_T38,0,,,No blend applied: insufficient repeated-template coverage; actual winner shown unchanged.
+h009_000.png,CONTRAST_T38,,0,20,0.5,0/8,0.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,CONTRAST_T38,0,,,No blend applied: insufficient repeated-template coverage; actual winner shown unchanged.
+h009_000.png,CONTRAST_T38,,0,20,0.75,0/8,0.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,CONTRAST_T38,0,,,No blend applied: insufficient repeated-template coverage; actual winner shown unchanged.
+h009_000.png,CONTRAST_T38,,0,20,1.0,0/8,0.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,CONTRAST_T38,0,,,No blend applied: insufficient repeated-template coverage; actual winner shown unchanged.
+h009_000.png,CONTRAST_T38,,0,20,1.25,0/8,0.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,CONTRAST_T38,0,,,No blend applied: insufficient repeated-template coverage; actual winner shown unchanged.
+h009_000.png,CONTRAST_T38,,0,20,1.5,0/8,0.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,CONTRAST_T38,0,,,No blend applied: insufficient repeated-template coverage; actual winner shown unchanged.
+h009_000.png,CONTRAST_T38,,0,28,0.0,0/8,0.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,CONTRAST_T38,0,,,No blend applied: insufficient repeated-template coverage; actual winner shown unchanged.
+h009_000.png,CONTRAST_T38,,0,28,0.25,0/8,0.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,CONTRAST_T38,0,,,No blend applied: insufficient repeated-template coverage; actual winner shown unchanged.
+h009_000.png,CONTRAST_T38,,0,28,0.5,0/8,0.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,CONTRAST_T38,0,,,No blend applied: insufficient repeated-template coverage; actual winner shown unchanged.
+h009_000.png,CONTRAST_T38,,0,28,0.75,0/8,0.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,CONTRAST_T38,0,,,No blend applied: insufficient repeated-template coverage; actual winner shown unchanged.
+h009_000.png,CONTRAST_T38,,0,28,1.0,0/8,0.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,CONTRAST_T38,0,,,No blend applied: insufficient repeated-template coverage; actual winner shown unchanged.
+h009_000.png,CONTRAST_T38,,0,28,1.25,0/8,0.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,CONTRAST_T38,0,,,No blend applied: insufficient repeated-template coverage; actual winner shown unchanged.
+h009_000.png,CONTRAST_T38,,0,28,1.5,0/8,0.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,CONTRAST_T38,0,,,No blend applied: insufficient repeated-template coverage; actual winner shown unchanged.
+h009_000.png,CONTRAST_T38,,1,12,0.0,0/8,0.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,CONTRAST_T38,0,,,No blend applied: insufficient repeated-template coverage; actual winner shown unchanged.
+h009_000.png,CONTRAST_T38,,1,12,0.25,0/8,0.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,CONTRAST_T38,0,,,No blend applied: insufficient repeated-template coverage; actual winner shown unchanged.
+h009_000.png,CONTRAST_T38,,1,12,0.5,0/8,0.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,CONTRAST_T38,0,,,No blend applied: insufficient repeated-template coverage; actual winner shown unchanged.
+h009_000.png,CONTRAST_T38,,1,12,0.75,0/8,0.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,CONTRAST_T38,0,,,No blend applied: insufficient repeated-template coverage; actual winner shown unchanged.
+h009_000.png,CONTRAST_T38,,1,12,1.0,0/8,0.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,CONTRAST_T38,0,,,No blend applied: insufficient repeated-template coverage; actual winner shown unchanged.
+h009_000.png,CONTRAST_T38,,1,12,1.25,0/8,0.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,CONTRAST_T38,0,,,No blend applied: insufficient repeated-template coverage; actual winner shown unchanged.
+h009_000.png,CONTRAST_T38,,1,12,1.5,0/8,0.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,CONTRAST_T38,0,,,No blend applied: insufficient repeated-template coverage; actual winner shown unchanged.
+h009_000.png,CONTRAST_T38,,1,20,0.0,0/8,0.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,CONTRAST_T38,0,,,No blend applied: insufficient repeated-template coverage; actual winner shown unchanged.
+h009_000.png,CONTRAST_T38,,1,20,0.25,0/8,0.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,CONTRAST_T38,0,,,No blend applied: insufficient repeated-template coverage; actual winner shown unchanged.
+h009_000.png,CONTRAST_T38,,1,20,0.5,0/8,0.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,CONTRAST_T38,0,,,No blend applied: insufficient repeated-template coverage; actual winner shown unchanged.
+h009_000.png,CONTRAST_T38,,1,20,0.75,0/8,0.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,CONTRAST_T38,0,,,No blend applied: insufficient repeated-template coverage; actual winner shown unchanged.
+h009_000.png,CONTRAST_T38,,1,20,1.0,0/8,0.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,CONTRAST_T38,0,,,No blend applied: insufficient repeated-template coverage; actual winner shown unchanged.
+h009_000.png,CONTRAST_T38,,1,20,1.25,0/8,0.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,CONTRAST_T38,0,,,No blend applied: insufficient repeated-template coverage; actual winner shown unchanged.
+h009_000.png,CONTRAST_T38,,1,20,1.5,0/8,0.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,CONTRAST_T38,0,,,No blend applied: insufficient repeated-template coverage; actual winner shown unchanged.
+h009_000.png,CONTRAST_T38,,1,28,0.0,0/8,0.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,CONTRAST_T38,0,,,No blend applied: insufficient repeated-template coverage; actual winner shown unchanged.
+h009_000.png,CONTRAST_T38,,1,28,0.25,0/8,0.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,CONTRAST_T38,0,,,No blend applied: insufficient repeated-template coverage; actual winner shown unchanged.
+h009_000.png,CONTRAST_T38,,1,28,0.5,0/8,0.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,CONTRAST_T38,0,,,No blend applied: insufficient repeated-template coverage; actual winner shown unchanged.
+h009_000.png,CONTRAST_T38,,1,28,0.75,0/8,0.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,CONTRAST_T38,0,,,No blend applied: insufficient repeated-template coverage; actual winner shown unchanged.
+h009_000.png,CONTRAST_T38,,1,28,1.0,0/8,0.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,CONTRAST_T38,0,,,No blend applied: insufficient repeated-template coverage; actual winner shown unchanged.
+h009_000.png,CONTRAST_T38,,1,28,1.25,0/8,0.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,CONTRAST_T38,0,,,No blend applied: insufficient repeated-template coverage; actual winner shown unchanged.
+h009_000.png,CONTRAST_T38,,1,28,1.5,0/8,0.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,CONTRAST_T38,0,,,No blend applied: insufficient repeated-template coverage; actual winner shown unchanged.
+h009_000.png,CONTRAST_T38,,2,12,0.0,0/8,0.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,CONTRAST_T38,0,,,No blend applied: insufficient repeated-template coverage; actual winner shown unchanged.
+h009_000.png,CONTRAST_T38,,2,12,0.25,0/8,0.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,CONTRAST_T38,0,,,No blend applied: insufficient repeated-template coverage; actual winner shown unchanged.
+h009_000.png,CONTRAST_T38,,2,12,0.5,0/8,0.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,CONTRAST_T38,0,,,No blend applied: insufficient repeated-template coverage; actual winner shown unchanged.
+h009_000.png,CONTRAST_T38,,2,12,0.75,0/8,0.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,CONTRAST_T38,0,,,No blend applied: insufficient repeated-template coverage; actual winner shown unchanged.
+h009_000.png,CONTRAST_T38,,2,12,1.0,0/8,0.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,CONTRAST_T38,0,,,No blend applied: insufficient repeated-template coverage; actual winner shown unchanged.
+h009_000.png,CONTRAST_T38,,2,12,1.25,0/8,0.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,CONTRAST_T38,0,,,No blend applied: insufficient repeated-template coverage; actual winner shown unchanged.
+h009_000.png,CONTRAST_T38,,2,12,1.5,0/8,0.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,CONTRAST_T38,0,,,No blend applied: insufficient repeated-template coverage; actual winner shown unchanged.
+h009_000.png,CONTRAST_T38,,2,20,0.0,0/8,0.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,CONTRAST_T38,0,,,No blend applied: insufficient repeated-template coverage; actual winner shown unchanged.
+h009_000.png,CONTRAST_T38,,2,20,0.25,0/8,0.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,CONTRAST_T38,0,,,No blend applied: insufficient repeated-template coverage; actual winner shown unchanged.
+h009_000.png,CONTRAST_T38,,2,20,0.5,0/8,0.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,CONTRAST_T38,0,,,No blend applied: insufficient repeated-template coverage; actual winner shown unchanged.
+h009_000.png,CONTRAST_T38,,2,20,0.75,0/8,0.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,CONTRAST_T38,0,,,No blend applied: insufficient repeated-template coverage; actual winner shown unchanged.
+h009_000.png,CONTRAST_T38,,2,20,1.0,0/8,0.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,CONTRAST_T38,0,,,No blend applied: insufficient repeated-template coverage; actual winner shown unchanged.
+h009_000.png,CONTRAST_T38,,2,20,1.25,0/8,0.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,CONTRAST_T38,0,,,No blend applied: insufficient repeated-template coverage; actual winner shown unchanged.
+h009_000.png,CONTRAST_T38,,2,20,1.5,0/8,0.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,CONTRAST_T38,0,,,No blend applied: insufficient repeated-template coverage; actual winner shown unchanged.
+h009_000.png,CONTRAST_T38,,2,28,0.0,0/8,0.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,CONTRAST_T38,0,,,No blend applied: insufficient repeated-template coverage; actual winner shown unchanged.
+h009_000.png,CONTRAST_T38,,2,28,0.25,0/8,0.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,CONTRAST_T38,0,,,No blend applied: insufficient repeated-template coverage; actual winner shown unchanged.
+h009_000.png,CONTRAST_T38,,2,28,0.5,0/8,0.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,CONTRAST_T38,0,,,No blend applied: insufficient repeated-template coverage; actual winner shown unchanged.
+h009_000.png,CONTRAST_T38,,2,28,0.75,0/8,0.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,CONTRAST_T38,0,,,No blend applied: insufficient repeated-template coverage; actual winner shown unchanged.
+h009_000.png,CONTRAST_T38,,2,28,1.0,0/8,0.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,CONTRAST_T38,0,,,No blend applied: insufficient repeated-template coverage; actual winner shown unchanged.
+h009_000.png,CONTRAST_T38,,2,28,1.25,0/8,0.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,CONTRAST_T38,0,,,No blend applied: insufficient repeated-template coverage; actual winner shown unchanged.
+h009_000.png,CONTRAST_T38,,2,28,1.5,0/8,0.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,CONTRAST_T38,0,,,No blend applied: insufficient repeated-template coverage; actual winner shown unchanged.
+l002_002.png,HYBRID_D2,,0,12,0.0,0/1,0.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,HYBRID_D2,0,,,No blend applied: insufficient repeated-template coverage; actual winner shown unchanged.
+l002_002.png,HYBRID_D2,,0,12,0.25,0/1,0.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,HYBRID_D2,0,,,No blend applied: insufficient repeated-template coverage; actual winner shown unchanged.
+l002_002.png,HYBRID_D2,,0,12,0.5,0/1,0.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,HYBRID_D2,0,,,No blend applied: insufficient repeated-template coverage; actual winner shown unchanged.
+l002_002.png,HYBRID_D2,,0,12,0.75,0/1,0.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,HYBRID_D2,0,,,No blend applied: insufficient repeated-template coverage; actual winner shown unchanged.
+l002_002.png,HYBRID_D2,,0,12,1.0,0/1,0.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,HYBRID_D2,0,,,No blend applied: insufficient repeated-template coverage; actual winner shown unchanged.
+l002_002.png,HYBRID_D2,,0,12,1.25,0/1,0.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,HYBRID_D2,0,,,No blend applied: insufficient repeated-template coverage; actual winner shown unchanged.
+l002_002.png,HYBRID_D2,,0,12,1.5,0/1,0.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,HYBRID_D2,0,,,No blend applied: insufficient repeated-template coverage; actual winner shown unchanged.
+l002_002.png,HYBRID_D2,,0,20,0.0,0/1,0.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,HYBRID_D2,0,,,No blend applied: insufficient repeated-template coverage; actual winner shown unchanged.
+l002_002.png,HYBRID_D2,,0,20,0.25,0/1,0.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,HYBRID_D2,0,,,No blend applied: insufficient repeated-template coverage; actual winner shown unchanged.
+l002_002.png,HYBRID_D2,,0,20,0.5,0/1,0.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,HYBRID_D2,0,,,No blend applied: insufficient repeated-template coverage; actual winner shown unchanged.
+l002_002.png,HYBRID_D2,,0,20,0.75,0/1,0.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,HYBRID_D2,0,,,No blend applied: insufficient repeated-template coverage; actual winner shown unchanged.
+l002_002.png,HYBRID_D2,,0,20,1.0,0/1,0.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,HYBRID_D2,0,,,No blend applied: insufficient repeated-template coverage; actual winner shown unchanged.
+l002_002.png,HYBRID_D2,,0,20,1.25,0/1,0.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,HYBRID_D2,0,,,No blend applied: insufficient repeated-template coverage; actual winner shown unchanged.
+l002_002.png,HYBRID_D2,,0,20,1.5,0/1,0.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,HYBRID_D2,0,,,No blend applied: insufficient repeated-template coverage; actual winner shown unchanged.
+l002_002.png,HYBRID_D2,,0,28,0.0,0/1,0.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,HYBRID_D2,0,,,No blend applied: insufficient repeated-template coverage; actual winner shown unchanged.
+l002_002.png,HYBRID_D2,,0,28,0.25,0/1,0.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,HYBRID_D2,0,,,No blend applied: insufficient repeated-template coverage; actual winner shown unchanged.
+l002_002.png,HYBRID_D2,,0,28,0.5,0/1,0.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,HYBRID_D2,0,,,No blend applied: insufficient repeated-template coverage; actual winner shown unchanged.
+l002_002.png,HYBRID_D2,,0,28,0.75,0/1,0.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,HYBRID_D2,0,,,No blend applied: insufficient repeated-template coverage; actual winner shown unchanged.
+l002_002.png,HYBRID_D2,,0,28,1.0,0/1,0.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,HYBRID_D2,0,,,No blend applied: insufficient repeated-template coverage; actual winner shown unchanged.
+l002_002.png,HYBRID_D2,,0,28,1.25,0/1,0.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,HYBRID_D2,0,,,No blend applied: insufficient repeated-template coverage; actual winner shown unchanged.
+l002_002.png,HYBRID_D2,,0,28,1.5,0/1,0.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,HYBRID_D2,0,,,No blend applied: insufficient repeated-template coverage; actual winner shown unchanged.
+l002_002.png,HYBRID_D2,,1,12,0.0,0/1,0.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,HYBRID_D2,0,,,No blend applied: insufficient repeated-template coverage; actual winner shown unchanged.
+l002_002.png,HYBRID_D2,,1,12,0.25,0/1,0.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,HYBRID_D2,0,,,No blend applied: insufficient repeated-template coverage; actual winner shown unchanged.
+l002_002.png,HYBRID_D2,,1,12,0.5,0/1,0.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,HYBRID_D2,0,,,No blend applied: insufficient repeated-template coverage; actual winner shown unchanged.
+l002_002.png,HYBRID_D2,,1,12,0.75,0/1,0.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,HYBRID_D2,0,,,No blend applied: insufficient repeated-template coverage; actual winner shown unchanged.
+l002_002.png,HYBRID_D2,,1,12,1.0,0/1,0.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,HYBRID_D2,0,,,No blend applied: insufficient repeated-template coverage; actual winner shown unchanged.
+l002_002.png,HYBRID_D2,,1,12,1.25,0/1,0.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,HYBRID_D2,0,,,No blend applied: insufficient repeated-template coverage; actual winner shown unchanged.
+l002_002.png,HYBRID_D2,,1,12,1.5,0/1,0.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,HYBRID_D2,0,,,No blend applied: insufficient repeated-template coverage; actual winner shown unchanged.
+l002_002.png,HYBRID_D2,,1,20,0.0,0/1,0.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,HYBRID_D2,0,,,No blend applied: insufficient repeated-template coverage; actual winner shown unchanged.
+l002_002.png,HYBRID_D2,,1,20,0.25,0/1,0.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,HYBRID_D2,0,,,No blend applied: insufficient repeated-template coverage; actual winner shown unchanged.
+l002_002.png,HYBRID_D2,,1,20,0.5,0/1,0.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,HYBRID_D2,0,,,No blend applied: insufficient repeated-template coverage; actual winner shown unchanged.
+l002_002.png,HYBRID_D2,,1,20,0.75,0/1,0.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,HYBRID_D2,0,,,No blend applied: insufficient repeated-template coverage; actual winner shown unchanged.
+l002_002.png,HYBRID_D2,,1,20,1.0,0/1,0.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,HYBRID_D2,0,,,No blend applied: insufficient repeated-template coverage; actual winner shown unchanged.
+l002_002.png,HYBRID_D2,,1,20,1.25,0/1,0.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,HYBRID_D2,0,,,No blend applied: insufficient repeated-template coverage; actual winner shown unchanged.
+l002_002.png,HYBRID_D2,,1,20,1.5,0/1,0.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,HYBRID_D2,0,,,No blend applied: insufficient repeated-template coverage; actual winner shown unchanged.
+l002_002.png,HYBRID_D2,,1,28,0.0,0/1,0.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,HYBRID_D2,0,,,No blend applied: insufficient repeated-template coverage; actual winner shown unchanged.
+l002_002.png,HYBRID_D2,,1,28,0.25,0/1,0.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,HYBRID_D2,0,,,No blend applied: insufficient repeated-template coverage; actual winner shown unchanged.
+l002_002.png,HYBRID_D2,,1,28,0.5,0/1,0.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,HYBRID_D2,0,,,No blend applied: insufficient repeated-template coverage; actual winner shown unchanged.
+l002_002.png,HYBRID_D2,,1,28,0.75,0/1,0.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,HYBRID_D2,0,,,No blend applied: insufficient repeated-template coverage; actual winner shown unchanged.
+l002_002.png,HYBRID_D2,,1,28,1.0,0/1,0.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,HYBRID_D2,0,,,No blend applied: insufficient repeated-template coverage; actual winner shown unchanged.
+l002_002.png,HYBRID_D2,,1,28,1.25,0/1,0.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,HYBRID_D2,0,,,No blend applied: insufficient repeated-template coverage; actual winner shown unchanged.
+l002_002.png,HYBRID_D2,,1,28,1.5,0/1,0.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,HYBRID_D2,0,,,No blend applied: insufficient repeated-template coverage; actual winner shown unchanged.
+l002_002.png,HYBRID_D2,,2,12,0.0,0/1,0.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,HYBRID_D2,0,,,No blend applied: insufficient repeated-template coverage; actual winner shown unchanged.
+l002_002.png,HYBRID_D2,,2,12,0.25,0/1,0.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,HYBRID_D2,0,,,No blend applied: insufficient repeated-template coverage; actual winner shown unchanged.
+l002_002.png,HYBRID_D2,,2,12,0.5,0/1,0.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,HYBRID_D2,0,,,No blend applied: insufficient repeated-template coverage; actual winner shown unchanged.
+l002_002.png,HYBRID_D2,,2,12,0.75,0/1,0.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,HYBRID_D2,0,,,No blend applied: insufficient repeated-template coverage; actual winner shown unchanged.
+l002_002.png,HYBRID_D2,,2,12,1.0,0/1,0.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,HYBRID_D2,0,,,No blend applied: insufficient repeated-template coverage; actual winner shown unchanged.
+l002_002.png,HYBRID_D2,,2,12,1.25,0/1,0.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,HYBRID_D2,0,,,No blend applied: insufficient repeated-template coverage; actual winner shown unchanged.
+l002_002.png,HYBRID_D2,,2,12,1.5,0/1,0.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,HYBRID_D2,0,,,No blend applied: insufficient repeated-template coverage; actual winner shown unchanged.
+l002_002.png,HYBRID_D2,,2,20,0.0,0/1,0.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,HYBRID_D2,0,,,No blend applied: insufficient repeated-template coverage; actual winner shown unchanged.
+l002_002.png,HYBRID_D2,,2,20,0.25,0/1,0.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,HYBRID_D2,0,,,No blend applied: insufficient repeated-template coverage; actual winner shown unchanged.
+l002_002.png,HYBRID_D2,,2,20,0.5,0/1,0.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,HYBRID_D2,0,,,No blend applied: insufficient repeated-template coverage; actual winner shown unchanged.
+l002_002.png,HYBRID_D2,,2,20,0.75,0/1,0.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,HYBRID_D2,0,,,No blend applied: insufficient repeated-template coverage; actual winner shown unchanged.
+l002_002.png,HYBRID_D2,,2,20,1.0,0/1,0.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,HYBRID_D2,0,,,No blend applied: insufficient repeated-template coverage; actual winner shown unchanged.
+l002_002.png,HYBRID_D2,,2,20,1.25,0/1,0.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,HYBRID_D2,0,,,No blend applied: insufficient repeated-template coverage; actual winner shown unchanged.
+l002_002.png,HYBRID_D2,,2,20,1.5,0/1,0.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,HYBRID_D2,0,,,No blend applied: insufficient repeated-template coverage; actual winner shown unchanged.
+l002_002.png,HYBRID_D2,,2,28,0.0,0/1,0.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,HYBRID_D2,0,,,No blend applied: insufficient repeated-template coverage; actual winner shown unchanged.
+l002_002.png,HYBRID_D2,,2,28,0.25,0/1,0.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,HYBRID_D2,0,,,No blend applied: insufficient repeated-template coverage; actual winner shown unchanged.
+l002_002.png,HYBRID_D2,,2,28,0.5,0/1,0.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,HYBRID_D2,0,,,No blend applied: insufficient repeated-template coverage; actual winner shown unchanged.
+l002_002.png,HYBRID_D2,,2,28,0.75,0/1,0.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,HYBRID_D2,0,,,No blend applied: insufficient repeated-template coverage; actual winner shown unchanged.
+l002_002.png,HYBRID_D2,,2,28,1.0,0/1,0.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,HYBRID_D2,0,,,No blend applied: insufficient repeated-template coverage; actual winner shown unchanged.
+l002_002.png,HYBRID_D2,,2,28,1.25,0/1,0.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,HYBRID_D2,0,,,No blend applied: insufficient repeated-template coverage; actual winner shown unchanged.
+l002_002.png,HYBRID_D2,,2,28,1.5,0/1,0.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,HYBRID_D2,0,,,No blend applied: insufficient repeated-template coverage; actual winner shown unchanged.
+m003_009.png,HYBRID_D2,,0,12,0.0,30/30,1.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,HYBRID_D2,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m003_009.png,HYBRID_D2,,0,12,0.25,30/30,1.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,HYBRID_D2,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m003_009.png,HYBRID_D2,,0,12,0.5,30/30,1.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,HYBRID_D2,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m003_009.png,HYBRID_D2,,0,12,0.75,30/30,1.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,HYBRID_D2,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m003_009.png,HYBRID_D2,,0,12,1.0,30/30,1.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,HYBRID_D2,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m003_009.png,HYBRID_D2,,0,12,1.25,30/30,1.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,HYBRID_D2,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m003_009.png,HYBRID_D2,,0,12,1.5,30/30,1.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,HYBRID_D2,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m003_009.png,HYBRID_D2,,0,20,0.0,30/30,1.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,HYBRID_D2,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m003_009.png,HYBRID_D2,,0,20,0.25,30/30,1.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,HYBRID_D2,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m003_009.png,HYBRID_D2,,0,20,0.5,30/30,1.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,HYBRID_D2,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m003_009.png,HYBRID_D2,,0,20,0.75,30/30,1.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,HYBRID_D2,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m003_009.png,HYBRID_D2,,0,20,1.0,30/30,1.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,HYBRID_D2,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m003_009.png,HYBRID_D2,,0,20,1.25,30/30,1.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,HYBRID_D2,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m003_009.png,HYBRID_D2,,0,20,1.5,30/30,1.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,HYBRID_D2,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m003_009.png,HYBRID_D2,,0,28,0.0,30/30,1.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,HYBRID_D2,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m003_009.png,HYBRID_D2,,0,28,0.25,30/30,1.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,HYBRID_D2,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m003_009.png,HYBRID_D2,,0,28,0.5,30/30,1.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,HYBRID_D2,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m003_009.png,HYBRID_D2,,0,28,0.75,30/30,1.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,HYBRID_D2,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m003_009.png,HYBRID_D2,,0,28,1.0,30/30,1.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,HYBRID_D2,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m003_009.png,HYBRID_D2,,0,28,1.25,30/30,1.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,HYBRID_D2,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m003_009.png,HYBRID_D2,,0,28,1.5,30/30,1.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,HYBRID_D2,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m003_009.png,HYBRID_D2,,1,12,0.0,30/30,1.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,HYBRID_D2,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m003_009.png,HYBRID_D2,,1,12,0.25,30/30,1.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,HYBRID_D2,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m003_009.png,HYBRID_D2,,1,12,0.5,30/30,1.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,HYBRID_D2,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m003_009.png,HYBRID_D2,,1,12,0.75,30/30,1.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,HYBRID_D2,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m003_009.png,HYBRID_D2,,1,12,1.0,30/30,1.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,HYBRID_D2,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m003_009.png,HYBRID_D2,,1,12,1.25,30/30,1.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,HYBRID_D2,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m003_009.png,HYBRID_D2,,1,12,1.5,30/30,1.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,HYBRID_D2,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m003_009.png,HYBRID_D2,,1,20,0.0,30/30,1.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,HYBRID_D2,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m003_009.png,HYBRID_D2,,1,20,0.25,30/30,1.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,HYBRID_D2,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m003_009.png,HYBRID_D2,,1,20,0.5,30/30,1.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,HYBRID_D2,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m003_009.png,HYBRID_D2,,1,20,0.75,30/30,1.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,HYBRID_D2,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m003_009.png,HYBRID_D2,,1,20,1.0,30/30,1.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,HYBRID_D2,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m003_009.png,HYBRID_D2,,1,20,1.25,30/30,1.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,HYBRID_D2,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m003_009.png,HYBRID_D2,,1,20,1.5,30/30,1.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,HYBRID_D2,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m003_009.png,HYBRID_D2,,1,28,0.0,30/30,1.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,HYBRID_D2,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m003_009.png,HYBRID_D2,,1,28,0.25,30/30,1.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,HYBRID_D2,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m003_009.png,HYBRID_D2,,1,28,0.5,30/30,1.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,HYBRID_D2,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m003_009.png,HYBRID_D2,,1,28,0.75,30/30,1.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,HYBRID_D2,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m003_009.png,HYBRID_D2,,1,28,1.0,30/30,1.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,HYBRID_D2,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m003_009.png,HYBRID_D2,,1,28,1.25,30/30,1.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,HYBRID_D2,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m003_009.png,HYBRID_D2,,1,28,1.5,30/30,1.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,HYBRID_D2,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m003_009.png,HYBRID_D2,,2,12,0.0,30/30,1.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,HYBRID_D2,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m003_009.png,HYBRID_D2,,2,12,0.25,30/30,1.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,HYBRID_D2,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m003_009.png,HYBRID_D2,,2,12,0.5,30/30,1.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,HYBRID_D2,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m003_009.png,HYBRID_D2,,2,12,0.75,30/30,1.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,HYBRID_D2,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m003_009.png,HYBRID_D2,,2,12,1.0,30/30,1.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,HYBRID_D2,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m003_009.png,HYBRID_D2,,2,12,1.25,30/30,1.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,HYBRID_D2,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m003_009.png,HYBRID_D2,,2,12,1.5,30/30,1.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,HYBRID_D2,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m003_009.png,HYBRID_D2,,2,20,0.0,30/30,1.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,HYBRID_D2,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m003_009.png,HYBRID_D2,,2,20,0.25,30/30,1.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,HYBRID_D2,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m003_009.png,HYBRID_D2,,2,20,0.5,30/30,1.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,HYBRID_D2,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m003_009.png,HYBRID_D2,,2,20,0.75,30/30,1.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,HYBRID_D2,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m003_009.png,HYBRID_D2,,2,20,1.0,30/30,1.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,HYBRID_D2,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m003_009.png,HYBRID_D2,,2,20,1.25,30/30,1.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,HYBRID_D2,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m003_009.png,HYBRID_D2,,2,20,1.5,30/30,1.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,HYBRID_D2,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m003_009.png,HYBRID_D2,,2,28,0.0,30/30,1.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,HYBRID_D2,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m003_009.png,HYBRID_D2,,2,28,0.25,30/30,1.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,HYBRID_D2,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m003_009.png,HYBRID_D2,,2,28,0.5,30/30,1.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,HYBRID_D2,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m003_009.png,HYBRID_D2,,2,28,0.75,30/30,1.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,HYBRID_D2,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m003_009.png,HYBRID_D2,,2,28,1.0,30/30,1.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,HYBRID_D2,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m003_009.png,HYBRID_D2,,2,28,1.25,30/30,1.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,HYBRID_D2,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m003_009.png,HYBRID_D2,,2,28,1.5,30/30,1.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,HYBRID_D2,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m003_014.png,BOX_ONLY,,0,12,0.0,30/30,1.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,BOX_ONLY,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m003_014.png,BOX_ONLY,,0,12,0.25,30/30,1.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,BOX_ONLY,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m003_014.png,BOX_ONLY,,0,12,0.5,30/30,1.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,BOX_ONLY,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m003_014.png,BOX_ONLY,,0,12,0.75,30/30,1.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,BOX_ONLY,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m003_014.png,BOX_ONLY,,0,12,1.0,30/30,1.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,BOX_ONLY,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m003_014.png,BOX_ONLY,,0,12,1.25,30/30,1.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,BOX_ONLY,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m003_014.png,BOX_ONLY,,0,12,1.5,30/30,1.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,BOX_ONLY,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m003_014.png,BOX_ONLY,,0,20,0.0,30/30,1.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,BOX_ONLY,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m003_014.png,BOX_ONLY,,0,20,0.25,30/30,1.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,BOX_ONLY,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m003_014.png,BOX_ONLY,,0,20,0.5,30/30,1.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,BOX_ONLY,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m003_014.png,BOX_ONLY,,0,20,0.75,30/30,1.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,BOX_ONLY,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m003_014.png,BOX_ONLY,,0,20,1.0,30/30,1.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,BOX_ONLY,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m003_014.png,BOX_ONLY,,0,20,1.25,30/30,1.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,BOX_ONLY,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m003_014.png,BOX_ONLY,,0,20,1.5,30/30,1.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,BOX_ONLY,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m003_014.png,BOX_ONLY,,0,28,0.0,30/30,1.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,BOX_ONLY,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m003_014.png,BOX_ONLY,,0,28,0.25,30/30,1.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,BOX_ONLY,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m003_014.png,BOX_ONLY,,0,28,0.5,30/30,1.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,BOX_ONLY,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m003_014.png,BOX_ONLY,,0,28,0.75,30/30,1.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,BOX_ONLY,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m003_014.png,BOX_ONLY,,0,28,1.0,30/30,1.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,BOX_ONLY,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m003_014.png,BOX_ONLY,,0,28,1.25,30/30,1.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,BOX_ONLY,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m003_014.png,BOX_ONLY,,0,28,1.5,30/30,1.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,BOX_ONLY,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m003_014.png,BOX_ONLY,,1,12,0.0,30/30,1.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,BOX_ONLY,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m003_014.png,BOX_ONLY,,1,12,0.25,30/30,1.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,BOX_ONLY,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m003_014.png,BOX_ONLY,,1,12,0.5,30/30,1.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,BOX_ONLY,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m003_014.png,BOX_ONLY,,1,12,0.75,30/30,1.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,BOX_ONLY,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m003_014.png,BOX_ONLY,,1,12,1.0,30/30,1.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,BOX_ONLY,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m003_014.png,BOX_ONLY,,1,12,1.25,30/30,1.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,BOX_ONLY,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m003_014.png,BOX_ONLY,,1,12,1.5,30/30,1.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,BOX_ONLY,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m003_014.png,BOX_ONLY,,1,20,0.0,30/30,1.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,BOX_ONLY,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m003_014.png,BOX_ONLY,,1,20,0.25,30/30,1.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,BOX_ONLY,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m003_014.png,BOX_ONLY,,1,20,0.5,30/30,1.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,BOX_ONLY,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m003_014.png,BOX_ONLY,,1,20,0.75,30/30,1.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,BOX_ONLY,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m003_014.png,BOX_ONLY,,1,20,1.0,30/30,1.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,BOX_ONLY,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m003_014.png,BOX_ONLY,,1,20,1.25,30/30,1.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,BOX_ONLY,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m003_014.png,BOX_ONLY,,1,20,1.5,30/30,1.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,BOX_ONLY,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m003_014.png,BOX_ONLY,,1,28,0.0,30/30,1.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,BOX_ONLY,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m003_014.png,BOX_ONLY,,1,28,0.25,30/30,1.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,BOX_ONLY,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m003_014.png,BOX_ONLY,,1,28,0.5,30/30,1.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,BOX_ONLY,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m003_014.png,BOX_ONLY,,1,28,0.75,30/30,1.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,BOX_ONLY,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m003_014.png,BOX_ONLY,,1,28,1.0,30/30,1.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,BOX_ONLY,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m003_014.png,BOX_ONLY,,1,28,1.25,30/30,1.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,BOX_ONLY,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m003_014.png,BOX_ONLY,,1,28,1.5,30/30,1.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,BOX_ONLY,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m003_014.png,BOX_ONLY,,2,12,0.0,30/30,1.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,BOX_ONLY,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m003_014.png,BOX_ONLY,,2,12,0.25,30/30,1.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,BOX_ONLY,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m003_014.png,BOX_ONLY,,2,12,0.5,30/30,1.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,BOX_ONLY,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m003_014.png,BOX_ONLY,,2,12,0.75,30/30,1.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,BOX_ONLY,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m003_014.png,BOX_ONLY,,2,12,1.0,30/30,1.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,BOX_ONLY,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m003_014.png,BOX_ONLY,,2,12,1.25,30/30,1.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,BOX_ONLY,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m003_014.png,BOX_ONLY,,2,12,1.5,30/30,1.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,BOX_ONLY,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m003_014.png,BOX_ONLY,,2,20,0.0,30/30,1.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,BOX_ONLY,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m003_014.png,BOX_ONLY,,2,20,0.25,30/30,1.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,BOX_ONLY,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m003_014.png,BOX_ONLY,,2,20,0.5,30/30,1.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,BOX_ONLY,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m003_014.png,BOX_ONLY,,2,20,0.75,30/30,1.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,BOX_ONLY,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m003_014.png,BOX_ONLY,,2,20,1.0,30/30,1.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,BOX_ONLY,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m003_014.png,BOX_ONLY,,2,20,1.25,30/30,1.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,BOX_ONLY,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m003_014.png,BOX_ONLY,,2,20,1.5,30/30,1.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,BOX_ONLY,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m003_014.png,BOX_ONLY,,2,28,0.0,30/30,1.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,BOX_ONLY,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m003_014.png,BOX_ONLY,,2,28,0.25,30/30,1.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,BOX_ONLY,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m003_014.png,BOX_ONLY,,2,28,0.5,30/30,1.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,BOX_ONLY,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m003_014.png,BOX_ONLY,,2,28,0.75,30/30,1.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,BOX_ONLY,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m003_014.png,BOX_ONLY,,2,28,1.0,30/30,1.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,BOX_ONLY,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m003_014.png,BOX_ONLY,,2,28,1.25,30/30,1.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,BOX_ONLY,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m003_014.png,BOX_ONLY,,2,28,1.5,30/30,1.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,BOX_ONLY,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m004_003.png,0,,0,12,0.0,30/30,1.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,0,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m004_003.png,0,,0,12,0.25,30/30,1.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,0,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m004_003.png,0,,0,12,0.5,30/30,1.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,0,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m004_003.png,0,,0,12,0.75,30/30,1.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,0,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m004_003.png,0,,0,12,1.0,30/30,1.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,0,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m004_003.png,0,,0,12,1.25,30/30,1.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,0,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m004_003.png,0,,0,12,1.5,30/30,1.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,0,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m004_003.png,0,,0,20,0.0,30/30,1.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,0,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m004_003.png,0,,0,20,0.25,30/30,1.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,0,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m004_003.png,0,,0,20,0.5,30/30,1.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,0,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m004_003.png,0,,0,20,0.75,30/30,1.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,0,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m004_003.png,0,,0,20,1.0,30/30,1.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,0,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m004_003.png,0,,0,20,1.25,30/30,1.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,0,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m004_003.png,0,,0,20,1.5,30/30,1.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,0,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m004_003.png,0,,0,28,0.0,30/30,1.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,0,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m004_003.png,0,,0,28,0.25,30/30,1.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,0,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m004_003.png,0,,0,28,0.5,30/30,1.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,0,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m004_003.png,0,,0,28,0.75,30/30,1.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,0,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m004_003.png,0,,0,28,1.0,30/30,1.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,0,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m004_003.png,0,,0,28,1.25,30/30,1.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,0,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m004_003.png,0,,0,28,1.5,30/30,1.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,0,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m004_003.png,0,,1,12,0.0,30/30,1.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,0,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m004_003.png,0,,1,12,0.25,30/30,1.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,0,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m004_003.png,0,,1,12,0.5,30/30,1.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,0,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m004_003.png,0,,1,12,0.75,30/30,1.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,0,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m004_003.png,0,,1,12,1.0,30/30,1.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,0,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m004_003.png,0,,1,12,1.25,30/30,1.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,0,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m004_003.png,0,,1,12,1.5,30/30,1.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,0,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m004_003.png,0,,1,20,0.0,30/30,1.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,0,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m004_003.png,0,,1,20,0.25,30/30,1.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,0,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m004_003.png,0,,1,20,0.5,30/30,1.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,0,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m004_003.png,0,,1,20,0.75,30/30,1.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,0,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m004_003.png,0,,1,20,1.0,30/30,1.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,0,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m004_003.png,0,,1,20,1.25,30/30,1.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,0,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m004_003.png,0,,1,20,1.5,30/30,1.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,0,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m004_003.png,0,,1,28,0.0,30/30,1.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,0,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m004_003.png,0,,1,28,0.25,30/30,1.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,0,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m004_003.png,0,,1,28,0.5,30/30,1.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,0,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m004_003.png,0,,1,28,0.75,30/30,1.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,0,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m004_003.png,0,,1,28,1.0,30/30,1.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,0,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m004_003.png,0,,1,28,1.25,30/30,1.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,0,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m004_003.png,0,,1,28,1.5,30/30,1.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,0,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m004_003.png,0,,2,12,0.0,30/30,1.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,0,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m004_003.png,0,,2,12,0.25,30/30,1.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,0,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m004_003.png,0,,2,12,0.5,30/30,1.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,0,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m004_003.png,0,,2,12,0.75,30/30,1.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,0,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m004_003.png,0,,2,12,1.0,30/30,1.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,0,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m004_003.png,0,,2,12,1.25,30/30,1.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,0,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m004_003.png,0,,2,12,1.5,30/30,1.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,0,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m004_003.png,0,,2,20,0.0,30/30,1.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,0,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m004_003.png,0,,2,20,0.25,30/30,1.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,0,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m004_003.png,0,,2,20,0.5,30/30,1.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,0,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m004_003.png,0,,2,20,0.75,30/30,1.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,0,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m004_003.png,0,,2,20,1.0,30/30,1.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,0,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m004_003.png,0,,2,20,1.25,30/30,1.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,0,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m004_003.png,0,,2,20,1.5,30/30,1.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,0,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m004_003.png,0,,2,28,0.0,30/30,1.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,0,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m004_003.png,0,,2,28,0.25,30/30,1.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,0,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m004_003.png,0,,2,28,0.5,30/30,1.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,0,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m004_003.png,0,,2,28,0.75,30/30,1.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,0,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m004_003.png,0,,2,28,1.0,30/30,1.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,0,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m004_003.png,0,,2,28,1.25,30/30,1.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,0,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m004_003.png,0,,2,28,1.5,30/30,1.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,0,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m004_004.png,BOX_ONLY,,0,12,0.0,30/30,1.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,BOX_ONLY,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m004_004.png,BOX_ONLY,,0,12,0.25,30/30,1.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,BOX_ONLY,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m004_004.png,BOX_ONLY,,0,12,0.5,30/30,1.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,BOX_ONLY,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m004_004.png,BOX_ONLY,,0,12,0.75,30/30,1.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,BOX_ONLY,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m004_004.png,BOX_ONLY,,0,12,1.0,30/30,1.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,BOX_ONLY,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m004_004.png,BOX_ONLY,,0,12,1.25,30/30,1.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,BOX_ONLY,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m004_004.png,BOX_ONLY,,0,12,1.5,30/30,1.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,BOX_ONLY,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m004_004.png,BOX_ONLY,,0,20,0.0,30/30,1.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,BOX_ONLY,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m004_004.png,BOX_ONLY,,0,20,0.25,30/30,1.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,BOX_ONLY,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m004_004.png,BOX_ONLY,,0,20,0.5,30/30,1.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,BOX_ONLY,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m004_004.png,BOX_ONLY,,0,20,0.75,30/30,1.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,BOX_ONLY,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m004_004.png,BOX_ONLY,,0,20,1.0,30/30,1.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,BOX_ONLY,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m004_004.png,BOX_ONLY,,0,20,1.25,30/30,1.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,BOX_ONLY,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m004_004.png,BOX_ONLY,,0,20,1.5,30/30,1.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,BOX_ONLY,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m004_004.png,BOX_ONLY,,0,28,0.0,30/30,1.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,BOX_ONLY,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m004_004.png,BOX_ONLY,,0,28,0.25,30/30,1.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,BOX_ONLY,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m004_004.png,BOX_ONLY,,0,28,0.5,30/30,1.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,BOX_ONLY,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m004_004.png,BOX_ONLY,,0,28,0.75,30/30,1.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,BOX_ONLY,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m004_004.png,BOX_ONLY,,0,28,1.0,30/30,1.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,BOX_ONLY,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m004_004.png,BOX_ONLY,,0,28,1.25,30/30,1.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,BOX_ONLY,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m004_004.png,BOX_ONLY,,0,28,1.5,30/30,1.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,BOX_ONLY,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m004_004.png,BOX_ONLY,,1,12,0.0,30/30,1.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,BOX_ONLY,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m004_004.png,BOX_ONLY,,1,12,0.25,30/30,1.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,BOX_ONLY,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m004_004.png,BOX_ONLY,,1,12,0.5,30/30,1.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,BOX_ONLY,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m004_004.png,BOX_ONLY,,1,12,0.75,30/30,1.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,BOX_ONLY,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m004_004.png,BOX_ONLY,,1,12,1.0,30/30,1.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,BOX_ONLY,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m004_004.png,BOX_ONLY,,1,12,1.25,30/30,1.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,BOX_ONLY,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m004_004.png,BOX_ONLY,,1,12,1.5,30/30,1.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,BOX_ONLY,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m004_004.png,BOX_ONLY,,1,20,0.0,30/30,1.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,BOX_ONLY,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m004_004.png,BOX_ONLY,,1,20,0.25,30/30,1.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,BOX_ONLY,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m004_004.png,BOX_ONLY,,1,20,0.5,30/30,1.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,BOX_ONLY,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m004_004.png,BOX_ONLY,,1,20,0.75,30/30,1.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,BOX_ONLY,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m004_004.png,BOX_ONLY,,1,20,1.0,30/30,1.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,BOX_ONLY,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m004_004.png,BOX_ONLY,,1,20,1.25,30/30,1.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,BOX_ONLY,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m004_004.png,BOX_ONLY,,1,20,1.5,30/30,1.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,BOX_ONLY,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m004_004.png,BOX_ONLY,,1,28,0.0,30/30,1.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,BOX_ONLY,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m004_004.png,BOX_ONLY,,1,28,0.25,30/30,1.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,BOX_ONLY,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m004_004.png,BOX_ONLY,,1,28,0.5,30/30,1.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,BOX_ONLY,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m004_004.png,BOX_ONLY,,1,28,0.75,30/30,1.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,BOX_ONLY,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m004_004.png,BOX_ONLY,,1,28,1.0,30/30,1.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,BOX_ONLY,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m004_004.png,BOX_ONLY,,1,28,1.25,30/30,1.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,BOX_ONLY,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m004_004.png,BOX_ONLY,,1,28,1.5,30/30,1.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,BOX_ONLY,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m004_004.png,BOX_ONLY,,2,12,0.0,30/30,1.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,BOX_ONLY,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m004_004.png,BOX_ONLY,,2,12,0.25,30/30,1.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,BOX_ONLY,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m004_004.png,BOX_ONLY,,2,12,0.5,30/30,1.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,BOX_ONLY,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m004_004.png,BOX_ONLY,,2,12,0.75,30/30,1.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,BOX_ONLY,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m004_004.png,BOX_ONLY,,2,12,1.0,30/30,1.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,BOX_ONLY,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m004_004.png,BOX_ONLY,,2,12,1.25,30/30,1.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,BOX_ONLY,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m004_004.png,BOX_ONLY,,2,12,1.5,30/30,1.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,BOX_ONLY,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m004_004.png,BOX_ONLY,,2,20,0.0,30/30,1.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,BOX_ONLY,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m004_004.png,BOX_ONLY,,2,20,0.25,30/30,1.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,BOX_ONLY,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m004_004.png,BOX_ONLY,,2,20,0.5,30/30,1.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,BOX_ONLY,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m004_004.png,BOX_ONLY,,2,20,0.75,30/30,1.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,BOX_ONLY,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m004_004.png,BOX_ONLY,,2,20,1.0,30/30,1.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,BOX_ONLY,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m004_004.png,BOX_ONLY,,2,20,1.25,30/30,1.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,BOX_ONLY,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m004_004.png,BOX_ONLY,,2,20,1.5,30/30,1.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,BOX_ONLY,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m004_004.png,BOX_ONLY,,2,28,0.0,30/30,1.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,BOX_ONLY,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m004_004.png,BOX_ONLY,,2,28,0.25,30/30,1.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,BOX_ONLY,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m004_004.png,BOX_ONLY,,2,28,0.5,30/30,1.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,BOX_ONLY,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m004_004.png,BOX_ONLY,,2,28,0.75,30/30,1.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,BOX_ONLY,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m004_004.png,BOX_ONLY,,2,28,1.0,30/30,1.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,BOX_ONLY,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m004_004.png,BOX_ONLY,,2,28,1.25,30/30,1.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,BOX_ONLY,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m004_004.png,BOX_ONLY,,2,28,1.5,30/30,1.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,BOX_ONLY,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m004_015.png,4,,0,12,0.0,38/40,0.9500,INSUFFICIENT_DIAGNOSTIC_COVERAGE,4,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m004_015.png,4,,0,12,0.25,38/40,0.9500,INSUFFICIENT_DIAGNOSTIC_COVERAGE,4,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m004_015.png,4,,0,12,0.5,38/40,0.9500,INSUFFICIENT_DIAGNOSTIC_COVERAGE,4,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m004_015.png,4,,0,12,0.75,38/40,0.9500,INSUFFICIENT_DIAGNOSTIC_COVERAGE,4,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m004_015.png,4,,0,12,1.0,38/40,0.9500,INSUFFICIENT_DIAGNOSTIC_COVERAGE,4,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m004_015.png,4,,0,12,1.25,38/40,0.9500,INSUFFICIENT_DIAGNOSTIC_COVERAGE,4,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m004_015.png,4,,0,12,1.5,38/40,0.9500,INSUFFICIENT_DIAGNOSTIC_COVERAGE,4,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m004_015.png,4,,0,20,0.0,38/40,0.9500,INSUFFICIENT_DIAGNOSTIC_COVERAGE,4,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m004_015.png,4,,0,20,0.25,38/40,0.9500,INSUFFICIENT_DIAGNOSTIC_COVERAGE,4,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m004_015.png,4,,0,20,0.5,38/40,0.9500,INSUFFICIENT_DIAGNOSTIC_COVERAGE,4,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m004_015.png,4,,0,20,0.75,38/40,0.9500,INSUFFICIENT_DIAGNOSTIC_COVERAGE,4,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m004_015.png,4,,0,20,1.0,38/40,0.9500,INSUFFICIENT_DIAGNOSTIC_COVERAGE,4,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m004_015.png,4,,0,20,1.25,38/40,0.9500,INSUFFICIENT_DIAGNOSTIC_COVERAGE,4,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m004_015.png,4,,0,20,1.5,38/40,0.9500,INSUFFICIENT_DIAGNOSTIC_COVERAGE,4,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m004_015.png,4,,0,28,0.0,38/40,0.9500,INSUFFICIENT_DIAGNOSTIC_COVERAGE,4,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m004_015.png,4,,0,28,0.25,38/40,0.9500,INSUFFICIENT_DIAGNOSTIC_COVERAGE,4,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m004_015.png,4,,0,28,0.5,38/40,0.9500,INSUFFICIENT_DIAGNOSTIC_COVERAGE,4,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m004_015.png,4,,0,28,0.75,38/40,0.9500,INSUFFICIENT_DIAGNOSTIC_COVERAGE,4,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m004_015.png,4,,0,28,1.0,38/40,0.9500,INSUFFICIENT_DIAGNOSTIC_COVERAGE,4,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m004_015.png,4,,0,28,1.25,38/40,0.9500,INSUFFICIENT_DIAGNOSTIC_COVERAGE,4,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m004_015.png,4,,0,28,1.5,38/40,0.9500,INSUFFICIENT_DIAGNOSTIC_COVERAGE,4,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m004_015.png,4,,1,12,0.0,38/40,0.9500,INSUFFICIENT_DIAGNOSTIC_COVERAGE,4,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m004_015.png,4,,1,12,0.25,38/40,0.9500,INSUFFICIENT_DIAGNOSTIC_COVERAGE,4,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m004_015.png,4,,1,12,0.5,38/40,0.9500,INSUFFICIENT_DIAGNOSTIC_COVERAGE,4,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m004_015.png,4,,1,12,0.75,38/40,0.9500,INSUFFICIENT_DIAGNOSTIC_COVERAGE,4,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m004_015.png,4,,1,12,1.0,38/40,0.9500,INSUFFICIENT_DIAGNOSTIC_COVERAGE,4,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m004_015.png,4,,1,12,1.25,38/40,0.9500,INSUFFICIENT_DIAGNOSTIC_COVERAGE,4,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m004_015.png,4,,1,12,1.5,38/40,0.9500,INSUFFICIENT_DIAGNOSTIC_COVERAGE,4,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m004_015.png,4,,1,20,0.0,38/40,0.9500,INSUFFICIENT_DIAGNOSTIC_COVERAGE,4,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m004_015.png,4,,1,20,0.25,38/40,0.9500,INSUFFICIENT_DIAGNOSTIC_COVERAGE,4,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m004_015.png,4,,1,20,0.5,38/40,0.9500,INSUFFICIENT_DIAGNOSTIC_COVERAGE,4,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m004_015.png,4,,1,20,0.75,38/40,0.9500,INSUFFICIENT_DIAGNOSTIC_COVERAGE,4,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m004_015.png,4,,1,20,1.0,38/40,0.9500,INSUFFICIENT_DIAGNOSTIC_COVERAGE,4,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m004_015.png,4,,1,20,1.25,38/40,0.9500,INSUFFICIENT_DIAGNOSTIC_COVERAGE,4,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m004_015.png,4,,1,20,1.5,38/40,0.9500,INSUFFICIENT_DIAGNOSTIC_COVERAGE,4,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m004_015.png,4,,1,28,0.0,38/40,0.9500,INSUFFICIENT_DIAGNOSTIC_COVERAGE,4,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m004_015.png,4,,1,28,0.25,38/40,0.9500,INSUFFICIENT_DIAGNOSTIC_COVERAGE,4,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m004_015.png,4,,1,28,0.5,38/40,0.9500,INSUFFICIENT_DIAGNOSTIC_COVERAGE,4,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m004_015.png,4,,1,28,0.75,38/40,0.9500,INSUFFICIENT_DIAGNOSTIC_COVERAGE,4,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m004_015.png,4,,1,28,1.0,38/40,0.9500,INSUFFICIENT_DIAGNOSTIC_COVERAGE,4,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m004_015.png,4,,1,28,1.25,38/40,0.9500,INSUFFICIENT_DIAGNOSTIC_COVERAGE,4,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m004_015.png,4,,1,28,1.5,38/40,0.9500,INSUFFICIENT_DIAGNOSTIC_COVERAGE,4,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m004_015.png,4,,2,12,0.0,38/40,0.9500,INSUFFICIENT_DIAGNOSTIC_COVERAGE,4,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m004_015.png,4,,2,12,0.25,38/40,0.9500,INSUFFICIENT_DIAGNOSTIC_COVERAGE,4,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m004_015.png,4,,2,12,0.5,38/40,0.9500,INSUFFICIENT_DIAGNOSTIC_COVERAGE,4,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m004_015.png,4,,2,12,0.75,38/40,0.9500,INSUFFICIENT_DIAGNOSTIC_COVERAGE,4,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m004_015.png,4,,2,12,1.0,38/40,0.9500,INSUFFICIENT_DIAGNOSTIC_COVERAGE,4,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m004_015.png,4,,2,12,1.25,38/40,0.9500,INSUFFICIENT_DIAGNOSTIC_COVERAGE,4,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m004_015.png,4,,2,12,1.5,38/40,0.9500,INSUFFICIENT_DIAGNOSTIC_COVERAGE,4,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m004_015.png,4,,2,20,0.0,38/40,0.9500,INSUFFICIENT_DIAGNOSTIC_COVERAGE,4,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m004_015.png,4,,2,20,0.25,38/40,0.9500,INSUFFICIENT_DIAGNOSTIC_COVERAGE,4,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m004_015.png,4,,2,20,0.5,38/40,0.9500,INSUFFICIENT_DIAGNOSTIC_COVERAGE,4,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m004_015.png,4,,2,20,0.75,38/40,0.9500,INSUFFICIENT_DIAGNOSTIC_COVERAGE,4,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m004_015.png,4,,2,20,1.0,38/40,0.9500,INSUFFICIENT_DIAGNOSTIC_COVERAGE,4,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m004_015.png,4,,2,20,1.25,38/40,0.9500,INSUFFICIENT_DIAGNOSTIC_COVERAGE,4,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m004_015.png,4,,2,20,1.5,38/40,0.9500,INSUFFICIENT_DIAGNOSTIC_COVERAGE,4,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m004_015.png,4,,2,28,0.0,38/40,0.9500,INSUFFICIENT_DIAGNOSTIC_COVERAGE,4,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m004_015.png,4,,2,28,0.25,38/40,0.9500,INSUFFICIENT_DIAGNOSTIC_COVERAGE,4,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m004_015.png,4,,2,28,0.5,38/40,0.9500,INSUFFICIENT_DIAGNOSTIC_COVERAGE,4,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m004_015.png,4,,2,28,0.75,38/40,0.9500,INSUFFICIENT_DIAGNOSTIC_COVERAGE,4,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m004_015.png,4,,2,28,1.0,38/40,0.9500,INSUFFICIENT_DIAGNOSTIC_COVERAGE,4,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m004_015.png,4,,2,28,1.25,38/40,0.9500,INSUFFICIENT_DIAGNOSTIC_COVERAGE,4,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m004_015.png,4,,2,28,1.5,38/40,0.9500,INSUFFICIENT_DIAGNOSTIC_COVERAGE,4,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m005_015.png,4,,0,12,0.0,39/40,0.9750,INSUFFICIENT_DIAGNOSTIC_COVERAGE,4,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m005_015.png,4,,0,12,0.25,39/40,0.9750,INSUFFICIENT_DIAGNOSTIC_COVERAGE,4,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m005_015.png,4,,0,12,0.5,39/40,0.9750,INSUFFICIENT_DIAGNOSTIC_COVERAGE,4,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m005_015.png,4,,0,12,0.75,39/40,0.9750,INSUFFICIENT_DIAGNOSTIC_COVERAGE,4,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m005_015.png,4,,0,12,1.0,39/40,0.9750,INSUFFICIENT_DIAGNOSTIC_COVERAGE,4,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m005_015.png,4,,0,12,1.25,39/40,0.9750,INSUFFICIENT_DIAGNOSTIC_COVERAGE,4,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m005_015.png,4,,0,12,1.5,39/40,0.9750,INSUFFICIENT_DIAGNOSTIC_COVERAGE,4,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m005_015.png,4,,0,20,0.0,39/40,0.9750,INSUFFICIENT_DIAGNOSTIC_COVERAGE,4,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m005_015.png,4,,0,20,0.25,39/40,0.9750,INSUFFICIENT_DIAGNOSTIC_COVERAGE,4,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m005_015.png,4,,0,20,0.5,39/40,0.9750,INSUFFICIENT_DIAGNOSTIC_COVERAGE,4,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m005_015.png,4,,0,20,0.75,39/40,0.9750,INSUFFICIENT_DIAGNOSTIC_COVERAGE,4,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m005_015.png,4,,0,20,1.0,39/40,0.9750,INSUFFICIENT_DIAGNOSTIC_COVERAGE,4,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m005_015.png,4,,0,20,1.25,39/40,0.9750,INSUFFICIENT_DIAGNOSTIC_COVERAGE,4,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m005_015.png,4,,0,20,1.5,39/40,0.9750,INSUFFICIENT_DIAGNOSTIC_COVERAGE,4,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m005_015.png,4,,0,28,0.0,39/40,0.9750,INSUFFICIENT_DIAGNOSTIC_COVERAGE,4,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m005_015.png,4,,0,28,0.25,39/40,0.9750,INSUFFICIENT_DIAGNOSTIC_COVERAGE,4,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m005_015.png,4,,0,28,0.5,39/40,0.9750,INSUFFICIENT_DIAGNOSTIC_COVERAGE,4,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m005_015.png,4,,0,28,0.75,39/40,0.9750,INSUFFICIENT_DIAGNOSTIC_COVERAGE,4,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m005_015.png,4,,0,28,1.0,39/40,0.9750,INSUFFICIENT_DIAGNOSTIC_COVERAGE,4,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m005_015.png,4,,0,28,1.25,39/40,0.9750,INSUFFICIENT_DIAGNOSTIC_COVERAGE,4,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m005_015.png,4,,0,28,1.5,39/40,0.9750,INSUFFICIENT_DIAGNOSTIC_COVERAGE,4,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m005_015.png,4,,1,12,0.0,39/40,0.9750,INSUFFICIENT_DIAGNOSTIC_COVERAGE,4,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m005_015.png,4,,1,12,0.25,39/40,0.9750,INSUFFICIENT_DIAGNOSTIC_COVERAGE,4,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m005_015.png,4,,1,12,0.5,39/40,0.9750,INSUFFICIENT_DIAGNOSTIC_COVERAGE,4,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m005_015.png,4,,1,12,0.75,39/40,0.9750,INSUFFICIENT_DIAGNOSTIC_COVERAGE,4,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m005_015.png,4,,1,12,1.0,39/40,0.9750,INSUFFICIENT_DIAGNOSTIC_COVERAGE,4,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m005_015.png,4,,1,12,1.25,39/40,0.9750,INSUFFICIENT_DIAGNOSTIC_COVERAGE,4,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m005_015.png,4,,1,12,1.5,39/40,0.9750,INSUFFICIENT_DIAGNOSTIC_COVERAGE,4,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m005_015.png,4,,1,20,0.0,39/40,0.9750,INSUFFICIENT_DIAGNOSTIC_COVERAGE,4,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m005_015.png,4,,1,20,0.25,39/40,0.9750,INSUFFICIENT_DIAGNOSTIC_COVERAGE,4,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m005_015.png,4,,1,20,0.5,39/40,0.9750,INSUFFICIENT_DIAGNOSTIC_COVERAGE,4,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m005_015.png,4,,1,20,0.75,39/40,0.9750,INSUFFICIENT_DIAGNOSTIC_COVERAGE,4,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m005_015.png,4,,1,20,1.0,39/40,0.9750,INSUFFICIENT_DIAGNOSTIC_COVERAGE,4,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m005_015.png,4,,1,20,1.25,39/40,0.9750,INSUFFICIENT_DIAGNOSTIC_COVERAGE,4,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m005_015.png,4,,1,20,1.5,39/40,0.9750,INSUFFICIENT_DIAGNOSTIC_COVERAGE,4,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m005_015.png,4,,1,28,0.0,39/40,0.9750,INSUFFICIENT_DIAGNOSTIC_COVERAGE,4,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m005_015.png,4,,1,28,0.25,39/40,0.9750,INSUFFICIENT_DIAGNOSTIC_COVERAGE,4,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m005_015.png,4,,1,28,0.5,39/40,0.9750,INSUFFICIENT_DIAGNOSTIC_COVERAGE,4,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m005_015.png,4,,1,28,0.75,39/40,0.9750,INSUFFICIENT_DIAGNOSTIC_COVERAGE,4,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m005_015.png,4,,1,28,1.0,39/40,0.9750,INSUFFICIENT_DIAGNOSTIC_COVERAGE,4,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m005_015.png,4,,1,28,1.25,39/40,0.9750,INSUFFICIENT_DIAGNOSTIC_COVERAGE,4,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m005_015.png,4,,1,28,1.5,39/40,0.9750,INSUFFICIENT_DIAGNOSTIC_COVERAGE,4,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m005_015.png,4,,2,12,0.0,39/40,0.9750,INSUFFICIENT_DIAGNOSTIC_COVERAGE,4,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m005_015.png,4,,2,12,0.25,39/40,0.9750,INSUFFICIENT_DIAGNOSTIC_COVERAGE,4,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m005_015.png,4,,2,12,0.5,39/40,0.9750,INSUFFICIENT_DIAGNOSTIC_COVERAGE,4,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m005_015.png,4,,2,12,0.75,39/40,0.9750,INSUFFICIENT_DIAGNOSTIC_COVERAGE,4,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m005_015.png,4,,2,12,1.0,39/40,0.9750,INSUFFICIENT_DIAGNOSTIC_COVERAGE,4,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m005_015.png,4,,2,12,1.25,39/40,0.9750,INSUFFICIENT_DIAGNOSTIC_COVERAGE,4,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m005_015.png,4,,2,12,1.5,39/40,0.9750,INSUFFICIENT_DIAGNOSTIC_COVERAGE,4,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m005_015.png,4,,2,20,0.0,39/40,0.9750,INSUFFICIENT_DIAGNOSTIC_COVERAGE,4,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m005_015.png,4,,2,20,0.25,39/40,0.9750,INSUFFICIENT_DIAGNOSTIC_COVERAGE,4,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m005_015.png,4,,2,20,0.5,39/40,0.9750,INSUFFICIENT_DIAGNOSTIC_COVERAGE,4,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m005_015.png,4,,2,20,0.75,39/40,0.9750,INSUFFICIENT_DIAGNOSTIC_COVERAGE,4,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m005_015.png,4,,2,20,1.0,39/40,0.9750,INSUFFICIENT_DIAGNOSTIC_COVERAGE,4,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m005_015.png,4,,2,20,1.25,39/40,0.9750,INSUFFICIENT_DIAGNOSTIC_COVERAGE,4,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m005_015.png,4,,2,20,1.5,39/40,0.9750,INSUFFICIENT_DIAGNOSTIC_COVERAGE,4,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m005_015.png,4,,2,28,0.0,39/40,0.9750,INSUFFICIENT_DIAGNOSTIC_COVERAGE,4,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m005_015.png,4,,2,28,0.25,39/40,0.9750,INSUFFICIENT_DIAGNOSTIC_COVERAGE,4,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m005_015.png,4,,2,28,0.5,39/40,0.9750,INSUFFICIENT_DIAGNOSTIC_COVERAGE,4,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m005_015.png,4,,2,28,0.75,39/40,0.9750,INSUFFICIENT_DIAGNOSTIC_COVERAGE,4,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m005_015.png,4,,2,28,1.0,39/40,0.9750,INSUFFICIENT_DIAGNOSTIC_COVERAGE,4,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m005_015.png,4,,2,28,1.25,39/40,0.9750,INSUFFICIENT_DIAGNOSTIC_COVERAGE,4,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m005_015.png,4,,2,28,1.5,39/40,0.9750,INSUFFICIENT_DIAGNOSTIC_COVERAGE,4,0,,,Simulation only; current winner contains production tie-break/rescue; blend does not emulate those rules.
+m008_012.png,CONTRAST_T38,,0,12,0.0,0/3,0.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,CONTRAST_T38,0,,,No blend applied: insufficient repeated-template coverage; actual winner shown unchanged.
+m008_012.png,CONTRAST_T38,,0,12,0.25,0/3,0.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,CONTRAST_T38,0,,,No blend applied: insufficient repeated-template coverage; actual winner shown unchanged.
+m008_012.png,CONTRAST_T38,,0,12,0.5,0/3,0.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,CONTRAST_T38,0,,,No blend applied: insufficient repeated-template coverage; actual winner shown unchanged.
+m008_012.png,CONTRAST_T38,,0,12,0.75,0/3,0.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,CONTRAST_T38,0,,,No blend applied: insufficient repeated-template coverage; actual winner shown unchanged.
+m008_012.png,CONTRAST_T38,,0,12,1.0,0/3,0.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,CONTRAST_T38,0,,,No blend applied: insufficient repeated-template coverage; actual winner shown unchanged.
+m008_012.png,CONTRAST_T38,,0,12,1.25,0/3,0.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,CONTRAST_T38,0,,,No blend applied: insufficient repeated-template coverage; actual winner shown unchanged.
+m008_012.png,CONTRAST_T38,,0,12,1.5,0/3,0.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,CONTRAST_T38,0,,,No blend applied: insufficient repeated-template coverage; actual winner shown unchanged.
+m008_012.png,CONTRAST_T38,,0,20,0.0,0/3,0.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,CONTRAST_T38,0,,,No blend applied: insufficient repeated-template coverage; actual winner shown unchanged.
+m008_012.png,CONTRAST_T38,,0,20,0.25,0/3,0.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,CONTRAST_T38,0,,,No blend applied: insufficient repeated-template coverage; actual winner shown unchanged.
+m008_012.png,CONTRAST_T38,,0,20,0.5,0/3,0.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,CONTRAST_T38,0,,,No blend applied: insufficient repeated-template coverage; actual winner shown unchanged.
+m008_012.png,CONTRAST_T38,,0,20,0.75,0/3,0.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,CONTRAST_T38,0,,,No blend applied: insufficient repeated-template coverage; actual winner shown unchanged.
+m008_012.png,CONTRAST_T38,,0,20,1.0,0/3,0.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,CONTRAST_T38,0,,,No blend applied: insufficient repeated-template coverage; actual winner shown unchanged.
+m008_012.png,CONTRAST_T38,,0,20,1.25,0/3,0.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,CONTRAST_T38,0,,,No blend applied: insufficient repeated-template coverage; actual winner shown unchanged.
+m008_012.png,CONTRAST_T38,,0,20,1.5,0/3,0.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,CONTRAST_T38,0,,,No blend applied: insufficient repeated-template coverage; actual winner shown unchanged.
+m008_012.png,CONTRAST_T38,,0,28,0.0,0/3,0.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,CONTRAST_T38,0,,,No blend applied: insufficient repeated-template coverage; actual winner shown unchanged.
+m008_012.png,CONTRAST_T38,,0,28,0.25,0/3,0.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,CONTRAST_T38,0,,,No blend applied: insufficient repeated-template coverage; actual winner shown unchanged.
+m008_012.png,CONTRAST_T38,,0,28,0.5,0/3,0.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,CONTRAST_T38,0,,,No blend applied: insufficient repeated-template coverage; actual winner shown unchanged.
+m008_012.png,CONTRAST_T38,,0,28,0.75,0/3,0.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,CONTRAST_T38,0,,,No blend applied: insufficient repeated-template coverage; actual winner shown unchanged.
+m008_012.png,CONTRAST_T38,,0,28,1.0,0/3,0.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,CONTRAST_T38,0,,,No blend applied: insufficient repeated-template coverage; actual winner shown unchanged.
+m008_012.png,CONTRAST_T38,,0,28,1.25,0/3,0.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,CONTRAST_T38,0,,,No blend applied: insufficient repeated-template coverage; actual winner shown unchanged.
+m008_012.png,CONTRAST_T38,,0,28,1.5,0/3,0.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,CONTRAST_T38,0,,,No blend applied: insufficient repeated-template coverage; actual winner shown unchanged.
+m008_012.png,CONTRAST_T38,,1,12,0.0,0/3,0.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,CONTRAST_T38,0,,,No blend applied: insufficient repeated-template coverage; actual winner shown unchanged.
+m008_012.png,CONTRAST_T38,,1,12,0.25,0/3,0.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,CONTRAST_T38,0,,,No blend applied: insufficient repeated-template coverage; actual winner shown unchanged.
+m008_012.png,CONTRAST_T38,,1,12,0.5,0/3,0.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,CONTRAST_T38,0,,,No blend applied: insufficient repeated-template coverage; actual winner shown unchanged.
+m008_012.png,CONTRAST_T38,,1,12,0.75,0/3,0.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,CONTRAST_T38,0,,,No blend applied: insufficient repeated-template coverage; actual winner shown unchanged.
+m008_012.png,CONTRAST_T38,,1,12,1.0,0/3,0.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,CONTRAST_T38,0,,,No blend applied: insufficient repeated-template coverage; actual winner shown unchanged.
+m008_012.png,CONTRAST_T38,,1,12,1.25,0/3,0.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,CONTRAST_T38,0,,,No blend applied: insufficient repeated-template coverage; actual winner shown unchanged.
+m008_012.png,CONTRAST_T38,,1,12,1.5,0/3,0.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,CONTRAST_T38,0,,,No blend applied: insufficient repeated-template coverage; actual winner shown unchanged.
+m008_012.png,CONTRAST_T38,,1,20,0.0,0/3,0.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,CONTRAST_T38,0,,,No blend applied: insufficient repeated-template coverage; actual winner shown unchanged.
+m008_012.png,CONTRAST_T38,,1,20,0.25,0/3,0.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,CONTRAST_T38,0,,,No blend applied: insufficient repeated-template coverage; actual winner shown unchanged.
+m008_012.png,CONTRAST_T38,,1,20,0.5,0/3,0.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,CONTRAST_T38,0,,,No blend applied: insufficient repeated-template coverage; actual winner shown unchanged.
+m008_012.png,CONTRAST_T38,,1,20,0.75,0/3,0.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,CONTRAST_T38,0,,,No blend applied: insufficient repeated-template coverage; actual winner shown unchanged.
+m008_012.png,CONTRAST_T38,,1,20,1.0,0/3,0.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,CONTRAST_T38,0,,,No blend applied: insufficient repeated-template coverage; actual winner shown unchanged.
+m008_012.png,CONTRAST_T38,,1,20,1.25,0/3,0.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,CONTRAST_T38,0,,,No blend applied: insufficient repeated-template coverage; actual winner shown unchanged.
+m008_012.png,CONTRAST_T38,,1,20,1.5,0/3,0.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,CONTRAST_T38,0,,,No blend applied: insufficient repeated-template coverage; actual winner shown unchanged.
+m008_012.png,CONTRAST_T38,,1,28,0.0,0/3,0.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,CONTRAST_T38,0,,,No blend applied: insufficient repeated-template coverage; actual winner shown unchanged.
+m008_012.png,CONTRAST_T38,,1,28,0.25,0/3,0.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,CONTRAST_T38,0,,,No blend applied: insufficient repeated-template coverage; actual winner shown unchanged.
+m008_012.png,CONTRAST_T38,,1,28,0.5,0/3,0.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,CONTRAST_T38,0,,,No blend applied: insufficient repeated-template coverage; actual winner shown unchanged.
+m008_012.png,CONTRAST_T38,,1,28,0.75,0/3,0.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,CONTRAST_T38,0,,,No blend applied: insufficient repeated-template coverage; actual winner shown unchanged.
+m008_012.png,CONTRAST_T38,,1,28,1.0,0/3,0.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,CONTRAST_T38,0,,,No blend applied: insufficient repeated-template coverage; actual winner shown unchanged.
+m008_012.png,CONTRAST_T38,,1,28,1.25,0/3,0.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,CONTRAST_T38,0,,,No blend applied: insufficient repeated-template coverage; actual winner shown unchanged.
+m008_012.png,CONTRAST_T38,,1,28,1.5,0/3,0.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,CONTRAST_T38,0,,,No blend applied: insufficient repeated-template coverage; actual winner shown unchanged.
+m008_012.png,CONTRAST_T38,,2,12,0.0,0/3,0.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,CONTRAST_T38,0,,,No blend applied: insufficient repeated-template coverage; actual winner shown unchanged.
+m008_012.png,CONTRAST_T38,,2,12,0.25,0/3,0.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,CONTRAST_T38,0,,,No blend applied: insufficient repeated-template coverage; actual winner shown unchanged.
+m008_012.png,CONTRAST_T38,,2,12,0.5,0/3,0.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,CONTRAST_T38,0,,,No blend applied: insufficient repeated-template coverage; actual winner shown unchanged.
+m008_012.png,CONTRAST_T38,,2,12,0.75,0/3,0.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,CONTRAST_T38,0,,,No blend applied: insufficient repeated-template coverage; actual winner shown unchanged.
+m008_012.png,CONTRAST_T38,,2,12,1.0,0/3,0.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,CONTRAST_T38,0,,,No blend applied: insufficient repeated-template coverage; actual winner shown unchanged.
+m008_012.png,CONTRAST_T38,,2,12,1.25,0/3,0.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,CONTRAST_T38,0,,,No blend applied: insufficient repeated-template coverage; actual winner shown unchanged.
+m008_012.png,CONTRAST_T38,,2,12,1.5,0/3,0.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,CONTRAST_T38,0,,,No blend applied: insufficient repeated-template coverage; actual winner shown unchanged.
+m008_012.png,CONTRAST_T38,,2,20,0.0,0/3,0.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,CONTRAST_T38,0,,,No blend applied: insufficient repeated-template coverage; actual winner shown unchanged.
+m008_012.png,CONTRAST_T38,,2,20,0.25,0/3,0.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,CONTRAST_T38,0,,,No blend applied: insufficient repeated-template coverage; actual winner shown unchanged.
+m008_012.png,CONTRAST_T38,,2,20,0.5,0/3,0.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,CONTRAST_T38,0,,,No blend applied: insufficient repeated-template coverage; actual winner shown unchanged.
+m008_012.png,CONTRAST_T38,,2,20,0.75,0/3,0.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,CONTRAST_T38,0,,,No blend applied: insufficient repeated-template coverage; actual winner shown unchanged.
+m008_012.png,CONTRAST_T38,,2,20,1.0,0/3,0.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,CONTRAST_T38,0,,,No blend applied: insufficient repeated-template coverage; actual winner shown unchanged.
+m008_012.png,CONTRAST_T38,,2,20,1.25,0/3,0.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,CONTRAST_T38,0,,,No blend applied: insufficient repeated-template coverage; actual winner shown unchanged.
+m008_012.png,CONTRAST_T38,,2,20,1.5,0/3,0.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,CONTRAST_T38,0,,,No blend applied: insufficient repeated-template coverage; actual winner shown unchanged.
+m008_012.png,CONTRAST_T38,,2,28,0.0,0/3,0.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,CONTRAST_T38,0,,,No blend applied: insufficient repeated-template coverage; actual winner shown unchanged.
+m008_012.png,CONTRAST_T38,,2,28,0.25,0/3,0.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,CONTRAST_T38,0,,,No blend applied: insufficient repeated-template coverage; actual winner shown unchanged.
+m008_012.png,CONTRAST_T38,,2,28,0.5,0/3,0.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,CONTRAST_T38,0,,,No blend applied: insufficient repeated-template coverage; actual winner shown unchanged.
+m008_012.png,CONTRAST_T38,,2,28,0.75,0/3,0.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,CONTRAST_T38,0,,,No blend applied: insufficient repeated-template coverage; actual winner shown unchanged.
+m008_012.png,CONTRAST_T38,,2,28,1.0,0/3,0.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,CONTRAST_T38,0,,,No blend applied: insufficient repeated-template coverage; actual winner shown unchanged.
+m008_012.png,CONTRAST_T38,,2,28,1.25,0/3,0.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,CONTRAST_T38,0,,,No blend applied: insufficient repeated-template coverage; actual winner shown unchanged.
+m008_012.png,CONTRAST_T38,,2,28,1.5,0/3,0.0000,INSUFFICIENT_DIAGNOSTIC_COVERAGE,CONTRAST_T38,0,,,No blend applied: insufficient repeated-template coverage; actual winner shown unchanged.
