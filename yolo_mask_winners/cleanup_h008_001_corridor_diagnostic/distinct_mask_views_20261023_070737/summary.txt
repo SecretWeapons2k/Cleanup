@@ -1,0 +1,29 @@
+H008_001 distinct mask views (CPU only)
+Source: /home/secret/Downloads/yabai proj/yabaiproject - Copy/mit_kanji/h008_001.png
+OCR anchors: 30
+Image dimensions: 594x125
+Raw contrast mask at t=.28: 22795 pixels
+Legacy text corridor: 40325 pixels
+Current text corridor: 43644 pixels
+New fallback-added area: 3319 pixels
+Source edges: 12656 pixels
+
+text_corridor_fallback_added_detail_pixels: 1424.0
+text_corridor_fallback_added_pixels: 3319.0
+text_corridor_fallback_anchor_count: 5.0
+text_corridor_fallback_core_pixels: 2097.0
+
+Threshold counts:
+t=0.18: 28501 pixels
+t=0.23: 27189 pixels
+t=0.28: 22795 pixels
+t=0.33: 21849 pixels
+t=0.38: 18561 pixels
+
+Views:
+01_contrast_mask_yellow_t28.png = raw image with first-pass contrast mask tinted yellow
+02_text_corridor_cyan_fallback_magenta.png = current text corridor cyan; pixels newly added by the fallback magenta
+03_source_edges_green.png = all source edges in green; diagnostic only, not a text mask
+h008_001_three_views.png = clearly labeled 3-panel comparison
+h008_001_threshold_sweep_overlays.png = five contrast thresholds on raw image
+h008_001_threshold_sweep_binary.png = five binary masks
