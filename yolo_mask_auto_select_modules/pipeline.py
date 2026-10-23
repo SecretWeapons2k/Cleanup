@@ -35,7 +35,7 @@ from .io_utils import (
 )
 from .reports import write_csv_with_union_fields
 from .scoring import (
-    ink_strength_map, make_smart_ink_mask, outline_leak_metrics,
+    ink_strength_map, make_contrast_mask, make_smart_ink_mask, outline_leak_metrics,
     score_candidate, select_candidate,
 )
 
@@ -67,6 +67,21 @@ def main() -> int:
             raise ValueError
     except ValueError:
         print("ERROR: --distances must be exactly 0,2,4,6,8,10 for this version.", file=sys.stderr)
+        return 2
+
+    contrast_thresholds = tuple(float(value) for value in CONTRAST_MASK_THRESHOLDS)
+    contrast_candidate_ids = [
+        f"CONTRAST_T{int(round(value * 100)):02d}" for value in contrast_thresholds
+    ]
+    if (
+        any(not 0.0 <= value <= 1.0 for value in contrast_thresholds)
+        or len(set(contrast_candidate_ids)) != len(contrast_candidate_ids)
+    ):
+        print(
+            "ERROR: CONTRAST_MASK_THRESHOLDS must be unique after percentage rounding "
+            "and each value must be between 0 and 1.",
+            file=sys.stderr,
+        )
         return 2
 
     try:
@@ -226,6 +241,13 @@ def main() -> int:
 
                 outline_leak_cache[(name, "BOX_ONLY")] = outline_leak_metrics(source_detail, source_alpha, body_box_mask, box_only_mask)
                 outline_leak_cache[(name, "SMART_INK")] = outline_leak_metrics(source_detail, source_alpha, body_box_mask, smart_mask)
+                for threshold, candidate_id in zip(contrast_thresholds, contrast_candidate_ids):
+                    contrast_mask = make_contrast_mask(
+                        source_rgb, source_alpha, anchors_by_image.get(name, []), threshold
+                    )
+                    outline_leak_cache[(name, candidate_id)] = outline_leak_metrics(
+                        source_detail, source_alpha, body_box_mask, contrast_mask
+                    )
 
             # ==================================================================
             # [2/3] & [3/3] BATCH-VERARBEITUNG IN HÄPPCHEN (SCHONT /tmp UND RAM)
@@ -252,6 +274,8 @@ def main() -> int:
 
                 stage_meta: dict[tuple[str, int], tuple[str, str]] = {}
                 hybrid_stage_meta: dict[tuple[str, int], tuple[str, str]] = {}
+                contrast_stage_meta: dict[tuple[str, str], tuple[str, str]] = {}
+                contrast_masks_by_batch: dict[tuple[str, str], np.ndarray] = {}
                 box_stage_meta: dict[str, tuple[str, str]] = {}
                 smart_stage_meta: dict[str, tuple[str, str]] = {}
 
@@ -300,6 +324,27 @@ def main() -> int:
                         hybrid_mask_image.save(masks_stage / alpha_hybrid)
                         hybrid_stage_meta[(name, d)] = (staged_hybrid, alpha_hybrid)
 
+                    # Kontrastmasken stagen: jede Schwelle wird wie die
+                    # bestehenden Kandidaten durch LaMa geschickt und danach bewertet.
+                    for threshold, candidate_id in zip(contrast_thresholds, contrast_candidate_ids):
+                        contrast_mask = make_contrast_mask(
+                            rgb, alpha, anchors_by_image.get(name, []), threshold
+                        )
+                        contrast_masks_by_batch[(name, candidate_id)] = contrast_mask
+                        token = candidate_id.lower()
+                        staged_contrast = f"{stem}__{token}_rgb.png"
+                        alpha_contrast = f"{stem}__{token}_alpha.png"
+                        Image.fromarray(rgb, mode="RGB").save(images_stage / staged_contrast)
+                        Image.fromarray(alpha, mode="L").convert("RGB").save(images_stage / alpha_contrast)
+                        contrast_mask_image = Image.fromarray(
+                            contrast_mask.astype(np.uint8) * 255, mode="L"
+                        )
+                        contrast_mask_image.save(masks_stage / staged_contrast)
+                        contrast_mask_image.save(masks_stage / alpha_contrast)
+                        contrast_stage_meta[(name, candidate_id)] = (
+                            staged_contrast, alpha_contrast
+                        )
+
                     # Smart-Ink stagen
                     smart_mask = make_smart_ink_mask(rgb, anchors_by_image.get(name, []))
                     staged_smart = f"{stem}__smart_ink_rgb.png"
@@ -331,14 +376,20 @@ def main() -> int:
                     hybrid_masks: dict[str, np.ndarray] = {
                         f"HYBRID_D{d}": (box_mask | masks[d]) for d in (2, 6)
                     }
+                    contrast_masks: dict[str, np.ndarray] = {
+                        candidate_id: contrast_masks_by_batch[(name, candidate_id)]
+                        for candidate_id in contrast_candidate_ids
+                    }
                     yolo_reference_mask = masks[max(distances)]
                     scoring_envelope = yolo_reference_mask | box_mask | smart_mask
                     candidate_ids: list[int | str] = [
-                        *distances, "HYBRID_D2", "HYBRID_D6", "SMART_INK", "BOX_ONLY"
+                        *distances, "HYBRID_D2", "HYBRID_D6",
+                        *contrast_candidate_ids, "SMART_INK", "BOX_ONLY"
                     ]
                     candidate_masks: dict[int | str, np.ndarray] = {
                         **masks,
                         **hybrid_masks,
+                        **contrast_masks,
                         "SMART_INK": smart_mask,
                         "BOX_ONLY": box_mask,
                     }
@@ -358,6 +409,8 @@ def main() -> int:
                             s_name, a_name = hybrid_stage_meta[(name, 2)]
                         elif cid == "HYBRID_D6":
                             s_name, a_name = hybrid_stage_meta[(name, 6)]
+                        elif cid in contrast_candidate_ids:
+                            s_name, a_name = contrast_stage_meta[(name, cid)]
                         elif cid == "BOX_ONLY":
                             s_name, a_name = box_stage_meta[name]
                         else:
@@ -457,10 +510,15 @@ def main() -> int:
                     winner_is_smart = best_candidate_id == "SMART_INK"
                     winner_is_box = best_candidate_id == "BOX_ONLY"
                     winner_is_hybrid = best_candidate_id in {"HYBRID_D2", "HYBRID_D6"}
+                    winner_is_contrast = (
+                        isinstance(best_candidate_id, str)
+                        and best_candidate_id in contrast_candidate_ids
+                    )
                     route_lbl = (
                         "SMART_INK_COMPETITION_SELECTED" if winner_is_smart
                         else "BOX_ONLY_COMPETITION_SELECTED" if winner_is_box
                         else "HYBRID_COMPETITION_SELECTED" if winner_is_hybrid
+                        else "CONTRAST_MASK_COMPETITION_SELECTED" if winner_is_contrast
                         else "YOLO_CONF005_AUTO_SELECTED"
                     )
                     audit_suggestion = str(

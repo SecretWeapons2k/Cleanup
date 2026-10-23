@@ -164,6 +164,57 @@ def ink_strength_map(rgb: np.ndarray) -> np.ndarray:
     chroma_strength = chroma_delta / 24.0
     return np.clip(np.maximum(luminance_strength, chroma_strength), 0.0, 1.0)
 
+def make_contrast_mask(
+    rgb: np.ndarray,
+    alpha: np.ndarray,
+    boxes: list[dict[str, Any]],
+    threshold: float = 0.38,
+) -> np.ndarray:
+    """Build the experimental contrast mask inside inset OCR boxes.
+
+    The thresholding and 3x3 morphological close match
+    test_contrast_mask_on_images.py. Pixels outside the OCR-box union or
+    effectively transparent source pixels are excluded from the mask.
+    """
+    if not 0.0 <= float(threshold) <= 1.0:
+        raise ValueError(f"Contrast threshold must be in [0, 1], got {threshold!r}")
+
+    height, width = rgb.shape[:2]
+    if alpha.shape != (height, width):
+        raise ValueError(
+            f"Alpha shape {alpha.shape!r} does not match RGB shape {(height, width)!r}"
+        )
+
+    detail = ink_strength_map(rgb)
+    close_kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (3, 3))
+    threshold_binary = cv2.morphologyEx(
+        (detail >= float(threshold)).astype(np.uint8),
+        cv2.MORPH_CLOSE,
+        close_kernel,
+    ) > 0
+
+    roi_union = np.zeros((height, width), dtype=bool)
+    for box in boxes:
+        try:
+            x1 = max(0, min(width - 1, math.floor(float(box["x1"]))))
+            y1 = max(0, min(height - 1, math.floor(float(box["y1"]))))
+            x2 = max(0, min(width - 1, math.ceil(float(box["x2"]))))
+            y2 = max(0, min(height - 1, math.ceil(float(box["y2"]))))
+        except (KeyError, TypeError, ValueError, OverflowError):
+            continue
+        if x2 < x1 or y2 < y1:
+            continue
+
+        # Same asymmetric inset used by the visual hard-image test.
+        ix1, ix2 = min(x1 + 1, x2), max(x1, x2 - 1)
+        iy1, iy2 = min(y1 + 2, y2), max(y1, y2 - 2)
+        if ix2 < ix1 or iy2 < iy1:
+            ix1, iy1, ix2, iy2 = x1, y1, x2, y2
+        roi_union[iy1:iy2 + 1, ix1:ix2 + 1] = True
+
+    visible = np.asarray(alpha) > ALPHA_VISIBILITY_THRESHOLD
+    return threshold_binary & roi_union & visible
+
 def make_smart_ink_mask(
     rgb: np.ndarray,
     boxes: list[dict[str, Any]],

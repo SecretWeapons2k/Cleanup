@@ -1,0 +1,2 @@
+﻿image,route,routing_audit_suggestion,selected_distance_px,selected_score,selected_text_quality_score,selected_structure_score,best_text_quality_score,text_quality_tolerance,outline_leak_score,residual_inside_box_ratio,source_transparent_ratio,box_only_rescue_applied,box_only_rescue_reason_code,box_only_rescue_final_text_advantage,box_only_rescue_inside_detail_advantage,reason
+h007_000.png,HYBRID_COMPETITION_SELECTED,YOLO_CANDIDATE,HYBRID_D6,0.241843,0.336308,0.241843,0.329661,0.020000,0.000000,0.478623,0.000000,0,0,0.000000,0.000000,best two-stage score
