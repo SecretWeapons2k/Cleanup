@@ -1,0 +1,6 @@
+﻿threshold,threshold_label,unique_mask_pixels,selected_source_visible_pixels,selected_pixels_at_or_above_threshold,sum_per_anchor_mask_pixels_overlaps_counted,sum_inset_roi_pixels,unique_mask_fraction_of_image,unique_mask_fraction_of_visible_source,mask_png,overlay_png
+0.18,t18,28501,28501,24250,28501,43275,0.383852,0.40739,h008_001_mask_t18.png,h008_001_overlay_t18.png
+0.23,t23,27189,27189,22590,27189,43275,0.366182,0.388636,h008_001_mask_t23.png,h008_001_overlay_t23.png
+0.28,t28,22795,22795,18758,22795,43275,0.307003,0.325829,h008_001_mask_t28.png,h008_001_overlay_t28.png
+0.33,t33,21849,21849,17603,21849,43275,0.294263,0.312307,h008_001_mask_t33.png,h008_001_overlay_t33.png
+0.38,t38,18561,18561,14648,18561,43275,0.24998,0.265309,h008_001_mask_t38.png,h008_001_overlay_t38.png

@@ -1,0 +1,16 @@
+h008_001 raw Japanese-text first-pass mask: five-threshold sweep
+Source: /home/secret/Downloads/yabai proj/yabaiproject - Copy/mit_kanji/h008_001.png
+Anchors: /home/secret/Downloads/yabai proj/processed_output/anchors.csv
+Image size: 594 x 125
+OCR boxes used: 30
+Thresholds: 0.18, 0.23, 0.28, 0.33, 0.38
+Only the contrast threshold varies; closing kernel and box inset are held fixed.
+Closing: 3x3 rectangle; ROI inset: 1 px left/right, 2 px top/bottom.
+
+0.18: 28501 unique mask pixels; 38.385% of whole image; 40.739% of visible source.
+0.23: 27189 unique mask pixels; 36.618% of whole image; 38.864% of visible source.
+0.28: 22795 unique mask pixels; 30.700% of whole image; 32.583% of visible source.
+0.33: 21849 unique mask pixels; 29.426% of whole image; 31.231% of visible source.
+0.38: 18561 unique mask pixels; 24.998% of whole image; 26.531% of visible source.
+
+No automatic best-threshold decision was made; review the contact sheets visually.
