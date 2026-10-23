@@ -78,6 +78,7 @@ INK_STRENGTH_THRESHOLD = 0.28
 # The T38 contrast-mask candidate joins the normal LaMa/scoring competition.
 # T38 was selected from the previously inspected hard-image sweep.
 CONTRAST_MASK_THRESHOLDS = (0.38,)
+CONTRAST_MASK_PADDING_PX = 4
 TEXT_CORRIDOR_DILATION_PX = 3
 CONTOUR_MATCH_RADIUS_PX = 3
 

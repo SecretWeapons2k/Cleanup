@@ -169,6 +169,7 @@ def make_contrast_mask(
     alpha: np.ndarray,
     boxes: list[dict[str, Any]],
     threshold: float = 0.38,
+    padding_px: int = CONTRAST_MASK_PADDING_PX,
 ) -> np.ndarray:
     """Build the experimental contrast mask inside inset OCR boxes.
 
@@ -178,6 +179,9 @@ def make_contrast_mask(
     """
     if not 0.0 <= float(threshold) <= 1.0:
         raise ValueError(f"Contrast threshold must be in [0, 1], got {threshold!r}")
+    if isinstance(padding_px, bool) or int(padding_px) != padding_px or padding_px < 0:
+        raise ValueError(f"Contrast padding must be a non-negative integer, got {padding_px!r}")
+    padding_px = int(padding_px)
 
     height, width = rgb.shape[:2]
     if alpha.shape != (height, width):
@@ -193,7 +197,11 @@ def make_contrast_mask(
         close_kernel,
     ) > 0
 
+    # Seed pixels are selected only inside the existing inset OCR ROIs.
+    # The padded result may then grow back into the full OCR boxes, but never
+    # outside them. This recovers glyph edges excluded by the current inset.
     roi_union = np.zeros((height, width), dtype=bool)
+    box_union = np.zeros((height, width), dtype=bool)
     for box in boxes:
         try:
             x1 = max(0, min(width - 1, math.floor(float(box["x1"]))))
@@ -205,6 +213,9 @@ def make_contrast_mask(
         if x2 < x1 or y2 < y1:
             continue
 
+        # Hard limit for the padded mask: never cross the OCR box boundary.
+        box_union[y1:y2 + 1, x1:x2 + 1] = True
+
         # Same asymmetric inset used by the visual hard-image test.
         ix1, ix2 = min(x1 + 1, x2), max(x1, x2 - 1)
         iy1, iy2 = min(y1 + 2, y2), max(y1, y2 - 2)
@@ -213,7 +224,21 @@ def make_contrast_mask(
         roi_union[iy1:iy2 + 1, ix1:ix2 + 1] = True
 
     visible = np.asarray(alpha) > ALPHA_VISIBILITY_THRESHOLD
-    return threshold_binary & roi_union & visible
+
+    # Only in-ROI contrast pixels seed the mask. Padding expands them by N
+    # pixels to cover thin antialiasing/stroke fringes missed by T38. The final
+    # intersection with box_union prevents mask growth outside OCR boxes.
+    padded_mask = threshold_binary & roi_union
+    if padding_px:
+        size = padding_px * 2 + 1
+        padding_kernel = cv2.getStructuringElement(
+            cv2.MORPH_ELLIPSE, (size, size)
+        )
+        padded_mask = cv2.dilate(
+            padded_mask.astype(np.uint8), padding_kernel, iterations=1
+        ) > 0
+
+    return padded_mask & box_union & visible
 
 def make_smart_ink_mask(
     rgb: np.ndarray,
