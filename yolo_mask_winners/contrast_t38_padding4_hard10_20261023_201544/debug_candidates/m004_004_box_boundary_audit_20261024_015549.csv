@@ -1,0 +1,33 @@
+﻿anchor_id,region,threshold_016_pixels,threshold_028_pixels,type,x1,x2,y1,y2
+,1-3 px,3683,3304,,,,,
+,4-8 px,6157,5011,,,,,
+m004_004#r1c1-header-1,anchor_ring,125,103,header,0,100,0,33
+m004_004#r1c1-body-1,anchor_ring,382,153,body,27,244,26,54
+m004_004#r1c2-header-1,anchor_ring,127,105,header,266,371,0,33
+m004_004#r1c2-body-1,anchor_ring,897,637,body,304,466,26,76
+m004_004#r1c3-header-1,anchor_ring,164,133,header,534,640,0,35
+m004_004#r1c3-body-1,anchor_ring,1010,713,body,574,760,26,76
+m004_004#r2c1-header-1,anchor_ring,525,441,header,0,102,85,122
+m004_004#r2c1-body-1,anchor_ring,77,70,body,28,244,118,142
+m004_004#r2c2-header-1,anchor_ring,591,476,header,264,372,84,123
+m004_004#r2c2-body-1,anchor_ring,640,529,body,303,466,118,165
+m004_004#r2c3-header-1,anchor_ring,559,450,header,536,640,84,123
+m004_004#r2c3-body-1,anchor_ring,715,594,body,574,758,118,164
+m004_004#r3c1-header-1,anchor_ring,87,86,header,0,108,180,217
+m004_004#r3c1-body-1,anchor_ring,79,74,body,34,250,212,238
+m004_004#r3c2-header-1,anchor_ring,225,156,header,268,380,178,222
+m004_004#r3c2-body-1,anchor_ring,478,476,body,312,471,212,257
+m004_004#r3c3-header-1,anchor_ring,165,104,header,542,647,178,218
+m004_004#r3c3-body-1,anchor_ring,552,550,body,581,764,212,257
+m004_004#r4c1-header-1,anchor_ring,384,378,header,3,110,269,308
+m004_004#r4c1-body-1,anchor_ring,86,75,body,33,250,300,328
+m004_004#r4c2-header-1,anchor_ring,389,384,header,270,378,268,307
+m004_004#r4c2-body-1,anchor_ring,276,274,body,310,474,299,350
+m004_004#r4c3-header-1,anchor_ring,384,379,header,543,648,268,307
+m004_004#r4c3-body-1,anchor_ring,367,356,body,579,764,300,348
+m004_004#r5c1-header-1,anchor_ring,180,163,header,0,101,351,390
+m004_004#r5c1-body-1,anchor_ring,114,75,body,28,244,382,410
+m004_004#r5c2-header-1,anchor_ring,254,225,header,264,375,351,393
+m004_004#r5c2-body-1,anchor_ring,542,495,body,304,468,382,433
+m004_004#r5c3-header-1,anchor_ring,234,214,header,534,642,351,391
+m004_004#r5c3-body-1,anchor_ring,590,552,body,576,762,386,433
