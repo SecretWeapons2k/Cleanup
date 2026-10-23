@@ -473,6 +473,9 @@ def residual_micro_component_metrics(
             "residual_micro_component_area": 0.0,
             "residual_micro_component_count": 0.0,
             "residual_micro_component_peak_area": 0.0,
+            "residual_text_component_max_area": 0.0,
+            "residual_text_large_component_area": 0.0,
+            "residual_text_large_component_count": 0.0,
         }
 
     component_count, _labels, stats, _centroids = cv2.connectedComponentsWithStats(
@@ -480,12 +483,14 @@ def residual_micro_component_metrics(
         connectivity=8,
     )
     if component_count <= 1:
-        small_areas = np.empty((0,), dtype=np.int32)
+        areas = np.empty((0,), dtype=np.int32)
     else:
         areas = stats[1:, cv2.CC_STAT_AREA]
-        small_areas = areas[
-            (areas > 0) & (areas <= max(1, int(max_component_area)))
-        ]
+
+    areas = areas[areas > 0]
+    area_limit = max(1, int(max_component_area))
+    small_areas = areas[areas <= area_limit]
+    large_areas = areas[areas > area_limit]
 
     return {
         "residual_micro_component_area": float(np.sum(small_areas)),
@@ -493,6 +498,11 @@ def residual_micro_component_metrics(
         "residual_micro_component_peak_area": (
             float(np.max(small_areas)) if small_areas.size else 0.0
         ),
+        "residual_text_component_max_area": (
+            float(np.max(areas)) if areas.size else 0.0
+        ),
+        "residual_text_large_component_area": float(np.sum(large_areas)),
+        "residual_text_large_component_count": float(large_areas.size),
     }
 
 
