@@ -1,0 +1,13 @@
+Contrast-mask sweep on selected images
+Input images requested: 7
+Images found: 7
+Successfully processed: 7
+Skipped or failed: 0
+Thresholds: 0.18, 0.23, 0.28, 0.33, 0.38
+Mode: OCR-box inset regions
+Anchor CSV: /home/secret/Downloads/yabai proj/processed_output/anchors.csv
+
+Mask meaning: white = selected contrast/detail pixels, black = background.
+Overlay meaning: yellow highlights selected pixels on the source image.
+The selected thresholds are experimental; choose based on visual inspection, not pixel count alone.
+No YOLO/LaMa inference was run; input images and existing masks were not modified.
