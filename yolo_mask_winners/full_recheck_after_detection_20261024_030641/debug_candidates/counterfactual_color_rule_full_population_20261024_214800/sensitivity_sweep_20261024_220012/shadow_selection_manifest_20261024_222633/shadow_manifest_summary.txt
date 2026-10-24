@@ -1,0 +1,30 @@
+COLOR-RULE SHADOW SELECTION MANIFEST (READ-ONLY)
+Timestamp: 20261024_222633
+Winner rows: 716
+Accepted shadow overrides: 121
+Retained current candidates: 595
+Eligible proposals after guards: 121
+Candidate files missing: 145
+Stability gate: alternative selected in at least 18/24 sensitivity combinations
+Residual reduction gate: >= 90%
+Outside-anchor gate: direct current-vs-proposed Delta E > 12 on <= 0.25% of outside pixels after 8px anchor buffer
+No candidate image copied or altered; no production scoring/report changed.
+This is a sidecar/shadow manifest only, not a production winner report.
+
+OVERRIDE TRANSITIONS:
+CONTRAST_T38 -> BOX_ONLY: 52
+CONTRAST_T38 -> SMART_INK: 41
+BOX_ONLY -> HYBRID_D2: 17
+SMART_INK -> BOX_ONLY: 6
+CONTRAST_T38 -> HYBRID_D2: 2
+HYBRID_D2 -> SMART_INK: 1
+BOX_ONLY -> HYBRID_D6: 1
+SMART_INK -> CONTRAST_T38: 1
+
+EXCLUSIONS / WARNINGS:
+not_stable_in_18_of_24: 24
+residual_reduction_below_90_percent: 21
+
+Manifest: /home/secret/Downloads/Cleanup/yolo_mask_winners/full_recheck_after_detection_20261024_030641/debug_candidates/counterfactual_color_rule_full_population_20261024_214800/sensitivity_sweep_20261024_220012/shadow_selection_manifest_20261024_222633/shadow_candidate_manifest.csv
+Overrides: /home/secret/Downloads/Cleanup/yolo_mask_winners/full_recheck_after_detection_20261024_030641/debug_candidates/counterfactual_color_rule_full_population_20261024_214800/sensitivity_sweep_20261024_220012/shadow_selection_manifest_20261024_222633/shadow_overrides.csv
+Missing candidate-file report: /home/secret/Downloads/Cleanup/yolo_mask_winners/full_recheck_after_detection_20261024_030641/debug_candidates/counterfactual_color_rule_full_population_20261024_214800/sensitivity_sweep_20261024_220012/shadow_selection_manifest_20261024_222633/missing_candidate_files.csv
