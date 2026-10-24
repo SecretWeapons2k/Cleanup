@@ -1,0 +1,13 @@
+DIRECT CURRENT-VS-PROPOSED OUTSIDE-ANCHOR AUDIT (READ-ONLY)
+Timestamp: 20261024_232802
+Targets evaluated: 26 (selected from stable proposals with >= 90% source-color residual reduction)
+Metric: direct CIE Lab Delta E 76 between CURRENT and PROPOSED candidate images, outside OCR anchors and 0/2/4/8 px buffers.
+This tests whether selecting the proposed candidate directly changes pixels outside anchors; it is not a complete visual-quality score.
+Status counts (pad=8, Delta E>12): {'LOW_OUTSIDE_DIFFERENCE': 26}
+Rows with medium/high outside difference: 0
+High outside difference (>1% of outside pixels, Delta E>12): 0
+Medium outside difference (>0.25% to 1%): 0
+Rows written: /home/secret/Downloads/Cleanup/yolo_mask_winners/full_recheck_after_detection_20261024_030641/debug_candidates/counterfactual_color_rule_full_population_20261024_214800/numeric_distance_winner_audit_20261024_224539/numeric_distance_outside_anchor_followup_20261024_232802/direct_current_proposed_delta_20261024_232802/direct_current_proposed_outside_metrics.csv
+Comparison sheets for medium/high differences (up to 32 largest): /home/secret/Downloads/Cleanup/yolo_mask_winners/full_recheck_after_detection_20261024_030641/debug_candidates/counterfactual_color_rule_full_population_20261024_214800/numeric_distance_winner_audit_20261024_224539/numeric_distance_outside_anchor_followup_20261024_232802/direct_current_proposed_delta_20261024_232802/direct_difference_context_sheets
+Skipped: {}
+No GPU inference; no candidate images, winner_report.csv, or scoring.py modified.
