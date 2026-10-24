@@ -1,0 +1,25 @@
+ANCHOR COLOR RULE — READ-ONLY SENSITIVITY SWEEP
+Timestamp: 2026-10-24 22:00:12
+Metrics input: /home/secret/Downloads/Cleanup/yolo_mask_winners/full_recheck_after_detection_20261024_030641/debug_candidates/counterfactual_color_rule_full_population_20261024_214800/full_population_candidate_metrics.csv
+Decision reference: /home/secret/Downloads/Cleanup/yolo_mask_winners/full_recheck_after_detection_20261024_030641/debug_candidates/counterfactual_color_rule_full_population_20261024_214800/full_population_decisions.csv
+Mode: CSV-only; no image loading; no GPU; no production files or candidate images changed.
+Images: 716
+Candidate metrics rows: 3580
+Parameter combinations: 24
+Weight values: 0.12, 0.18, 0.24, 0.3
+Maximum residual ratios: 0.5, 0.65, 0.75
+Maximum chroma-p90 ratios: 1.0, 1.05
+
+BASELINE CHECK (weight=0.24, reduction<=0.75, chroma-p90<=1.05):
+Computed proposed changes: 166
+Expected based on original audit: 166
+Differences versus full_population_decisions.csv: 0
+
+HOW TO READ THE OUTPUTS:
+sensitivity_grid_summary.csv: change counts for each parameter combination.
+sensitivity_image_stability.csv: per-image stability across the parameter sweep.
+sensitivity_recommendations_long.csv: full per-image result for every combination.
+Images with the same alternative selected in at least 18/24 combinations: 142
+Of those, alternatives matching the baseline recommendation: 142
+
+This is a sensitivity analysis, not a production change. Do not apply all switches automatically based only on this report.
