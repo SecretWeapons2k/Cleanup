@@ -1,0 +1,30 @@
+NUMERIC DISTANCE WINNER COLOR-RULE AUDIT (READ-ONLY)
+Timestamp: 20261024_223630
+Numeric distance winner rows found: 145
+Current distance candidate metrics computed: 145
+Decision rows: 145
+Proposed changes from numeric current winners: 42
+Candidate files / metric skips: {}
+Rule constants: COLOR_WEIGHT=0.24, REDUCTION_RATIO_MAX=0.75, CHROMA_P90_RATIO_MAX=1.05
+Named alternatives are taken from the previously computed full-population candidate metrics; the actual selected DISTANCE_XXPX winner is newly measured from its saved candidate image.
+No GPU inference; no scoring.py, winner_report.csv, or candidate images modified.
+
+DECISION REASONS:
+alternative_improved_numeric_current_objective: 42
+no_eligible_alternative_better_than_numeric_current: 103
+
+PROPOSED TRANSITIONS:
+DISTANCE_00PX -> BOX_ONLY: 17
+DISTANCE_00PX -> HYBRID_D2: 14
+DISTANCE_02PX -> BOX_ONLY: 2
+DISTANCE_02PX -> HYBRID_D2: 2
+DISTANCE_04PX -> BOX_ONLY: 2
+DISTANCE_00PX -> CONTRAST_T38: 1
+DISTANCE_06PX -> BOX_ONLY: 1
+DISTANCE_06PX -> HYBRID_D6: 1
+DISTANCE_08PX -> BOX_ONLY: 1
+DISTANCE_08PX -> CONTRAST_T38: 1
+
+Output directory: /home/secret/Downloads/Cleanup/yolo_mask_winners/full_recheck_after_detection_20261024_030641/debug_candidates/counterfactual_color_rule_full_population_20261024_214800/numeric_distance_winner_audit_20261024_223630
+Comparison sheets written: 9
+This remains a counterfactual audit; it does not change the current selection.
