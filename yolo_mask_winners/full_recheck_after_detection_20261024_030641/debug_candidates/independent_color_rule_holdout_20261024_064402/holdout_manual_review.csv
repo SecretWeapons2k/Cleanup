@@ -1,0 +1,6 @@
+﻿image,sample_group,current_candidate,recommended_candidate,rule_triggered,source_color_gt16_reduction_pct,current_source_color_pixels_gt16,recommended_source_color_pixels_gt16,current_chroma_residual_p90,recommended_chroma_residual_p90,visual_choice,review_notes
+c000_002.png,other,BOX_ONLY,HYBRID_D2,1,100.0,94,0,0.0,0.0,,
+l008_025.png,other,BOX_ONLY,HYBRID_D2,1,100.0,862,0,0.0,0.0,,
+o016_002.png,contrast,CONTRAST_T38,BOX_ONLY,1,100.0,5816,0,39.446167,0.0,,
+o016_012.png,contrast,CONTRAST_T38,SMART_INK,1,99.8,5104,10,40.496914,0.0,,
+o018_039.png,other,BOX_ONLY,HYBRID_D2,1,100.0,41,0,0.0,0.0,,

@@ -425,6 +425,9 @@ def main() -> None:
         current_count = int(cur["source_color_pixels_gt16"])
         current_valid = int(cur["source_color_valid_anchors"])
         current_p90 = float(cur["chroma_residual_p90"])
+        # Score the current winner using the same objective as alternatives:
+        # its residual ratio is current_count/current_count == 1 when count > 0.
+        current_objective = float(cur["base_score"]) + (COLOR_WEIGHT if current_count > 0 else 0.0)
         eligible_alternatives = []
         if current_valid > 0 and current_count > 0:
             for alt in summaries_for_image:
@@ -438,10 +441,20 @@ def main() -> None:
                 alt["rule_objective"] = float(alt["base_score"]) + COLOR_WEIGHT * ratio
                 eligible_alternatives.append(alt)
         if eligible_alternatives:
-            best = min(eligible_alternatives, key=lambda r: (float(r["rule_objective"]), float(r["base_score"]), str(r["candidate"])))
-            recommended = str(best["candidate"])
-            triggered = recommended != current
-            reason = "alternative_passed_color_guards"
+            best_alternative = min(
+                eligible_alternatives,
+                key=lambda r: (float(r["rule_objective"]), float(r["base_score"]), str(r["candidate"])),
+            )
+            # Do not switch merely because an alternative passes the color guards:
+            # it must also improve the combined objective over the current winner.
+            if float(best_alternative["rule_objective"]) + 1e-9 < current_objective:
+                best = best_alternative
+                recommended = str(best["candidate"])
+                triggered = recommended != current
+                reason = "alternative_improved_current_objective"
+            else:
+                best, recommended, triggered = None, current, False
+                reason = "best_alternative_not_better_than_current_objective"
         else:
             best, recommended, triggered = None, current, False
             reason = "no_alternative_passed_color_guards"
@@ -459,8 +472,9 @@ def main() -> None:
             "current_chroma_residual_p90": round(current_p90, 6),
             "recommended_chroma_residual_p90": round(float(best["chroma_residual_p90"]), 6) if best else round(current_p90, 6),
             "current_base_score": round(float(cur["base_score"]), 8),
+            "current_rule_objective": round(current_objective, 8),
             "recommended_base_score": round(float(best["base_score"]), 8) if best else round(float(cur["base_score"]), 8),
-            "recommended_rule_objective": round(float(best["rule_objective"]), 8) if best else "",
+            "recommended_rule_objective": round(float(best["rule_objective"]), 8) if best else round(current_objective, 8),
             "candidate_variant_count_audited": len(summaries_for_image),
             "anchor_count": len(anchors),
         }
