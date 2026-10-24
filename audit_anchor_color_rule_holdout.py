@@ -183,9 +183,9 @@ def select_holdout(winners: list[dict[str, str]], anchor_map: dict[str, list[dic
         current = row.get("selected_distance_px", "").strip()
         if not image or not current or stem in CALIBRATION_CASES:
             continue
-        if not anchor_map.get(image) or not scores_by_image.get(image):
+        if not anchor_map.get(stem) or not scores_by_image.get(stem):
             continue
-        variants = {r.get("candidate", "") for r in scores_by_image[image]}
+        variants = {r.get("candidate", "") for r in scores_by_image[stem]}
         if current not in variants:
             continue
         current_path = candidate_path(image, current)
@@ -326,6 +326,14 @@ def main() -> None:
     print(f"Ankerdatei: {anchors_path}")
     winner_rows = read_csv(WINNER_REPORT)
     score_rows = read_csv(CANDIDATE_SCORES)
+    # In the actual full-run candidate_scores.csv, the candidate identifier is
+    # stored in "distance_px"; some diagnostic exports call it "candidate".
+    # Normalize both schemas without changing the source CSV.
+    for score_row in score_rows:
+        candidate_value = (score_row.get("candidate") or "").strip()
+        if not candidate_value:
+            candidate_value = (score_row.get("distance_px") or "").strip()
+        score_row["candidate"] = candidate_value
     anchor_rows = read_csv(anchors_path)
     if not winner_rows or not {"image", "selected_distance_px"}.issubset(winner_rows[0]):
         raise ValueError(f"winner_report.csv hat nicht die erwarteten Spalten: {list(winner_rows[0]) if winner_rows else []}")
@@ -339,14 +347,18 @@ def main() -> None:
     if not anchor_rows or not required_anchor.issubset(anchor_rows[0]):
         raise ValueError(f"anchors.csv hat nicht die erwarteten Spalten: {list(anchor_rows[0]) if anchor_rows else []}")
 
+    # Key image-indexed tables by lowercase stem so "scene.png" and "scene"
+    # in anchors/diagnostic CSVs still refer to the same image.
     anchor_map: dict[str, list[dict[str, str]]] = defaultdict(list)
     for row in anchor_rows:
-        if row.get("image", "").strip():
-            anchor_map[row["image"].strip()].append(row)
+        image_value = row.get("image", "").strip()
+        if image_value:
+            anchor_map[Path(image_value).stem.lower()].append(row)
     scores_by_image: dict[str, list[dict[str, str]]] = defaultdict(list)
     for row in score_rows:
-        if row.get("image", "").strip() and row.get("candidate", "").strip():
-            scores_by_image[row["image"].strip()].append(row)
+        image_value = row.get("image", "").strip()
+        if image_value and row.get("candidate", "").strip():
+            scores_by_image[Path(image_value).stem.lower()].append(row)
 
     original_map: dict[str, list[Path]] = defaultdict(list)
     for p in ORIGINAL_DIR.rglob("*"):
@@ -370,15 +382,16 @@ def main() -> None:
     decisions: list[dict[str, object]] = []
     changed_reviews: list[dict[str, str]] = []
     processed = 0
-    total_candidates = sum(len(scores_by_image[r["image"]]) for r in selected)
+    total_candidates = sum(len(scores_by_image[Path(r["image"]).stem.lower()]) for r in selected)
 
     for image_i, winner in enumerate(selected, start=1):
         image_name = winner["image"].strip()
         current = winner["selected_distance_px"].strip()
-        anchors = anchor_map[image_name]
+        image_key = Path(image_name).stem.lower()
+        anchors = anchor_map[image_key]
         original_path = find_original(image_name, original_map)
         original_lab = load_lab(original_path)
-        candidates = scores_by_image[image_name]
+        candidates = scores_by_image[image_key]
         candidate_scores_map = {r["candidate"]: r for r in candidates}
         summaries_for_image: list[dict[str, object]] = []
         for candidate_row in candidates:
