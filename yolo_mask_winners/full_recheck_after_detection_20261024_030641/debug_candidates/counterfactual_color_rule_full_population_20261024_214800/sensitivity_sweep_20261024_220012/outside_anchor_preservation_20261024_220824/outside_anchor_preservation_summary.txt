@@ -1,0 +1,12 @@
+OUTSIDE-ANCHOR PRESERVATION AUDIT (READ-ONLY)
+Timestamp: 20261024_220824
+Stable proposals evaluated: 121 (target set: 121)
+Stability: alternative selected in >=18/24 parameter combinations; source-color residual reduction >= 90%.
+Metric: original-vs-candidate CIE Lab Delta E 76 outside OCR anchors, with anchor buffers of 0/2/4/8 px.
+This is a collateral-change guard, not a full visual-quality score.
+Thresholds for triage use pad=8 and Lab delta > 12: CHECK if proposed outside change > 0.5% or rises > 0.25 percentage points versus current; LIKELY_SAFE if <=0.25% and rise <=0.10 pp; intermediate values are reviewed.
+Status counts: {'CHECK_OUTSIDE_ANCHORS': 2, 'LIKELY_SAFE_OUTSIDE_ANCHORS': 119}
+Rows written: /home/secret/Downloads/Cleanup/yolo_mask_winners/full_recheck_after_detection_20261024_030641/debug_candidates/counterfactual_color_rule_full_population_20261024_214800/sensitivity_sweep_20261024_220012/outside_anchor_preservation_20261024_220824/outside_anchor_preservation_metrics.csv
+Flagged/intermediate comparison sheets: /home/secret/Downloads/Cleanup/yolo_mask_winners/full_recheck_after_detection_20261024_030641/debug_candidates/counterfactual_color_rule_full_population_20261024_214800/sensitivity_sweep_20261024_220012/outside_anchor_preservation_20261024_220824/flagged_context_sheets
+Skipped: {}
+No GPU inference; no candidate images, winner_report.csv, or scoring.py modified.
