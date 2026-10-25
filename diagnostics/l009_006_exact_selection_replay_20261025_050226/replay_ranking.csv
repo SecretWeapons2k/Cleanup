@@ -1,0 +1,12 @@
+﻿rank,candidate,is_replay_winner,is_archived_winner,selector_score_full_precision,structure_score_full_precision,text_quality_score_full_precision,anchor_detail_eligible,text_quality_eligible,residual_micro_component_area,mask_pixels
+1,HYBRID_D2,True,True,0,0,0,1.0,1.0,0.0,72124
+2,HYBRID_D6,False,False,0,0,0,1.0,1.0,0.0,72174
+3,BOX_ONLY,False,False,0,0,0,1.0,1.0,0.0,71844
+4,SMART_INK,False,False,0,0,4.5560471380344386e-07,1.0,1.0,0.0,51108
+5,0,False,False,0,0,3.9120502425628601e-06,1.0,1.0,0.0,54669
+6,2,False,False,0,0,3.9120502425628601e-06,1.0,1.0,0.0,54949
+7,4,False,False,0,0,3.9120502425628601e-06,1.0,1.0,0.0,54999
+8,6,False,False,0,0,3.9120502425628601e-06,1.0,1.0,0.0,54999
+9,8,False,False,0,0,3.9120502425628601e-06,1.0,1.0,0.0,54999
+10,10,False,False,0,0,3.9120502425628601e-06,1.0,1.0,0.0,54999
+11,CONTRAST_T38,False,False,2,0,0.48513967932242735,1.0,0.0,232.0,29045

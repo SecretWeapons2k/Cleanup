@@ -1,0 +1,18 @@
+{
+  "image": "l009_006.png",
+  "archived_winner": "HYBRID_D2",
+  "replayed_winner": "HYBRID_D2",
+  "winner_changed": false,
+  "stored_winner_mask_pixel_exact": true,
+  "stored_winner_mask_different_pixels": 0,
+  "best_text_score_full_precision": "0",
+  "text_tolerance_full_precision": "0.02425698396612137",
+  "metric_fields_compared": 1111,
+  "metric_fields_matching_at_6dp": 1111,
+  "metric_fields_different_at_6dp": 0,
+  "score_comparison_passed": true,
+  "production_files_modified": false,
+  "lama_rerun": false,
+  "yolo_rerun_for_this_image": true,
+  "output_directory": "/home/secret/Downloads/Cleanup/diagnostics/l009_006_exact_selection_replay_20261025_050226"
+}

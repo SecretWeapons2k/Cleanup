@@ -1,0 +1,13 @@
+EXAKTER AUSWAHL-REPLAY: l009_006
+=======================================================
+Archivierter Gewinner: HYBRID_D2
+Replay-Gewinner:       HYBRID_D2
+Gewinner geändert:     False
+Gewinner-Maske pixelgenau identisch: True
+Unterschiedliche Maskenpixel: 0
+Metrikfelder geprüft: 1111
+Übereinstimmung bei 6 Dezimalstellen: 1111
+Abweichungen: 0
+Scorevergleich bestanden: True
+LaMa erneut ausgeführt: Nein
+Produktionsdateien geändert: Nein
