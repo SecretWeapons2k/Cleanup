@@ -1,0 +1,53 @@
+ALPHA-ISLAND SHADOW AUDIT (READ-ONLY)
+Ausgabe: /home/secret/Downloads/Cleanup/yolo_mask_winners/full_recheck_after_detection_20261024_030641/debug_candidates/alpha_island_shadow_20261025_020116_196214
+Alpha-Sichtbarkeitsschwelle: > 16
+Maximal entfernte Komponentenfläche: <= 64 Pixel
+Die 40%-Aktivierungsschwelle wird nur für diesen Schattenvergleich umgangen.
+Jeder Kandidat wird im Speicher kopiert; Produktionsdateien werden nicht verändert.
+
+m000_006
+  Bildgröße: 577x23
+  Transparenz im Original (Alpha <= 16): 28.63%
+  Normale 40%-Aktivierung würde laufen: NEIN
+  DISTANCE_00PX  | sichtbar vorher=  315 | nachher=    0 | entfernte Pixel=  315 | entfernte Komponenten=  40
+  DISTANCE_02PX  | sichtbar vorher=  102 | nachher=    0 | entfernte Pixel=  102 | entfernte Komponenten=   9
+  DISTANCE_04PX  | sichtbar vorher=  102 | nachher=    0 | entfernte Pixel=  102 | entfernte Komponenten=   9
+  DISTANCE_06PX  | sichtbar vorher=  102 | nachher=    0 | entfernte Pixel=  102 | entfernte Komponenten=   9
+  DISTANCE_08PX  | sichtbar vorher=  102 | nachher=    0 | entfernte Pixel=  102 | entfernte Komponenten=   9
+  DISTANCE_10PX  | sichtbar vorher=  102 | nachher=    0 | entfernte Pixel=  102 | entfernte Komponenten=   9
+  HYBRID_D2      | sichtbar vorher=  103 | nachher=    0 | entfernte Pixel=  103 | entfernte Komponenten=  15
+  HYBRID_D6      | sichtbar vorher=  103 | nachher=    0 | entfernte Pixel=  103 | entfernte Komponenten=  15
+  CONTRAST_T38   | sichtbar vorher=  273 | nachher=    0 | entfernte Pixel=  273 | entfernte Komponenten=  45
+  SMART_INK      | sichtbar vorher= 8898 | nachher= 8866 | entfernte Pixel=   32 | entfernte Komponenten=   3
+  BOX_ONLY       | sichtbar vorher=  330 | nachher=    0 | entfernte Pixel=  330 | entfernte Komponenten=  52
+
+s001_006
+  Bildgröße: 358x574
+  Transparenz im Original (Alpha <= 16): 94.13%
+  Normale 40%-Aktivierung würde laufen: JA
+  DISTANCE_00PX  | sichtbar vorher=    0 | nachher=    0 | entfernte Pixel=    0 | entfernte Komponenten=   0
+  DISTANCE_02PX  | sichtbar vorher=    0 | nachher=    0 | entfernte Pixel=    0 | entfernte Komponenten=   0
+  DISTANCE_04PX  | sichtbar vorher=    0 | nachher=    0 | entfernte Pixel=    0 | entfernte Komponenten=   0
+  DISTANCE_06PX  | sichtbar vorher=    0 | nachher=    0 | entfernte Pixel=    0 | entfernte Komponenten=   0
+  DISTANCE_08PX  | sichtbar vorher=    0 | nachher=    0 | entfernte Pixel=    0 | entfernte Komponenten=   0
+  DISTANCE_10PX  | sichtbar vorher=    0 | nachher=    0 | entfernte Pixel=    0 | entfernte Komponenten=   0
+  HYBRID_D2      | sichtbar vorher=    0 | nachher=    0 | entfernte Pixel=    0 | entfernte Komponenten=   0
+  HYBRID_D6      | sichtbar vorher=    0 | nachher=    0 | entfernte Pixel=    0 | entfernte Komponenten=   0
+  CONTRAST_T38   | sichtbar vorher=    0 | nachher=    0 | entfernte Pixel=    0 | entfernte Komponenten=   0
+  SMART_INK      | sichtbar vorher= 1994 | nachher= 1994 | entfernte Pixel=    0 | entfernte Komponenten=   0
+  BOX_ONLY       | sichtbar vorher=    0 | nachher=    0 | entfernte Pixel=    0 | entfernte Komponenten=   0
+
+WICHTIGER VERGLEICH
+  m000_006/DISTANCE_02PX: 102 -> 0 sichtbare Pixel; 102 Pixel durch Schattenregel entfernt.
+  m000_006/CONTRAST_T38: 273 -> 0 sichtbare Pixel; 273 Pixel durch Schattenregel entfernt.
+  s001_006/DISTANCE_00PX: 0 -> 0 sichtbare Pixel; 0 Pixel durch Schattenregel entfernt.
+  s001_006/SMART_INK: 1994 -> 1994 sichtbare Pixel; 0 Pixel durch Schattenregel entfernt.
+
+Ausgaben:
+  /home/secret/Downloads/Cleanup/yolo_mask_winners/full_recheck_after_detection_20261024_030641/debug_candidates/alpha_island_shadow_20261025_020116_196214/candidate_shadow_metrics.csv
+  /home/secret/Downloads/Cleanup/yolo_mask_winners/full_recheck_after_detection_20261024_030641/debug_candidates/alpha_island_shadow_20261025_020116_196214/m000_006_shadow_comparison.png
+  /home/secret/Downloads/Cleanup/yolo_mask_winners/full_recheck_after_detection_20261024_030641/debug_candidates/alpha_island_shadow_20261025_020116_196214/s001_006_shadow_comparison.png
+  /home/secret/Downloads/Cleanup/yolo_mask_winners/full_recheck_after_detection_20261024_030641/debug_candidates/alpha_island_shadow_20261025_020116_196214/summary.txt
+
+Nur neue Diagnoseausgaben. Keine Produktionsdatei, Maske oder
+vorhandener Kandidat wurde überschrieben.
