@@ -1,7 +1,0 @@
-image,current_candidate,recommended_candidate,visual_decision,confidence,notes
-c000_002.png,BOX_ONLY,HYBRID_D2,keep_recommendation,medium,"Fewer visible color residues; only very faint traces remain."
-l008_025.png,BOX_ONLY,HYBRID_D2,keep_recommendation,medium,"Proposed result looks cleaner with fewer visible residuals."
-o016_002.png,CONTRAST_T38,BOX_ONLY,keep_recommendation,high,"Orange source text is largely removed in the proposed cleaned image."
-o016_012.png,CONTRAST_T38,SMART_INK,keep_recommendation,high,"Most orange source text is removed; a few faint residues remain."
-o018_039.png,BOX_ONLY,HYBRID_D2,keep_recommendation,medium,"Small blue residue disappears in the proposed version."
-n008_005.png,CONTRAST_T38,HYBRID_D2,keep_current,high,"Corrected objective: current=0.665383; HYBRID_D2=0.676899; lower is better. Structured cyan-blue background makes color metric alone insufficient."

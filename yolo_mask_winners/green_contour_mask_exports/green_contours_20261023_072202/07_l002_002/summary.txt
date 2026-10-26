@@ -1,8 +1,0 @@
-Green source-contour export
-Source: /home/secret/Downloads/yabai proj/yabaiproject - Copy/mit_kanji/l002_002.png
-Image dimensions: 269x26
-Detected edge pixels: 1050
-Fraction of visible source pixels: 0.304878
-
-Important: this is an edge map, not a text classifier. It includes non-text outlines too.
-The edge algorithm is Cleanup's edge_map_lab(); no OCR/YOLO/LaMa inference was run.

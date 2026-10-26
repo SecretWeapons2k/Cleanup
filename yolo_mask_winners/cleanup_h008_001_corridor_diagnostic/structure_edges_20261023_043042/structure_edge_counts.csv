@@ -1,3 +1,0 @@
-﻿candidate,structure_region_pixels,source_edges_in_structure_region,final_edges_in_structure_region,source_final_edge_exact_overlap,contour_displacement_ratio,contour_orientation_loss_ratio,diagnostic_source_point_count,diagnostic_final_point_count
-distance_10px,17758,398,831,385,0.228548,0.0,398,831
-hybrid_d6,17758,398,637,6,0.981514,0.017588,398,637

@@ -1,2 +1,0 @@
-﻿image,route,routing_audit_suggestion,selected_distance_px,selected_score,selected_text_quality_score,selected_structure_score,best_text_quality_score,text_quality_tolerance,outline_leak_score,residual_inside_box_ratio,source_transparent_ratio,box_only_rescue_applied,box_only_rescue_reason_code,box_only_rescue_final_text_advantage,box_only_rescue_inside_detail_advantage,reason
-m004_003.png,YOLO_CONF005_AUTO_SELECTED,YOLO_CANDIDATE,10,0.438058,0.483839,0.438058,0.477449,0.020000,0.045418,0.546235,0.420637,0,0,0.000000,0.000000,best two-stage score

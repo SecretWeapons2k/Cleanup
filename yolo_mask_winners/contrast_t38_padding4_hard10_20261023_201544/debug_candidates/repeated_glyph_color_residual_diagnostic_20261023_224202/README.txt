@@ -1,2 +1,0 @@
-Repeated-glyph template chroma residual diagnostic (offline only).
-Uses source-derived repeated-text geometry plus CIE Lab chroma a/b matching, so darkened/softened remnants with similar hue may still be detected. Local control density is subtracted to reduce background-colour false positives. Scores are diagnostic only and ignore structure preservation. Overlay: magenta=chroma matches in exact template; orange=1px band; green=2px-only band; cyan=template contour; yellow=OCR box. No YOLO/LaMa inference and no production files modified.
