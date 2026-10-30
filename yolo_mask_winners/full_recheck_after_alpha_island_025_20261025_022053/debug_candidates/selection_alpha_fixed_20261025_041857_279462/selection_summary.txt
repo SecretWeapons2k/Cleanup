@@ -1,9 +1,0 @@
-FIXED SELECTOR + ALPHA COMPOSITE AUDIT (READ-ONLY)
-Bilder: 716
-Kandidatenzeilen: 7876
-Bilder mit aktiver Rescue im ursprünglichen Bericht: 136
-Gewinner, die sich bei deaktivierter Rescue ändern: 134
-Ungeklärte Unterschiede bei ursprünglich inaktiver Rescue: 103
-Bilder ohne Kandidat am strengen absoluten Gate: 8
-Auswahlvergleich bestanden: False
-Produktion unverändert.

@@ -1,3 +1,0 @@
-﻿image,source_has_alpha_channel,source_height,source_width,source_alpha_gt_0,source_alpha_gt_16,source_alpha_gt_64,source_alpha_gt_128,source_alpha_gt_240,source_alpha_le_16,source_transparent_ratio_alpha_le_16,source_visible_ratio_alpha_gt_16,winner_mask_pixels,visible_source_pixels_inside_winner_mask,visible_source_pixels_outside_winner_mask,visible_source_pixels_outside_all_ocr_boxes,winner_mask_pixels_outside_all_ocr_boxes,ocr_box_count
-h008_001,1,125,594,70200,69960,69840,69600,69120,4290,0.057778,0.942222,46884,45156,24804,17192,8039,30
-m001_001,1,61,585,32964,27600,22436,17870,12985,8085,0.226566,0.773434,30834,27280,320,320,0,1
