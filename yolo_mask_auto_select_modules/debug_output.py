@@ -95,10 +95,13 @@ def save_debug_contact_sheet(
 def _draw_outline(draw: ImageDraw.ImageDraw, box: dict[str, Any], width: int, height: int,
                   color: tuple[int, int, int]) -> None:
     """Outline a box: polygon if the box has one, else its rectangle."""
-    poly = box.get("poly")
-    if poly is not None:
-        pts = [(float(x), float(y)) for x, y in poly]
-        draw.line(pts + [pts[0]], fill=color, width=2)
+    poly_value = box.get("poly")
+    if poly_value is not None:
+        polygons = [poly_value] if isinstance(poly_value, np.ndarray) else poly_value
+        for poly in polygons:
+            pts = [(float(x), float(y)) for x, y in poly]
+            if len(pts) >= 3:
+                draw.line(pts + [pts[0]], fill=color, width=2)
         return
     try:
         x1 = max(0, min(width - 1, int(round(float(box["x1"])))))
