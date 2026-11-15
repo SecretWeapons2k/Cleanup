@@ -44,6 +44,10 @@ These are separate utilities, not duplicate pipeline implementations:
 - `scripts/cleanup_repo.py`: reports repository cleanup candidates by
   default; with `--apply`, removes Python caches and archives old backups,
   the known accidental patch dump, and root-level log files outside the repo.
+- `tools/bundle.py`: combines the main pipeline, supporting Python tools,
+  tests, scripts, and project documentation into a single `bundle.txt`.
+  Generated result images, `yolo_mask_winners/`, `diagnostics/`, caches,
+  and virtual environments are excluded.
 
 ## Run the pipeline
 
@@ -57,6 +61,18 @@ python yolo_mask_auto_select.py --random-sample 10 --min-m-images 3 --seed 20261
 
 Remove `--dry-run` only when you intend to start processing. Check the
 arguments with `python yolo_mask_auto_select.py --help` before a larger run.
+
+## Create a project bundle
+
+From the repository root, run:
+
+```bash
+python tools/bundle.py
+```
+
+The script writes `bundle.txt` in the repository root. The output is a local
+analysis artifact and is ignored by Git; it does not include generated result
+images or diagnostic evidence.
 
 ## Tests
 

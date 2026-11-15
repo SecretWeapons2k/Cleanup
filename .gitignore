@@ -1,6 +1,10 @@
 # Large generated model outputs and reviewed result sets
 /yolo_mask_winners/
 
+# Generated source bundle (local analysis artifact)
+/bundle.txt
+/bundle.txt.tmp
+
 # Local Python environments and generated caches
 .venv/
 venv/
