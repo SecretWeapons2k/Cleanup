@@ -21,9 +21,14 @@ Variante samt Masken, Kandidatenbildern und Berichten.
 
 `yolo_mask_auto_select_modules/config.py`
   Zentrale Pfade, Modell- und Laufparameter, aktive Kandidatenvarianten,
-  Schwellenwerte und Bewertungsgewichte. Für aktuelle Einstellungen ist
-  ausschließlich diese Datei maßgeblich; alte Logs und Backups können
-  abweichende historische Werte enthalten.
+  Schwellenwerte und Bewertungsgewichte. Die gemeinsamen Standardpfade sind:
+  - Anchors: `~/Downloads/yabai proj/processed_output/anchors.csv`
+  - Quellbilder: `~/Downloads/yabai proj/yabaiproject - Copy/mit_kanji/`
+  - optionale Schutzzonen: `protected_zones.csv` neben der aktiven Anchors-CSV.
+  Pipeline, Routing-Audit und Label-Tool verwenden dieselben Defaults.
+  Abweichende Speicherorte können per CLI angegeben werden. Für aktuelle
+  Einstellungen ist ausschließlich diese Datei maßgeblich; alte Logs und
+  Backups können abweichende historische Werte enthalten.
 
 `yolo_mask_auto_select_modules/cli.py`
   Kommandozeilenargumente für Bilder, Anchors, YOLO-Gewichte, Stichprobe,
@@ -55,7 +60,9 @@ Diese Programme haben getrennte Aufgaben und sind keine Duplikate der
 Hauptpipeline:
 
 `yolo_mask_routing_audit.py`
-  Eigenständiges YOLO-Inferenz-/Diagnosewerkzeug. Prüft Maskenabdeckung,
+  Eigenständiges YOLO-Inferenz-/Diagnosewerkzeug. Verwendet dieselben
+  Standardpfade für `anchors.csv`, Quellbilder und optionale Schutzzonen
+  wie die Hauptpipeline. Prüft Maskenabdeckung,
   Abstand zu OCR-Ankern und Body-Box-Coverage. Erzeugt unter anderem
   `routing_report.csv`, `body_box_coverage.csv`, `instances.csv` und
   visuelle Kontaktbögen. Kein LaMa-Lauf und keine Änderung der Quelldateien.
