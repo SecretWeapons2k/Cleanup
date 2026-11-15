@@ -39,6 +39,17 @@ class ParsingTests(unittest.TestCase):
         rect = {"type": "body", "mask_polygon": "1,1;9,1;9,5;1,5", "polygon": "1,1;9,1;9,5;1,5"}
         self.assertIsNone(geometry.anchor_polygon(rect))
 
+    def test_body_uses_red_rectangle_only_when_white_mask_is_missing(self):
+        row = {
+            "type": "body",
+            "mask_polygon": "",
+            "polygon": L_POLY,  # This is the OCR contour, not the white cleaning mask.
+        }
+        self.assertIsNone(geometry.anchor_polygon(row))
+        box = {"x1": 10, "y1": 5, "x2": 49, "y2": 24, "poly": geometry.anchor_polygon(row)}
+        mask = make_box_only_mask(60, 30, [box]) > 0
+        self.assertTrue(mask[20, 40])  # the red rectangle fallback covers the notch
+
     def test_header_uses_rotated_polygon(self):
         header = {"type": "header", "mask_polygon": "", "polygon": "569,27;628,31;627,55;568,51"}
         self.assertIsNotNone(geometry.anchor_polygon(header))
