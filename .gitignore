@@ -1,1 +1,27 @@
-yolo_mask_winners/
+# Large generated model outputs and reviewed result sets
+/yolo_mask_winners/
+
+# Local Python environments and generated caches
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Local source backups; the cleanup utility archives these outside the repo
+*.bak
+*.bak-*
+*.bak_*
+*.bak.*
+*.backup
+*.backup-*
+*.backup_*
+*.backup.*
+*.old
+*.orig
+
+# Temporary files and generated root-level run logs
+*.tmp
+/*.log
