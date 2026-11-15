@@ -20,7 +20,7 @@ from .candidate_masks import ImageMaskSet, build_image_mask_set, enforce_protect
 from .cli import parse_args
 from .config import *
 from .debug_output import build_debug_mask_overlay, save_debug_contact_sheet, save_debug_side_by_side_sheet
-from .geometry import read_protected_zones
+from .geometry import read_protected_zones, resolve_protected_zones_csv
 from .io_utils import (
     choose_output_dir,
     choose_random_sample,
@@ -125,10 +125,9 @@ def main() -> int:
         zones_path = None
         zones_by_image: dict[str, list[dict[str, Any]]] = {}
         if not args.no_protected_zones:
-            if args.protected_zones is not None:
-                zones_path = args.protected_zones.expanduser().resolve()
-            elif (anchors_path.parent / "protected_zones.csv").is_file():
-                zones_path = anchors_path.parent / "protected_zones.csv"
+            zones_path = resolve_protected_zones_csv(
+                anchors_path, args.protected_zones
+            )
             if zones_path is not None:
                 zones_by_image = read_protected_zones(zones_path)
                 unknown = sorted(set(zones_by_image) - available_names)
