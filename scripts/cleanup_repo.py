@@ -4,12 +4,13 @@
 Default: report only, make no changes.
 Apply:   python scripts/cleanup_repo.py --apply
 
-The script only removes regenerable Python bytecode/cache files. Old source
-backups and the known accidental patch dump are moved to a timestamped archive
-next to the repository before disappearing from the working tree.
+The script removes regenerable Python bytecode/cache files. Old source
+backups, the known accidental patch dump, and root-level historical logs are
+moved to a timestamped archive next to the repository before disappearing
+from the working tree.
 
-Historical logs, diagnostics, tests, source code, requirements snapshots, and
-all yolo_mask_winners data are deliberately preserved. A static import audit
+Diagnostics, tests, source code, requirements snapshots, and all
+yolo_mask_winners data are deliberately preserved. A static import audit
 may report possible orphan modules, but it never deletes code.
 """
 from __future__ import annotations
@@ -81,7 +82,7 @@ def collect_cleanup_targets(root: Path) -> dict[str, list[Path]]:
         "bytecode_files": [],
         "backup_files": [],
         "patch_dumps": [],
-        "kept_logs": [],
+        "log_files": [],
     }
 
     for current, filenames, dirnames in walk_repository(root):
@@ -107,8 +108,10 @@ def collect_cleanup_targets(root: Path) -> dict[str, list[Path]]:
                 targets["backup_files"].append(path)
                 continue
 
-            if path.suffix.lower() == ".log":
-                targets["kept_logs"].append(path)
+            # Only root-level logs are archived. Logs nested inside diagnostics
+            # remain with their reports and evidence.
+            if path.suffix.lower() == ".log" and path.parent == root:
+                targets["log_files"].append(path)
 
             if is_known_patch_dump(path):
                 targets["patch_dumps"].append(path)
@@ -260,7 +263,7 @@ def format_report(root: Path, targets: dict[str, list[Path]], orphans: list[str]
         f"  confirmed accidental diff dumps: {len(targets['patch_dumps'])}",
         "",
         "PRESERVED BY DESIGN",
-        f"  historical .log files: {len(targets['kept_logs'])}",
+        f"  root-level .log files to archive: {len(targets['log_files'])}",
         "  yolo_mask_winners/: all masks, images, CSV reports and run data",
         "  diagnostics/, tests/, current Python source and requirements snapshots",
         "",
@@ -283,9 +286,9 @@ def format_report(root: Path, targets: dict[str, list[Path]], orphans: list[str]
             lines += ["", title]
             lines.extend(f"  - {item}" for item in items)
 
-    if targets["kept_logs"]:
-        lines += ["", "HISTORICAL LOGS LEFT IN PLACE"]
-        lines.extend(f"  - {item}" for item in rel(targets["kept_logs"]))
+    if targets["log_files"]:
+        lines += ["", "ROOT-LEVEL LOGS TO ARCHIVE"]
+        lines.extend(f"  - {item}" for item in rel(targets["log_files"]))
 
     lines += [
         "",
@@ -296,7 +299,9 @@ def format_report(root: Path, targets: dict[str, list[Path]], orphans: list[str]
 
 
 def apply_cleanup(root: Path, targets: dict[str, list[Path]]) -> Path | None:
-    archived_files = targets["backup_files"] + targets["patch_dumps"]
+    archived_files = (
+        targets["backup_files"] + targets["patch_dumps"] + targets["log_files"]
+    )
     archive_dir: Path | None = None
 
     if archived_files:
@@ -355,12 +360,12 @@ def main() -> int:
     print("\nCLEANUP COMPLETE")
     print(f"  Removed cache directories: {len(targets['cache_dirs'])}")
     print(f"  Removed standalone bytecode files: {len(targets['bytecode_files'])}")
-    print(f"  Archived backup/diff files: {len(targets['backup_files']) + len(targets['patch_dumps'])}")
+    print(f"  Archived backup/diff/log files: {len(targets['backup_files']) + len(targets['patch_dumps']) + len(targets['log_files'])}")
     if archive_dir:
         print(f"  Recovery archive: {archive_dir}")
     else:
         print("  Recovery archive: not needed")
-    print("  Historical logs, diagnostics and result images were not modified.")
+    print("  Nested diagnostics logs, diagnostics and result images were not modified.")
     return 0
 
 
