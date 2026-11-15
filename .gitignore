@@ -1,1 +1,19 @@
 yolo_mask_winners/
+
+# Python bytecode and caches
+__pycache__/
+*.py[cod]
+
+# Local source backups
+*.bak
+*.bak-*
+*.bak_*
+*.bak.*
+*.backup
+*.backup-*
+*.backup.*
+*.old
+*.orig
+
+# Generated root-level run logs
+/*.log
