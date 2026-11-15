@@ -10,10 +10,10 @@ PROJECT_ROOT = Path(__file__).resolve().parent.parent
 # Gemeinsamer Datenstamm für die von Yabai erzeugten Eingabedaten.
 # Path.home() vermeidet einen fest codierten Benutzernamen wie /home/secret.
 YABAI_PROJECT_ROOT = Path.home() / "Downloads" / "yabai proj"
-DEFAULT_PROCESSED_OUTPUT_DIR = YABAI_PROJECT_ROOT / "processed_output"
+DEFAULT_CSV_DIR = YABAI_PROJECT_ROOT / "output" / "csv"
 
 # 1. Zentrale Anchors-CSV für Pipeline, Routing-Audit und Label-Tool.
-DEFAULT_ANCHORS_CSV = DEFAULT_PROCESSED_OUTPUT_DIR / "anchors.csv"
+DEFAULT_ANCHORS_CSV = DEFAULT_CSV_DIR / "anchors.csv"
 
 # 2. Quellbilder, auf die sich die Dateinamen in anchors.csv beziehen.
 DEFAULT_IMAGES_DIR = YABAI_PROJECT_ROOT / "yabaiproject - Copy" / "mit_kanji"
