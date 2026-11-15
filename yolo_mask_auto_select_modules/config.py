@@ -16,7 +16,7 @@ DEFAULT_CSV_DIR = YABAI_PROJECT_ROOT / "output" / "csv"
 DEFAULT_ANCHORS_CSV = DEFAULT_CSV_DIR / "anchors.csv"
 
 # 2. Quellbilder, auf die sich die Dateinamen in anchors.csv beziehen.
-DEFAULT_IMAGES_DIR = YABAI_PROJECT_ROOT / "yabaiproject - Copy" / "mit_kanji"
+DEFAULT_IMAGES_DIR = YABAI_PROJECT_ROOT / "mit_kanji"
 
 # 3. YOLO-Checkpoint / Model-Weights.
 DEFAULT_WEIGHTS = Path.home() / ".cache" / "cleanup-models" / "manga-inpainter-best.pt"
