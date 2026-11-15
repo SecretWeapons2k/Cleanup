@@ -66,28 +66,47 @@ def _is_axis_aligned_rect(poly: np.ndarray) -> bool:
     )
 
 
-def anchor_polygon(row: dict[str, Any]) -> np.ndarray | None:
-    """Polygon to use instead of the rectangle for one anchors.csv row, or None.
+def parse_polygons(text: str | None) -> list[np.ndarray] | None:
+    """Parse Yabai mask_polygon; disconnected components are separated by '|'."""
+    if not text or not str(text).strip():
+        return None
+    pieces = [piece.strip() for piece in str(text).split('|')]
+    if not pieces or any(not piece for piece in pieces):
+        return None
+    polygons: list[np.ndarray] = []
+    for piece in pieces:
+        polygon = parse_polygon(piece)
+        if polygon is None:
+            return None
+        polygons.append(polygon)
+    return polygons
 
-    body   -> ONLY ``mask_polygon`` (missing/invalid means red rectangle fallback)
-    others -> ``polygon`` (e.g. rotated header quads)
-    Axis-aligned rectangles return None (the rectangle path is used).
+
+def anchor_polygon(row: dict[str, Any]) -> np.ndarray | list[np.ndarray] | None:
+    """Return white cleaning geometry; None means use the red rectangle fallback.
+
+    Body anchors use ONLY mask_polygon. The separate polygon field is the
+    original OCR contour and must not replace the red box if the white mask is absent.
+    Header anchors continue to use their rotated OCR polygon.
     """
     kind = str(row.get("type") or "").strip().casefold()
     if kind == "body":
         if not USE_BODY_MASK_POLYGONS:
             return None
-        # For body anchors, only mask_polygon is the white cleaning polygon.
-        # The separate "polygon" column is the original OCR contour, not a fallback.
-        # If the white mask is missing/invalid, return None so box_region uses x1..y2.
-        poly = parse_polygon(row.get("mask_polygon"))
-    else:
-        if not USE_HEADER_POLYGONS:
+        polygons = parse_polygons(row.get("mask_polygon"))
+        if not polygons:
             return None
-        poly = parse_polygon(row.get("polygon"))
+        if len(polygons) == 1 and _is_axis_aligned_rect(polygons[0]):
+            return None
+        return polygons[0] if len(polygons) == 1 else polygons
+
+    if not USE_HEADER_POLYGONS:
+        return None
+    poly = parse_polygon(row.get("polygon"))
     if poly is None or _is_axis_aligned_rect(poly):
         return None
     return poly
+
 
 
 def box_region(box: dict[str, Any], width: int, height: int) -> tuple[int, int, int, int, np.ndarray] | None:
@@ -96,8 +115,8 @@ def box_region(box: dict[str, Any], width: int, height: int) -> tuple[int, int, 
     ``crop_mask`` is a bool array of shape ``(y2-y1+1, x2-x1+1)``. Rectangles use the
     historic floor/ceil clamp; polygons use rounded vertices clamped to the image.
     """
-    poly = box.get("poly")
-    if poly is None:
+    poly_value = box.get("poly")
+    if poly_value is None:
         try:
             x1 = max(0, min(width - 1, math.floor(float(box["x1"]))))
             y1 = max(0, min(height - 1, math.floor(float(box["y1"]))))
@@ -109,13 +128,23 @@ def box_region(box: dict[str, Any], width: int, height: int) -> tuple[int, int, 
             return None
         return x1, y1, x2, y2, np.ones((y2 - y1 + 1, x2 - x1 + 1), dtype=bool)
 
-    pts = np.rint(np.asarray(poly, dtype=np.float64)).astype(np.int32)
-    pts[:, 0] = np.clip(pts[:, 0], 0, width - 1)
-    pts[:, 1] = np.clip(pts[:, 1], 0, height - 1)
-    x1, y1 = int(pts[:, 0].min()), int(pts[:, 1].min())
-    x2, y2 = int(pts[:, 0].max()), int(pts[:, 1].max())
+    raw_polygons = [poly_value] if isinstance(poly_value, np.ndarray) else list(poly_value)
+    if not raw_polygons:
+        return None
+    points: list[np.ndarray] = []
+    for raw_poly in raw_polygons:
+        pts = np.rint(np.asarray(raw_poly, dtype=np.float64)).astype(np.int32)
+        if pts.ndim != 2 or pts.shape[0] < 3 or pts.shape[1] != 2:
+            return None
+        pts[:, 0] = np.clip(pts[:, 0], 0, width - 1)
+        pts[:, 1] = np.clip(pts[:, 1], 0, height - 1)
+        points.append(pts)
+    all_points = np.concatenate(points, axis=0)
+    x1, y1 = int(all_points[:, 0].min()), int(all_points[:, 1].min())
+    x2, y2 = int(all_points[:, 0].max()), int(all_points[:, 1].max())
     crop = np.zeros((y2 - y1 + 1, x2 - x1 + 1), dtype=np.uint8)
-    cv2.fillPoly(crop, [pts - np.array([x1, y1], dtype=np.int32)], 255)
+    offset = np.array([x1, y1], dtype=np.int32)
+    cv2.fillPoly(crop, [pts - offset for pts in points], 255)
     return x1, y1, x2, y2, crop > 0
 
 
