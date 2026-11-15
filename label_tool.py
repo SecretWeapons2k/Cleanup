@@ -29,9 +29,10 @@ from urllib.parse import parse_qs, unquote, urlparse
 import numpy as np
 from PIL import Image
 
-HOME = Path.home()
-DEFAULT_IMAGES = HOME / "Downloads/yabai proj/yabaiproject - Copy/mit_kanji"
-DEFAULT_ANCHORS = HOME / "Downloads/yabai proj/processed_output/anchors.csv"
+from yolo_mask_auto_select_modules.config import DEFAULT_ANCHORS_CSV, DEFAULT_IMAGES_DIR
+
+DEFAULT_IMAGES = DEFAULT_IMAGES_DIR
+DEFAULT_ANCHORS = DEFAULT_ANCHORS_CSV
 IMAGE_EXTS = {".png", ".jpg", ".jpeg", ".webp", ".bmp", ".tif", ".tiff"}
 
 # file suffix -> candidate id used in candidate_scores.csv ("distance_px" column)
