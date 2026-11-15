@@ -35,6 +35,9 @@ from yolo_mask_auto_select_modules.config import (
     BODY_BOX_MIN_OVERLAP_FRACTION,
     BODY_BOX_MIN_OVERLAP_PIXELS,
     OUTLINE_LEAK_DETAIL_THRESHOLD,
+    DEFAULT_ANCHORS_CSV,
+    DEFAULT_IMAGES_DIR,
+    DEFAULT_WEIGHTS,
     PROTECTED_ZONE_MARGIN_PX,
 )
 from yolo_mask_auto_select_modules.geometry import (
@@ -43,12 +46,11 @@ from yolo_mask_auto_select_modules.geometry import (
     boxes_union_mask,
     protected_mask,
     read_protected_zones,
+    resolve_protected_zones_csv,
 )
 from yolo_mask_auto_select_modules.scoring import ink_strength_map
 
 IMAGE_EXTS = {".png", ".jpg", ".jpeg", ".webp", ".bmp", ".tif", ".tiff"}
-DEFAULT_IMAGES_DIR = Path.home() / "Downloads/yabai proj/yabaiproject - Copy/mit_kanji"
-DEFAULT_WEIGHTS = Path.home() / ".cache/cleanup-models/manga-inpainter-best.pt"
 DISTANCE_SWEEP_DEFAULT = "0,4,8,12,16"
 CONFIDENCE_THRESHOLDS = (0.05, 0.10)
 
@@ -57,10 +59,10 @@ def parse_args() -> argparse.Namespace:
     project = Path(__file__).resolve().parent
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument("--images-dir", type=Path, default=DEFAULT_IMAGES_DIR)
-    p.add_argument("--anchors", type=Path, default=project / "anchors.csv")
+    p.add_argument("--anchors", type=Path, default=DEFAULT_ANCHORS_CSV)
     p.add_argument("--weights", type=Path, default=DEFAULT_WEIGHTS)
     p.add_argument("--protected", type=Path, default=None,
-                   help="CSV with protected zones: removed from every candidate mask")
+                   help="CSV with protected zones; default: protected_zones.csv beside --anchors")
     p.add_argument("--protected-margin", type=int, default=PROTECTED_ZONE_MARGIN_PX,
                    help="Pixels by which each protected zone is grown")
     p.add_argument("--output", type=Path, default=project / "yolo_mask_routing_audit")
@@ -378,7 +380,8 @@ def main() -> int:
 
     try:
         anchors_by_image, known_names = read_anchors(anchors_path)
-        zones_by_image = read_protected_zones(args.protected.expanduser().resolve()) if args.protected else {}
+        zones_path = resolve_protected_zones_csv(anchors_path, args.protected)
+        zones_by_image = read_protected_zones(zones_path) if zones_path is not None else {}
         images = discover_images(images_dir, known_names)
         if args.limit:
             images = images[:args.limit]
@@ -390,6 +393,7 @@ def main() -> int:
         return 2
 
     print(f"Anchors CSV: {anchors_path}")
+    print(f"Protected zones CSV: {zones_path if zones_path is not None else 'none'}")
     print(f"Source images: {images_dir}")
     print(f"Matched images: {len(images)} / {len(known_names)} anchor image names")
     print(f"Checkpoint: {weights_path}")
