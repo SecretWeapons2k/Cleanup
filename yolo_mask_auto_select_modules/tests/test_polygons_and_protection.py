@@ -39,6 +39,18 @@ class ParsingTests(unittest.TestCase):
         rect = {"type": "body", "mask_polygon": "1,1;9,1;9,5;1,5", "polygon": "1,1;9,1;9,5;1,5"}
         self.assertIsNone(geometry.anchor_polygon(rect))
 
+    def test_body_mask_polygon_keeps_multiple_white_components_separate(self):
+        row = {
+            "type": "body",
+            "mask_polygon": "10,5;19,5;19,14;10,14|40,15;49,15;49,24;40,24",
+            "polygon": "10,5;49,5;49,24;10,24",
+        }
+        box = {"x1": 10, "y1": 5, "x2": 49, "y2": 24, "poly": geometry.anchor_polygon(row)}
+        mask = make_box_only_mask(60, 30, [box]) > 0
+        self.assertTrue(mask[10, 15])
+        self.assertTrue(mask[20, 45])
+        self.assertFalse(mask[12, 30])  # gap between white components stays untouched
+
     def test_body_uses_red_rectangle_only_when_white_mask_is_missing(self):
         row = {
             "type": "body",
