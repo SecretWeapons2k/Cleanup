@@ -56,7 +56,7 @@ from `yolo_mask_auto_select_modules/config.py`:
 - CSV directory: `~/Downloads/yabai proj/output/csv/`
 - Anchors: `anchors.csv` in that directory.
 - Optional protected zones: `protected_zones.csv` in that directory.
-- Source images: `~/Downloads/yabai proj/yabaiproject - Copy/mit_kanji/`
+- Source images: `~/Downloads/yabai proj/mit_kanji/`
 
 All three tools support their existing command-line path overrides. If the
 anchors CSV is moved, pass its new path with `--anchors`; protected zones
