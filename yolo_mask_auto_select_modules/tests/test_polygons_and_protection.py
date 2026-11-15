@@ -120,6 +120,22 @@ class ProtectedZoneTests(unittest.TestCase):
             w.writerow({"image": "a.png", "zone_id": "bad", "x1": "x", "y1": 0, "x2": 1, "y2": 1, "polygon": "", "text": ""})
         return path
 
+    def test_default_protected_csv_is_discovered_next_to_anchors(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            anchors = Path(tmp) / "anchors.csv"
+            anchors.touch()
+            expected = Path(tmp) / "protected_zones.csv"
+            self.assertIsNone(geometry.resolve_protected_zones_csv(anchors))
+            expected.touch()
+            self.assertEqual(geometry.resolve_protected_zones_csv(anchors), expected)
+
+    def test_explicit_protected_csv_overrides_sibling_discovery(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            anchors = Path(tmp) / "anchors.csv"
+            explicit = Path(tmp) / "elsewhere" / "zones.csv"
+            resolved = geometry.resolve_protected_zones_csv(anchors, explicit)
+            self.assertEqual(resolved, explicit.resolve())
+
     def test_read_and_mask(self):
         with tempfile.TemporaryDirectory() as tmp:
             zones = geometry.read_protected_zones(self._csv(tmp))
