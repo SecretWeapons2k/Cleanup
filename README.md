@@ -16,7 +16,7 @@ The module package separates the implementation:
 
 - `config.py`: shared paths, model settings, thresholds, and scoring configuration.
   The default `anchors.csv` is read from
-  `~/Downloads/yabai proj/processed_output/anchors.csv`; optional
+  `~/Downloads/yabai proj/output/csv/anchors.csv`; optional
   `protected_zones.csv` is discovered beside the selected anchors file.
 - `cli.py`: command-line arguments.
 - `io_utils.py`: image/CSV discovery, anchor handling, masks, and I/O helpers.
@@ -53,10 +53,10 @@ These are separate utilities, not duplicate pipeline implementations:
 The pipeline, standalone routing audit, and labeling tool share the defaults
 from `yolo_mask_auto_select_modules/config.py`:
 
-- Anchors: `~/Downloads/yabai proj/processed_output/anchors.csv`
+- CSV directory: `~/Downloads/yabai proj/output/csv/`
+- Anchors: `anchors.csv` in that directory.
+- Optional protected zones: `protected_zones.csv` in that directory.
 - Source images: `~/Downloads/yabai proj/yabaiproject - Copy/mit_kanji/`
-- Optional protected zones: `protected_zones.csv` in the same directory as
-  the active anchors CSV.
 
 All three tools support their existing command-line path overrides. If the
 anchors CSV is moved, pass its new path with `--anchors`; protected zones
