@@ -9,6 +9,7 @@ from .config import (
     DEFAULT_DISTANCES,
     DEFAULT_IMAGES_DIR,
     DEFAULT_OUTPUT_DIR,
+    DEFAULT_PROTECTED_ZONES_CSV,
     DEFAULT_WEIGHTS,
 )
 
@@ -18,6 +19,11 @@ def parse_args(project: Path) -> argparse.Namespace:
                    help="Original source image folder")
     p.add_argument("--anchors", type=Path, default=DEFAULT_ANCHORS_CSV,
                    help="Path to anchors CSV file")
+    p.add_argument("--protected-zones", type=Path, default=DEFAULT_PROTECTED_ZONES_CSV,
+                   help="CSV with protected zones that no candidate may change; "
+                        "default: protected_zones.csv next to the anchors CSV, if it exists")
+    p.add_argument("--no-protected-zones", action="store_true",
+                   help="Ignore protected zones even if a CSV is found")
     p.add_argument("--weights", type=Path, default=DEFAULT_WEIGHTS,
                    help="Path to YOLO segmentation weights")
     p.add_argument("--image", help="Process only this image, e.g. m004_015.png; default: all anchor images")

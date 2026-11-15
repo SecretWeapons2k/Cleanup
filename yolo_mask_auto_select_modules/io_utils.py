@@ -17,6 +17,7 @@ import numpy as np
 from PIL import Image
 
 from .config import *
+from .geometry import anchor_polygon, box_region
 
 def choose_random_sample(
     available_names: set[str], sample_count: int, min_m_count: int, seed: int
@@ -89,6 +90,7 @@ def read_anchor_csv(path: Path) -> tuple[list[str], list[dict[str, str]], dict[s
         by_image[name].append({
             "type": (row.get("type") or "").strip().casefold(),
             "x1": x1, "y1": y1, "x2": x2, "y2": y2,
+            "poly": anchor_polygon(row),
         })
     if not by_image:
         raise ValueError(f"No valid anchor boxes found in {path}")
@@ -173,22 +175,23 @@ def rgb_array(path: Path) -> tuple[np.ndarray, np.ndarray]:
         return np.asarray(rgba.convert("RGB"), dtype=np.uint8), np.asarray(rgba.getchannel("A"), dtype=np.uint8)
 
 def make_box_only_mask(width: int, height: int, boxes: list[dict[str, Any]]) -> np.ndarray:
-    """Build the same inclusive rectangle union as the routing-audit script."""
+    """Union of all anchors as uint8 0/255 mask (same rasterisation as the routing audit).
+
+    Boxes with a ``"poly"`` entry are filled as polygons, all others as inclusive
+    rectangles (floor/ceil), exactly as before.
+    """
     mask = np.zeros((height, width), dtype=np.uint8)
     for box in boxes:
-        try:
-            x1 = max(0, min(width - 1, math.floor(float(box["x1"]))))
-            y1 = max(0, min(height - 1, math.floor(float(box["y1"]))))
-            x2 = max(0, min(width - 1, math.ceil(float(box["x2"]))))
-            y2 = max(0, min(height - 1, math.ceil(float(box["y2"]))))
-        except (KeyError, TypeError, ValueError, OverflowError):
+        region = box_region(box, width, height)
+        if region is None:
             continue
-        if x2 >= x1 and y2 >= y1:
-            cv2.rectangle(mask, (x1, y1), (x2, y2), 255, -1)
+        x1, y1, x2, y2, crop = region
+        mask[y1:y2 + 1, x1:x2 + 1][crop] = 255
     return mask
 
 def remove_small_alpha_islands(
-    rgb: np.ndarray, alpha: np.ndarray, source_alpha: np.ndarray
+    rgb: np.ndarray, alpha: np.ndarray, source_alpha: np.ndarray,
+    protected: np.ndarray | None = None,
 ) -> tuple[np.ndarray, np.ndarray, dict[str, float]]:
     """Remove tiny disconnected visible-alpha components for transparent-canvas sprites.
 
@@ -198,6 +201,8 @@ def remove_small_alpha_islands(
     Components are 8-connected; any isolated visible component up to the configured
     size is made fully transparent. RGB is set to zero at removed pixels to avoid
     leaving hidden colour data behind.
+
+    Components that touch a ``protected`` pixel are never removed.
     """
     transparent_ratio = float(np.mean(source_alpha <= ALPHA_VISIBILITY_THRESHOLD))
     metadata = {
@@ -214,9 +219,12 @@ def remove_small_alpha_islands(
     component_count, labels, stats, _centroids = cv2.connectedComponentsWithStats(visible, connectivity=8)
     remove = np.zeros(visible.shape, dtype=bool)
     removed_components = 0
+    touches_protected: set[int] = (
+        {int(v) for v in np.unique(labels[protected])} if protected is not None and protected.any() else set()
+    )
     for label in range(1, component_count):
         area = int(stats[label, cv2.CC_STAT_AREA])
-        if area <= ALPHA_SMALL_OBJECT_MAX_PIXELS:
+        if area <= ALPHA_SMALL_OBJECT_MAX_PIXELS and label not in touches_protected:
             remove |= labels == label
             removed_components += 1
 

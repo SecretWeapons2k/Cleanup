@@ -16,9 +16,11 @@ import cv2
 import numpy as np
 from PIL import Image
 
+from .candidate_masks import ImageMaskSet, build_image_mask_set, enforce_protection, stage_token
 from .cli import parse_args
 from .config import *
 from .debug_output import build_debug_mask_overlay, save_debug_contact_sheet, save_debug_side_by_side_sheet
+from .geometry import read_protected_zones
 from .io_utils import (
     choose_output_dir,
     choose_random_sample,
@@ -120,6 +122,20 @@ def main() -> int:
             if not weights_path.is_file():
                 raise FileNotFoundError(f"YOLO checkpoint not found: {weights_path}")
 
+        zones_path = None
+        zones_by_image: dict[str, list[dict[str, Any]]] = {}
+        if not args.no_protected_zones:
+            if args.protected_zones is not None:
+                zones_path = args.protected_zones.expanduser().resolve()
+            elif (anchors_path.parent / "protected_zones.csv").is_file():
+                zones_path = anchors_path.parent / "protected_zones.csv"
+            if zones_path is not None:
+                zones_by_image = read_protected_zones(zones_path)
+                unknown = sorted(set(zones_by_image) - available_names)
+                if unknown:
+                    print(f"WARN: protected zones for {len(unknown)} image(s) not in anchors CSV: "
+                          f"{', '.join(unknown[:8])}", file=sys.stderr)
+
         iopaint = find_iopaint()
         output_dir = choose_output_dir(args.output, project)
     except Exception as exc:
@@ -134,6 +150,11 @@ def main() -> int:
 
     print(f"Selected images: {len(ordered_names)} (Batch-Größe: {batch_size} Bilder pro Durchlauf)")
     print(f"Persistente Ausgabe: {output_dir}")
+    if zones_path is not None:
+        selected_zone_count = sum(len(zones_by_image.get(n, [])) for n in ordered_names)
+        print(f"Schutzzonen: {zones_path} ({selected_zone_count} Zonen in der Auswahl)")
+    else:
+        print("Schutzzonen: keine")
     print(f"Debug-Optionen: Cleaned={save_cleaned}, Comparison-Sheet={save_comparison}, Overlays={save_overlays}, Side-By-Side={save_side_by_side}")
 
     if args.dry_run:
@@ -168,6 +189,9 @@ def main() -> int:
                     "--distances", ",".join(map(str, distances)),
                     "--device", args.device,
                 ]
+                if zones_path is not None:
+                    audit_cmd += ["--protected", str(zones_path),
+                                  "--protected-margin", str(PROTECTED_ZONE_MARGIN_PX)]
                 print(f"\n[1/3] Building YOLO candidate masks for {len(yolo_selected_names)} images...", flush=True)
                 proc = subprocess.run(audit_cmd, cwd=project, check=False)
                 if proc.returncode != 0:
@@ -214,39 +238,33 @@ def main() -> int:
 
                 candidate_images.append(name)
 
+            def yolo_masks_for(name: str) -> dict[int, np.ndarray]:
+                result: dict[int, np.ndarray] = {}
+                for d in distances:
+                    with Image.open(mask_paths[(name, d)]) as mask_im:
+                        result[d] = np.asarray(mask_im.convert("L"), dtype=np.uint8) > 0
+                return result
+
+            def mask_set_for(name: str, rgb: np.ndarray, alpha: np.ndarray) -> ImageMaskSet:
+                return build_image_mask_set(
+                    rgb=rgb, alpha=alpha,
+                    boxes=anchors_by_image.get(name, []),
+                    zones=zones_by_image.get(name, []),
+                    yolo_masks=yolo_masks_for(name),
+                    box_only_mask=read_box_mask(box_masks_dir / f"{Path(name).stem}.png"),
+                    contrast_thresholds=contrast_thresholds,
+                    contrast_candidate_ids=contrast_candidate_ids,
+                    protected_margin_px=PROTECTED_ZONE_MARGIN_PX,
+                )
+
             outline_leak_cache: dict[tuple[str, int | str], dict[str, float]] = {}
             for name in ordered_names:
                 source_rgb, source_alpha = rgb_array(source_paths[name])
-                h_img, w_img = source_alpha.shape
-                body_boxes = [b for b in anchors_by_image.get(name, []) if str(b.get("type", "")).casefold() == "body"]
-                body_box_mask = make_box_only_mask(w_img, h_img, body_boxes) > 0
                 source_detail = ink_strength_map(source_rgb)
-                box_only_mask = read_box_mask(box_masks_dir / f"{Path(name).stem}.png")
-                smart_mask = make_smart_ink_mask(source_rgb, anchors_by_image.get(name, []))
-
-                if name in candidate_images:
-                    cached_yolo_masks: dict[int, np.ndarray] = {}
-                    for d in distances:
-                        with Image.open(mask_paths[(name, d)]) as mask_im:
-                            c_mask = np.asarray(mask_im.convert("L"), dtype=np.uint8) > 0
-                        cached_yolo_masks[d] = c_mask
-                        outline_leak_cache[(name, d)] = outline_leak_metrics(source_detail, source_alpha, body_box_mask, c_mask)
-
-                    # Hybride Kandidaten: vollständige Box-Maske OR YOLO-Maske.
-                    for d in (2, 6):
-                        hybrid_mask = (np.asarray(box_only_mask) > 0) | cached_yolo_masks[d]
-                        outline_leak_cache[(name, f"HYBRID_D{d}")] = outline_leak_metrics(
-                            source_detail, source_alpha, body_box_mask, hybrid_mask
-                        )
-
-                outline_leak_cache[(name, "BOX_ONLY")] = outline_leak_metrics(source_detail, source_alpha, body_box_mask, box_only_mask)
-                outline_leak_cache[(name, "SMART_INK")] = outline_leak_metrics(source_detail, source_alpha, body_box_mask, smart_mask)
-                for threshold, candidate_id in zip(contrast_thresholds, contrast_candidate_ids):
-                    contrast_mask = make_contrast_mask(
-                        source_rgb, source_alpha, anchors_by_image.get(name, []), threshold
-                    )
-                    outline_leak_cache[(name, candidate_id)] = outline_leak_metrics(
-                        source_detail, source_alpha, body_box_mask, contrast_mask
+                pre_set = mask_set_for(name, source_rgb, source_alpha)
+                for cid, cmask in pre_set.candidates.items():
+                    outline_leak_cache[(name, cid)] = outline_leak_metrics(
+                        source_detail, source_alpha, pre_set.body_box_mask, cmask
                     )
 
             # ==================================================================
@@ -272,88 +290,27 @@ def main() -> int:
                 masks_stage.mkdir(parents=True, exist_ok=True)
                 raw_stage.mkdir(parents=True, exist_ok=True)
 
-                stage_meta: dict[tuple[str, int], tuple[str, str]] = {}
-                hybrid_stage_meta: dict[tuple[str, int], tuple[str, str]] = {}
-                contrast_stage_meta: dict[tuple[str, str], tuple[str, str]] = {}
-                contrast_masks_by_batch: dict[tuple[str, str], np.ndarray] = {}
-                box_stage_meta: dict[str, tuple[str, str]] = {}
-                smart_stage_meta: dict[str, tuple[str, str]] = {}
+                stage_names: dict[tuple[str, int | str], tuple[str, str]] = {}
+                batch_sets: dict[str, ImageMaskSet] = {}
 
                 for name in batch_names:
                     rgb, alpha = rgb_array(source_paths[name])
                     stem = "".join(ch if ch.isalnum() or ch in "-_" else "_" for ch in Path(name).stem)
+                    mask_set = mask_set_for(name, rgb, alpha)
+                    batch_sets[name] = mask_set
 
-                    if name in candidate_images:
-                        for d in distances:
-                            staged_name = f"{stem}__d{d:02d}_rgb.png"
-                            alpha_name = f"{stem}__d{d:02d}_alpha.png"
-                            Image.fromarray(rgb, mode="RGB").save(images_stage / staged_name)
-                            Image.fromarray(alpha, mode="L").convert("RGB").save(images_stage / alpha_name)
-                            c_mask_path = mask_paths[(name, d)]
-                            shutil.copy2(c_mask_path, masks_stage / staged_name)
-                            shutil.copy2(c_mask_path, masks_stage / alpha_name)
-                            stage_meta[(name, d)] = (staged_name, alpha_name)
-
-                    # Box-Only stagen
-                    staged_box = f"{stem}__box_only_rgb.png"
-                    alpha_box = f"{stem}__box_only_alpha.png"
-                    Image.fromarray(rgb, mode="RGB").save(images_stage / staged_box)
-                    Image.fromarray(alpha, mode="L").convert("RGB").save(images_stage / alpha_box)
-                    b_path = box_masks_dir / f"{Path(name).stem}.png"
-                    shutil.copy2(b_path, masks_stage / staged_box)
-                    shutil.copy2(b_path, masks_stage / alpha_box)
-                    box_stage_meta[name] = (staged_box, alpha_box)
-
-                    # HYBRID_D2 / HYBRID_D6: full box mask OR distance-clipped YOLO mask.
-                    box_mask_for_hybrid = np.asarray(read_box_mask(b_path)) > 0
-                    for d in (2, 6):
-                        with Image.open(mask_paths[(name, d)]) as mask_im:
-                            yolo_mask_for_hybrid = np.asarray(
-                                mask_im.convert("L"), dtype=np.uint8
-                            ) > 0
-                        hybrid_mask = box_mask_for_hybrid | yolo_mask_for_hybrid
-
-                        staged_hybrid = f"{stem}__hybrid_d{d:02d}_rgb.png"
-                        alpha_hybrid = f"{stem}__hybrid_d{d:02d}_alpha.png"
-                        Image.fromarray(rgb, mode="RGB").save(images_stage / staged_hybrid)
-                        Image.fromarray(alpha, mode="L").convert("RGB").save(images_stage / alpha_hybrid)
-                        hybrid_mask_image = Image.fromarray(
-                            hybrid_mask.astype(np.uint8) * 255, mode="L"
-                        )
-                        hybrid_mask_image.save(masks_stage / staged_hybrid)
-                        hybrid_mask_image.save(masks_stage / alpha_hybrid)
-                        hybrid_stage_meta[(name, d)] = (staged_hybrid, alpha_hybrid)
-
-                    # Kontrastmasken stagen: jede Schwelle wird wie die
-                    # bestehenden Kandidaten durch LaMa geschickt und danach bewertet.
-                    for threshold, candidate_id in zip(contrast_thresholds, contrast_candidate_ids):
-                        contrast_mask = make_contrast_mask(
-                            rgb, alpha, anchors_by_image.get(name, []), threshold
-                        )
-                        contrast_masks_by_batch[(name, candidate_id)] = contrast_mask
-                        token = candidate_id.lower()
-                        staged_contrast = f"{stem}__{token}_rgb.png"
-                        alpha_contrast = f"{stem}__{token}_alpha.png"
-                        Image.fromarray(rgb, mode="RGB").save(images_stage / staged_contrast)
-                        Image.fromarray(alpha, mode="L").convert("RGB").save(images_stage / alpha_contrast)
-                        contrast_mask_image = Image.fromarray(
-                            contrast_mask.astype(np.uint8) * 255, mode="L"
-                        )
-                        contrast_mask_image.save(masks_stage / staged_contrast)
-                        contrast_mask_image.save(masks_stage / alpha_contrast)
-                        contrast_stage_meta[(name, candidate_id)] = (
-                            staged_contrast, alpha_contrast
-                        )
-
-                    # Smart-Ink stagen
-                    smart_mask = make_smart_ink_mask(rgb, anchors_by_image.get(name, []))
-                    staged_smart = f"{stem}__smart_ink_rgb.png"
-                    alpha_smart = f"{stem}__smart_ink_alpha.png"
-                    Image.fromarray(rgb, mode="RGB").save(images_stage / staged_smart)
-                    Image.fromarray(alpha, mode="L").convert("RGB").save(images_stage / alpha_smart)
-                    Image.fromarray((smart_mask.astype(np.uint8) * 255), mode="L").save(masks_stage / staged_smart)
-                    Image.fromarray((smart_mask.astype(np.uint8) * 255), mode="L").save(masks_stage / alpha_smart)
-                    smart_stage_meta[name] = (staged_smart, alpha_smart)
+                    # Jeder Kandidat (inkl. Schutzzonen-Abzug) wird genau so an LaMa gegeben,
+                    # wie er danach zusammengesetzt und bewertet wird.
+                    for cid, cmask in mask_set.candidates.items():
+                        token = stage_token(cid)
+                        staged_rgb = f"{stem}__{token}_rgb.png"
+                        staged_alpha = f"{stem}__{token}_alpha.png"
+                        Image.fromarray(rgb, mode="RGB").save(images_stage / staged_rgb)
+                        Image.fromarray(alpha, mode="L").convert("RGB").save(images_stage / staged_alpha)
+                        mask_image = Image.fromarray(cmask.astype(np.uint8) * 255, mode="L")
+                        mask_image.save(masks_stage / staged_rgb)
+                        mask_image.save(masks_stage / staged_alpha)
+                        stage_names[(name, cid)] = (staged_rgb, staged_alpha)
 
                 lama_cmd = [iopaint, "run", f"--model={args.model}", f"--device={args.lama_device}",
                             f"--image={images_stage}", f"--mask={masks_stage}", f"--output={raw_stage}"]
@@ -364,38 +321,13 @@ def main() -> int:
 
                 for name in batch_names:
                     original_rgb, original_alpha = rgb_array(source_paths[name])
-                    box_mask = read_box_mask(box_masks_dir / f"{Path(name).stem}.png")
-                    smart_mask = make_smart_ink_mask(original_rgb, anchors_by_image.get(name, []))
-
-                    masks: dict[int, np.ndarray] = {}
-                    for d in distances:
-                        with Image.open(mask_paths[(name, d)]) as mask_im:
-                            masks[d] = np.asarray(mask_im.convert("L"), dtype=np.uint8) > 0
-
-                    # Eigene, echte Hybridkandidaten; nicht nur ein Scoring-Envelope.
-                    hybrid_masks: dict[str, np.ndarray] = {
-                        f"HYBRID_D{d}": (box_mask | masks[d]) for d in (2, 6)
-                    }
-                    contrast_masks: dict[str, np.ndarray] = {
-                        candidate_id: contrast_masks_by_batch[(name, candidate_id)]
-                        for candidate_id in contrast_candidate_ids
-                    }
-                    yolo_reference_mask = masks[max(distances)]
-                    scoring_envelope = yolo_reference_mask | box_mask | smart_mask
-                    candidate_ids: list[int | str] = [
-                        *distances, "HYBRID_D2", "HYBRID_D6",
-                        *contrast_candidate_ids, "SMART_INK", "BOX_ONLY"
-                    ]
-                    candidate_masks: dict[int | str, np.ndarray] = {
-                        **masks,
-                        **hybrid_masks,
-                        **contrast_masks,
-                        "SMART_INK": smart_mask,
-                        "BOX_ONLY": box_mask,
-                    }
-
-                    body_boxes = [b for b in anchors_by_image.get(name, []) if str(b.get("type", "")).casefold() == "body"]
-                    body_box_mask = make_box_only_mask(original_rgb.shape[1], original_rgb.shape[0], body_boxes) > 0
+                    mask_set = batch_sets.pop(name)
+                    box_mask = mask_set.box_mask
+                    candidate_masks = mask_set.candidates
+                    candidate_ids: list[int | str] = list(candidate_masks)
+                    body_box_mask = mask_set.body_box_mask
+                    yolo_reference_mask = mask_set.yolo_reference_mask
+                    scoring_envelope = mask_set.scoring_envelope
 
                     scored: list[tuple[float, int | str, np.ndarray, dict[str, float]]] = []
                     debug_results: dict[int | str, np.ndarray] = {}
@@ -403,18 +335,7 @@ def main() -> int:
                     alpha_postprocess_by_candidate: dict[int | str, dict[str, float]] = {}
 
                     for cid in candidate_ids:
-                        if isinstance(cid, int):
-                            s_name, a_name = stage_meta[(name, cid)]
-                        elif cid == "HYBRID_D2":
-                            s_name, a_name = hybrid_stage_meta[(name, 2)]
-                        elif cid == "HYBRID_D6":
-                            s_name, a_name = hybrid_stage_meta[(name, 6)]
-                        elif cid in contrast_candidate_ids:
-                            s_name, a_name = contrast_stage_meta[(name, cid)]
-                        elif cid == "BOX_ONLY":
-                            s_name, a_name = box_stage_meta[name]
-                        else:
-                            s_name, a_name = smart_stage_meta[name]
+                        s_name, a_name = stage_names[(name, cid)]
 
                         with Image.open(raw_stage / s_name) as p_im:
                             pred_rgb = np.asarray(p_im.convert("RGB"), dtype=np.uint8)
@@ -426,7 +347,12 @@ def main() -> int:
                         f_rgb[c_mask] = pred_rgb[c_mask]
                         f_alpha = original_alpha.copy()
                         f_alpha[c_mask] = pred_alpha[c_mask]
-                        f_rgb, f_alpha, a_meta = remove_small_alpha_islands(f_rgb, f_alpha, original_alpha)
+                        f_rgb, f_alpha, a_meta = remove_small_alpha_islands(
+                            f_rgb, f_alpha, original_alpha, protected=mask_set.protected
+                        )
+                        a_meta.update(enforce_protection(
+                            f_rgb, f_alpha, original_rgb, original_alpha, mask_set.protected
+                        ))
                         final_composites[cid] = (f_rgb, f_alpha)
                         alpha_postprocess_by_candidate[cid] = a_meta
 
@@ -461,7 +387,7 @@ def main() -> int:
                         # Overlays nur speichern, falls explizit gewünscht
                         if save_overlays:
                             stem = Path(name).stem
-                            ov = build_debug_mask_overlay(original_rgb, c_mask, anchors_by_image.get(name, []))
+                            ov = build_debug_mask_overlay(original_rgb, c_mask, anchors_by_image.get(name, []), zones=mask_set.zones)
                             o_tok = (
                                 "smart_ink" if cid == "SMART_INK"
                                 else "box_only" if cid == "BOX_ONLY"
@@ -580,6 +506,8 @@ def main() -> int:
                         "box_only_rescue_inside_detail_advantage": (
                             f"{float(best_metrics.get('box_only_rescue_inside_detail_advantage', 0.0)):.6f}"
                         ),
+                        "protected_pixels": int(best_metrics.get("protected_pixels", 0.0)),
+                        "protected_pixels_restored": int(best_metrics.get("protected_pixels_restored", 0.0)),
                         "reason": rsn,
                     })
 

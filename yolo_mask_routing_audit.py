@@ -35,6 +35,14 @@ from yolo_mask_auto_select_modules.config import (
     BODY_BOX_MIN_OVERLAP_FRACTION,
     BODY_BOX_MIN_OVERLAP_PIXELS,
     OUTLINE_LEAK_DETAIL_THRESHOLD,
+    PROTECTED_ZONE_MARGIN_PX,
+)
+from yolo_mask_auto_select_modules.geometry import (
+    anchor_polygon,
+    box_region,
+    boxes_union_mask,
+    protected_mask,
+    read_protected_zones,
 )
 from yolo_mask_auto_select_modules.scoring import ink_strength_map
 
@@ -51,6 +59,10 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--images-dir", type=Path, default=DEFAULT_IMAGES_DIR)
     p.add_argument("--anchors", type=Path, default=project / "anchors.csv")
     p.add_argument("--weights", type=Path, default=DEFAULT_WEIGHTS)
+    p.add_argument("--protected", type=Path, default=None,
+                   help="CSV with protected zones: removed from every candidate mask")
+    p.add_argument("--protected-margin", type=int, default=PROTECTED_ZONE_MARGIN_PX,
+                   help="Pixels by which each protected zone is grown")
     p.add_argument("--output", type=Path, default=project / "yolo_mask_routing_audit")
     p.add_argument("--imgsz", type=int, default=1280)
     p.add_argument("--min-conf", type=float, default=0.025,
@@ -109,6 +121,7 @@ def read_anchors(path: Path) -> tuple[dict[str, list[dict[str, Any]]], set[str]]
                 "row": (row.get("row") or "").strip(),
                 "col": (row.get("col") or "").strip(),
                 "csv_line": row_number,
+                "poly": anchor_polygon(row),
             })
     if not by_image:
         raise ValueError(f"No valid anchor boxes found in {path}")
@@ -141,13 +154,9 @@ def rect_bounds(box: dict[str, Any], w: int, h: int) -> tuple[int, int, int, int
 
 
 def draw_box_mask(size: tuple[int, int], boxes: list[dict[str, Any]]) -> np.ndarray:
+    """Union of all boxes (polygon where available, else rectangle) as uint8 0/255."""
     w, h = size
-    mask = np.zeros((h, w), np.uint8)
-    for box in boxes:
-        bounds = rect_bounds(box, w, h)
-        if bounds:
-            cv2.rectangle(mask, (bounds[0], bounds[1]), (bounds[2], bounds[3]), 255, -1)
-    return mask
+    return boxes_union_mask(boxes, w, h).astype(np.uint8) * 255
 
 
 def dilate(mask: np.ndarray, radius: int) -> np.ndarray:
@@ -178,11 +187,11 @@ def min_distance_to_boxes(instance_mask: np.ndarray, box_distance: np.ndarray) -
 
 def overlap_with_box(mask: np.ndarray, box: dict[str, Any]) -> int:
     h, w = mask.shape
-    bounds = rect_bounds(box, w, h)
-    if not bounds:
+    region = box_region(box, w, h)
+    if region is None:
         return 0
-    x1, y1, x2, y2 = bounds
-    return int(np.count_nonzero(mask[y1:y2 + 1, x1:x2 + 1]))
+    x1, y1, x2, y2, crop = region
+    return int(np.count_nonzero((mask[y1:y2 + 1, x1:x2 + 1] > 0) & crop))
 
 
 def body_box_coverage_metrics(
@@ -190,8 +199,12 @@ def body_box_coverage_metrics(
     source_detail: np.ndarray,
     source_alpha: np.ndarray,
     box: dict[str, Any],
+    exclude_mask: np.ndarray | None = None,
 ) -> dict[str, Any]:
     """Measure meaningful YOLO coverage of a body OCR box, not just any overlap.
+
+    The box is its polygon if it has one. Pixels in ``exclude_mask`` (protected zones)
+    are ignored: they can never be masked, so they must not count as missing coverage.
 
     Ratios are calculated over visible source pixels in the box. Detail-energy
     coverage measures how much original local contrast is actually covered;
@@ -200,8 +213,8 @@ def body_box_coverage_metrics(
     non-trivial absolute mask overlap.
     """
     h, w = candidate_mask.shape
-    bounds = rect_bounds(box, w, h)
-    if bounds is None:
+    region = box_region(box, w, h)
+    if region is None:
         return {
             "raw_overlap_nonzero": False, "overlap_pixels": 0,
             "visible_box_pixels": 0, "minimum_required_overlap_pixels": BODY_BOX_MIN_OVERLAP_PIXELS,
@@ -210,9 +223,11 @@ def body_box_coverage_metrics(
             "covered_high_contrast_pixels": 0, "combined_detail_coverage_score": 0.0,
             "meaningfully_covered": False,
         }
-    x1, y1, x2, y2 = bounds
+    x1, y1, x2, y2, region_crop = region
     region_alpha = source_alpha[y1:y2 + 1, x1:x2 + 1]
-    visible = region_alpha > ALPHA_VISIBILITY_THRESHOLD
+    visible = (region_alpha > ALPHA_VISIBILITY_THRESHOLD) & region_crop
+    if exclude_mask is not None:
+        visible &= ~(exclude_mask[y1:y2 + 1, x1:x2 + 1] > 0)
     mask_crop = candidate_mask[y1:y2 + 1, x1:x2 + 1] > 0
     covered = visible & mask_crop
     detail_crop = source_detail[y1:y2 + 1, x1:x2 + 1]
@@ -264,7 +279,19 @@ def body_box_coverage_metrics(
     }
 
 
-def build_overlay(rgb: np.ndarray, candidate: np.ndarray, boxes: list[dict[str, Any]]) -> Image.Image:
+def _outline_box(draw: ImageDraw.ImageDraw, b: dict[str, Any], w: int, h: int, color: tuple[int, int, int]) -> None:
+    poly = b.get("poly")
+    if poly is not None:
+        pts = [(float(x), float(y)) for x, y in poly]
+        draw.line(pts + [pts[0]], fill=color, width=2)
+        return
+    bounds = rect_bounds(b, w, h)
+    if bounds:
+        draw.rectangle(bounds, outline=color, width=2)
+
+
+def build_overlay(rgb: np.ndarray, candidate: np.ndarray, boxes: list[dict[str, Any]],
+                  zones: list[dict[str, Any]] | None = None) -> Image.Image:
     base = rgb.astype(np.float32).copy()
     selected = candidate > 0
     tint = np.array([255.0, 35.0, 185.0], dtype=np.float32)
@@ -273,11 +300,10 @@ def build_overlay(rgb: np.ndarray, candidate: np.ndarray, boxes: list[dict[str, 
     draw = ImageDraw.Draw(im)
     w, h = im.size
     for b in boxes:
-        bounds = rect_bounds(b, w, h)
-        if not bounds:
-            continue
         color = (225, 45, 45) if b["type"] == "body" else ((170, 90, 215) if b["type"] == "header" else (255, 170, 0))
-        draw.rectangle(bounds, outline=color, width=2)
+        _outline_box(draw, b, w, h, color)
+    for z in zones or []:
+        _outline_box(draw, z, w, h, (30, 90, 255))
     return im
 
 
@@ -352,6 +378,7 @@ def main() -> int:
 
     try:
         anchors_by_image, known_names = read_anchors(anchors_path)
+        zones_by_image = read_protected_zones(args.protected.expanduser().resolve()) if args.protected else {}
         images = discover_images(images_dir, known_names)
         if args.limit:
             images = images[:args.limit]
@@ -420,14 +447,20 @@ def main() -> int:
             header_boxes = [b for b in boxes if b["type"] == "header"]
             all_box_mask = draw_box_mask((w, h), boxes)
             header_mask = draw_box_mask((w, h), header_boxes)
+            image_zones = zones_by_image.get(name, [])
+            protected = protected_mask(image_zones, w, h, max(0, args.protected_margin))
+            # Box-only baseline: anchors minus protected zones. Distances below are still
+            # measured from the unmodified anchors (protection only removes pixels).
+            box_only_mask_out = all_box_mask.copy()
+            box_only_mask_out[protected] = 0
             box_mask_dir = output / "box_only" / "masks"
             box_overlay_dir = output / "box_only" / "overlays"
             box_mask_dir.mkdir(parents=True, exist_ok=True)
             box_overlay_dir.mkdir(parents=True, exist_ok=True)
             box_mask_path = box_mask_dir / f"{Path(name).stem}.png"
             box_overlay_path = box_overlay_dir / f"{Path(name).stem}.jpg"
-            Image.fromarray(all_box_mask, mode="L").save(box_mask_path)
-            build_overlay(rgb, all_box_mask, boxes).save(box_overlay_path, quality=90)
+            Image.fromarray(box_only_mask_out, mode="L").save(box_mask_path)
+            build_overlay(rgb, box_only_mask_out, boxes, image_zones).save(box_overlay_path, quality=90)
             box_only_overlays.append((name, box_overlay_path))
             # Exact Euclidean distance (in pixels) to the nearest anchor-box pixel.
             # Pixels inside any OCR box have distance 0.
@@ -486,7 +519,8 @@ def main() -> int:
                     untrimmed_union = cv2.bitwise_or(untrimmed_union, inst["mask"])
                 pixels_before_clip = int(np.count_nonzero(untrimmed_union))
                 body_coverage = [
-                    body_box_coverage_metrics(untrimmed_union, source_detail, source_alpha, body)
+                    body_box_coverage_metrics(untrimmed_union, source_detail, source_alpha, body,
+                                              exclude_mask=protected if protected.any() else None)
                     for body in body_boxes
                 ]
                 missing = [i for i, coverage in enumerate(body_coverage)
@@ -515,6 +549,8 @@ def main() -> int:
                             partially_clipped_instances += 1
                         yolo_union = cv2.bitwise_or(yolo_union, clipped_mask)
                     candidate = cv2.bitwise_or(yolo_union, header_mask)
+                    candidate_before_protection = int(np.count_nonzero(candidate))
+                    candidate[protected] = 0
                     total_yolo_pixels = int(np.count_nonzero(yolo_union))
                     pixels_removed_by_clip = max(0, pixels_before_clip - total_yolo_pixels)
                     yolo_inside_boxes = int(np.count_nonzero((yolo_union > 0) & (all_box_mask > 0)))
@@ -530,7 +566,7 @@ def main() -> int:
                         mask_file = output_mask_dir / f"{Path(name).stem}.png"
                         overlay_file = output_overlay_dir / f"{Path(name).stem}.jpg"
                         Image.fromarray(candidate, mode="L").save(mask_file)
-                        build_overlay(rgb, candidate, boxes).save(overlay_file, quality=90)
+                        build_overlay(rgb, candidate, boxes, image_zones).save(overlay_file, quality=90)
                         mask_path = str(mask_file)
                         overlay_path = str(overlay_file)
                         overlays_by_distance[d].append((name, overlay_file))
@@ -558,6 +594,9 @@ def main() -> int:
                         "yolo_pixels_outside_anchor_boxes": yolo_outside_boxes,
                         "yolo_pixels_outside_box_fraction": f"{yolo_outside_boxes / max(1, total_yolo_pixels):.6f}",
                         "candidate_mask_pixels_including_header_boxes": int(np.count_nonzero(candidate)),
+                        "protected_zone_count": len(image_zones),
+                        "protected_pixels": int(np.count_nonzero(protected)),
+                        "protected_pixels_removed_from_candidate": candidate_before_protection - int(np.count_nonzero(candidate)),
                         "candidate_mask_path": str(mask_path), "overlay_path": str(overlay_path),
                     })
 

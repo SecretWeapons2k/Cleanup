@@ -8,6 +8,7 @@ import cv2
 import numpy as np
 
 from .config import *
+from .geometry import box_region, inset_region
 
 def edge_map_lab(rgb: np.ndarray) -> np.ndarray:
     """Build a hue-independent contour map from Lab luminance and chroma."""
@@ -203,6 +204,16 @@ def make_contrast_mask(
     roi_union = np.zeros((height, width), dtype=bool)
     box_union = np.zeros((height, width), dtype=bool)
     for box in boxes:
+        if box.get("poly") is not None:
+            # Polygon anchor: the ROI is the polygon eroded by the same asymmetric
+            # inset (1 px horizontal, 2 px vertical); the hard limit is the polygon.
+            region = box_region(box, width, height)
+            if region is None:
+                continue
+            px1, py1, px2, py2, crop = region
+            box_union[py1:py2 + 1, px1:px2 + 1] |= crop
+            roi_union[py1:py2 + 1, px1:px2 + 1] |= inset_region(crop, 1, 2)
+            continue
         try:
             x1 = max(0, min(width - 1, math.floor(float(box["x1"]))))
             y1 = max(0, min(height - 1, math.floor(float(box["y1"]))))
@@ -258,6 +269,22 @@ def make_smart_ink_mask(
     )
 
     for b in boxes:
+        if b.get("poly") is not None:
+            # Polygon anchor: same logic inside the polygon eroded by inset_px.
+            region = box_region(b, w, h)
+            if region is None:
+                continue
+            px1, py1, px2, py2, crop = region
+            roi = inset_region(crop, inset_px, inset_px)
+            poly_contrast = contrast[py1:py2 + 1, px1:px2 + 1]
+            poly_text = ((poly_contrast >= contrast_threshold) & roi).astype(np.uint8) * 255
+            if np.any(poly_text):
+                poly_closed = cv2.morphologyEx(poly_text, cv2.MORPH_CLOSE, close_kernel)
+                poly_result = (cv2.dilate(poly_closed, dilate_kernel, iterations=1) > 0) & roi
+            else:
+                poly_result = roi
+            mask[py1:py2 + 1, px1:px2 + 1][poly_result] = 255
+            continue
         try:
             x1 = max(0, min(w - 1, int(math.floor(float(b["x1"])))))
             y1 = max(0, min(h - 1, int(math.floor(float(b["y1"])))))

@@ -19,6 +19,10 @@ DEFAULT_WEIGHTS = Path.home() / ".cache/cleanup-models/manga-inpainter-best.pt"
 # 4. Standard-Ausgabeordner für die Gewinner und Reports
 DEFAULT_OUTPUT_DIR = PROJECT_ROOT / "yolo_mask_winners"
 
+# 5. Schutzzonen-CSV (optional). None = neben der anchors.csv nach "protected_zones.csv" suchen.
+#    Per CLI: --protected-zones PFAD bzw. --no-protected-zones.
+DEFAULT_PROTECTED_ZONES_CSV = None
+
 
 # ==============================================================================
 # ⚙️ BATCH- & SPEICHER-EINSTELLUNGEN FÜR GROSSE MENGEN (700+ BILDER)
@@ -41,6 +45,17 @@ DEBUG_SAVE_SIDE_BY_SIDE_SHEET = False  # Doppelte Side-by-Side Sheets
 # ==============================================================================
 IMAGE_EXTS = {".png", ".jpg", ".jpeg", ".webp", ".bmp", ".tif", ".tiff"}
 DEFAULT_DISTANCES = "0,2,4,6,8,10"
+
+# Polygone statt Rechtecken (anchors.csv):
+#   body   -> Spalte mask_polygon (Fallback: polygon)
+#   header -> Spalte polygon (gedrehte Vierecke)
+# Auf False setzen, um das alte Rechteck-Verhalten exakt zu reproduzieren.
+USE_BODY_MASK_POLYGONS = True
+USE_HEADER_POLYGONS = True
+
+# Schutzzonen: Pixel darin werden von keinem Kandidaten verändert.
+# Optionaler Rand in Pixeln, um den jede Zone vergrößert wird (0 = exakt die Zone).
+PROTECTED_ZONE_MARGIN_PX = 0
 
 # Alpha-Postprocessing für transparente Sprites
 POSTPROCESS_REMOVE_SMALL_ALPHA_ISLANDS = True

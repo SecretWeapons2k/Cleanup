@@ -92,15 +92,36 @@ def save_debug_contact_sheet(
     output_path.parent.mkdir(parents=True, exist_ok=True)
     canvas.save(output_path, quality=92)
 
+def _draw_outline(draw: ImageDraw.ImageDraw, box: dict[str, Any], width: int, height: int,
+                  color: tuple[int, int, int]) -> None:
+    """Outline a box: polygon if the box has one, else its rectangle."""
+    poly = box.get("poly")
+    if poly is not None:
+        pts = [(float(x), float(y)) for x, y in poly]
+        draw.line(pts + [pts[0]], fill=color, width=2)
+        return
+    try:
+        x1 = max(0, min(width - 1, int(round(float(box["x1"])))))
+        y1 = max(0, min(height - 1, int(round(float(box["y1"])))))
+        x2 = max(0, min(width - 1, int(round(float(box["x2"])))))
+        y2 = max(0, min(height - 1, int(round(float(box["y2"])))))
+    except (KeyError, TypeError, ValueError):
+        return
+    if x2 < x1 or y2 < y1:
+        return
+    draw.rectangle((x1, y1, x2, y2), outline=color, width=2)
+
 def build_debug_mask_overlay(
     original_rgb: np.ndarray,
     candidate_mask: np.ndarray,
     boxes: list[dict[str, Any]],
+    zones: list[dict[str, Any]] | None = None,
 ) -> np.ndarray:
     """Render a magenta candidate-mask tint over raw RGB and outline OCR boxes.
 
-    Body boxes are red; header boxes are violet. The image is RGB (not RGBA) so
-    the mask tint remains visible even where the source alpha is transparent.
+    Body boxes are red; header boxes are violet; boxes with a polygon are drawn as
+    polygons. Protected zones (optional) are outlined in blue. The image is RGB (not
+    RGBA) so the mask tint remains visible even where the source alpha is transparent.
     """
     base = np.asarray(original_rgb, dtype=np.float32).copy()
     selected = np.asarray(candidate_mask).astype(bool)
@@ -110,18 +131,11 @@ def build_debug_mask_overlay(
     draw = ImageDraw.Draw(overlay)
     width, height = overlay.size
     for box in boxes:
-        try:
-            x1 = max(0, min(width - 1, int(round(float(box["x1"])))))
-            y1 = max(0, min(height - 1, int(round(float(box["y1"])))))
-            x2 = max(0, min(width - 1, int(round(float(box["x2"])))))
-            y2 = max(0, min(height - 1, int(round(float(box["y2"])))))
-        except (KeyError, TypeError, ValueError):
-            continue
-        if x2 < x1 or y2 < y1:
-            continue
         box_type = str(box.get("type", "")).casefold()
         color = (225, 45, 45) if box_type == "body" else ((170, 90, 215) if box_type == "header" else (255, 170, 0))
-        draw.rectangle((x1, y1, x2, y2), outline=color, width=2)
+        _draw_outline(draw, box, width, height, color)
+    for zone in zones or []:
+        _draw_outline(draw, zone, width, height, (30, 90, 255))
     return np.asarray(overlay, dtype=np.uint8)
 
 def save_debug_side_by_side_sheet(
