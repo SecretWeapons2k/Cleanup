@@ -7,20 +7,27 @@ from pathlib import Path
 # Wurzelverzeichnis des Projekts (automatisch erkannt)
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 
-# 1. Pfad zur CSV-Datei (bereits korrekt angepasst)
-DEFAULT_ANCHORS_CSV = Path("/home/secret/Downloads/yabai proj/processed_output/anchors.csv")
+# Gemeinsamer Datenstamm für die von Yabai erzeugten Eingabedaten.
+# Path.home() vermeidet einen fest codierten Benutzernamen wie /home/secret.
+YABAI_PROJECT_ROOT = Path.home() / "Downloads" / "yabai proj"
+DEFAULT_PROCESSED_OUTPUT_DIR = YABAI_PROJECT_ROOT / "processed_output"
 
-# 2. Pfad zum Quellbilder-Ordner
-DEFAULT_IMAGES_DIR = Path.home() / "Downloads/yabai proj/yabaiproject - Copy/mit_kanji"
+# 1. Zentrale Anchors-CSV für Pipeline, Routing-Audit und Label-Tool.
+DEFAULT_ANCHORS_CSV = DEFAULT_PROCESSED_OUTPUT_DIR / "anchors.csv"
 
-# 3. Pfad zum YOLO-Checkpoint / Model-Weights
-DEFAULT_WEIGHTS = Path.home() / ".cache/cleanup-models/manga-inpainter-best.pt"
+# 2. Quellbilder, auf die sich die Dateinamen in anchors.csv beziehen.
+DEFAULT_IMAGES_DIR = YABAI_PROJECT_ROOT / "yabaiproject - Copy" / "mit_kanji"
+
+# 3. YOLO-Checkpoint / Model-Weights.
+DEFAULT_WEIGHTS = Path.home() / ".cache" / "cleanup-models" / "manga-inpainter-best.pt"
 
 # 4. Standard-Ausgabeordner für die Gewinner und Reports
 DEFAULT_OUTPUT_DIR = PROJECT_ROOT / "yolo_mask_winners"
 
-# 5. Schutzzonen-CSV (optional). None = neben der anchors.csv nach "protected_zones.csv" suchen.
-#    Per CLI: --protected-zones PFAD bzw. --no-protected-zones.
+# 5. Schutzzonen-CSV (optional). Automatische Suche neben der aktiven anchors.csv.
+#    Dateiname: protected_zones.csv. Per CLI: --protected-zones PFAD
+#    bzw. --no-protected-zones.
+PROTECTED_ZONES_FILENAME = "protected_zones.csv"
 DEFAULT_PROTECTED_ZONES_CSV = None
 
 
