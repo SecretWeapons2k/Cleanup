@@ -25,7 +25,7 @@ Variante samt Masken, Kandidatenbildern und Berichten.
   - CSV-Verzeichnis: `~/Downloads/yabai proj/output/csv/`
   - Anchors: `anchors.csv` in diesem Verzeichnis
   - optionale Schutzzonen: `protected_zones.csv` im selben Verzeichnis
-  - Quellbilder: `~/Downloads/yabai proj/yabaiproject - Copy/mit_kanji/`
+  - Quellbilder: `~/Downloads/yabai proj/mit_kanji/`
   - optionale Schutzzonen: `protected_zones.csv` neben der aktiven Anchors-CSV.
   Pipeline, Routing-Audit und Label-Tool verwenden dieselben Defaults.
   Abweichende Speicherorte können per CLI angegeben werden. Für aktuelle
