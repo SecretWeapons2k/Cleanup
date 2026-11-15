@@ -69,7 +69,7 @@ def _is_axis_aligned_rect(poly: np.ndarray) -> bool:
 def anchor_polygon(row: dict[str, Any]) -> np.ndarray | None:
     """Polygon to use instead of the rectangle for one anchors.csv row, or None.
 
-    body   -> ``mask_polygon`` (falls back to ``polygon``)
+    body   -> ONLY ``mask_polygon`` (missing/invalid means red rectangle fallback)
     others -> ``polygon`` (e.g. rotated header quads)
     Axis-aligned rectangles return None (the rectangle path is used).
     """
@@ -77,9 +77,10 @@ def anchor_polygon(row: dict[str, Any]) -> np.ndarray | None:
     if kind == "body":
         if not USE_BODY_MASK_POLYGONS:
             return None
+        # For body anchors, only mask_polygon is the white cleaning polygon.
+        # The separate "polygon" column is the original OCR contour, not a fallback.
+        # If the white mask is missing/invalid, return None so box_region uses x1..y2.
         poly = parse_polygon(row.get("mask_polygon"))
-        if poly is None:
-            poly = parse_polygon(row.get("polygon"))
     else:
         if not USE_HEADER_POLYGONS:
             return None
