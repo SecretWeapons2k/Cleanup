@@ -22,7 +22,9 @@ Variante samt Masken, Kandidatenbildern und Berichten.
 `yolo_mask_auto_select_modules/config.py`
   Zentrale Pfade, Modell- und Laufparameter, aktive Kandidatenvarianten,
   Schwellenwerte und Bewertungsgewichte. Die gemeinsamen Standardpfade sind:
-  - Anchors: `~/Downloads/yabai proj/processed_output/anchors.csv`
+  - CSV-Verzeichnis: `~/Downloads/yabai proj/output/csv/`
+  - Anchors: `anchors.csv` in diesem Verzeichnis
+  - optionale Schutzzonen: `protected_zones.csv` im selben Verzeichnis
   - Quellbilder: `~/Downloads/yabai proj/yabaiproject - Copy/mit_kanji/`
   - optionale Schutzzonen: `protected_zones.csv` neben der aktiven Anchors-CSV.
   Pipeline, Routing-Audit und Label-Tool verwenden dieselben Defaults.
