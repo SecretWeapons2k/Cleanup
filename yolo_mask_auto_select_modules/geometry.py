@@ -20,7 +20,28 @@ from typing import Any
 import cv2
 import numpy as np
 
-from .config import USE_BODY_MASK_POLYGONS, USE_HEADER_POLYGONS
+from .config import (
+    PROTECTED_ZONES_FILENAME,
+    USE_BODY_MASK_POLYGONS,
+    USE_HEADER_POLYGONS,
+)
+
+
+def resolve_protected_zones_csv(
+    anchors_path: Path,
+    explicit_path: Path | None = None,
+) -> Path | None:
+    """Resolve an explicit protected-zones CSV or discover it beside anchors.csv.
+
+    An explicit path is returned even when it does not exist so the subsequent
+    CSV reader can raise a clear FileNotFoundError. Without an explicit path,
+    protected_zones.csv is optional and is only returned when present next to
+    the selected anchors CSV.
+    """
+    if explicit_path is not None:
+        return explicit_path.expanduser().resolve()
+    candidate = anchors_path.expanduser().resolve().with_name(PROTECTED_ZONES_FILENAME)
+    return candidate if candidate.is_file() else None
 
 
 def parse_polygon(text: str | None) -> np.ndarray | None:
