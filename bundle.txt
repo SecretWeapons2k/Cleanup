@@ -16,14 +16,18 @@ virtual environments are intentionally excluded.
 - train_ranker.py
 - yolo_mask_auto_select.py
 - yolo_mask_auto_select_modules/__init__.py
+- yolo_mask_auto_select_modules/candidate_masks.py
 - yolo_mask_auto_select_modules/cli.py
 - yolo_mask_auto_select_modules/config.py
 - yolo_mask_auto_select_modules/debug_output.py
+- yolo_mask_auto_select_modules/geometry.py
 - yolo_mask_auto_select_modules/io_utils.py
 - yolo_mask_auto_select_modules/pipeline.py
 - yolo_mask_auto_select_modules/reports.py
 - yolo_mask_auto_select_modules/scoring.py
 - yolo_mask_auto_select_modules/tests/__init__.py
+- yolo_mask_auto_select_modules/tests/test_config_paths.py
+- yolo_mask_auto_select_modules/tests/test_polygons_and_protection.py
 - yolo_mask_auto_select_modules/tests/test_report_fields.py
 - yolo_mask_auto_select_modules/tests/test_scoring_and_routing.py
 - yolo_mask_routing_audit.py
@@ -54,9 +58,16 @@ Variante samt Masken, Kandidatenbildern und Berichten.
 
 `yolo_mask_auto_select_modules/config.py`
   Zentrale Pfade, Modell- und Laufparameter, aktive Kandidatenvarianten,
-  Schwellenwerte und Bewertungsgewichte. Für aktuelle Einstellungen ist
-  ausschließlich diese Datei maßgeblich; alte Logs und Backups können
-  abweichende historische Werte enthalten.
+  Schwellenwerte und Bewertungsgewichte. Die gemeinsamen Standardpfade sind:
+  - CSV-Verzeichnis: `~/Downloads/yabai proj/output/csv/`
+  - Anchors: `anchors.csv` in diesem Verzeichnis
+  - optionale Schutzzonen: `protected_zones.csv` im selben Verzeichnis
+  - Quellbilder: `~/Downloads/yabai proj/mit_kanji/`
+  - optionale Schutzzonen: `protected_zones.csv` neben der aktiven Anchors-CSV.
+  Pipeline, Routing-Audit und Label-Tool verwenden dieselben Defaults.
+  Abweichende Speicherorte können per CLI angegeben werden. Für aktuelle
+  Einstellungen ist ausschließlich diese Datei maßgeblich; alte Logs und
+  Backups können abweichende historische Werte enthalten.
 
 `yolo_mask_auto_select_modules/cli.py`
   Kommandozeilenargumente für Bilder, Anchors, YOLO-Gewichte, Stichprobe,
@@ -88,7 +99,9 @@ Diese Programme haben getrennte Aufgaben und sind keine Duplikate der
 Hauptpipeline:
 
 `yolo_mask_routing_audit.py`
-  Eigenständiges YOLO-Inferenz-/Diagnosewerkzeug. Prüft Maskenabdeckung,
+  Eigenständiges YOLO-Inferenz-/Diagnosewerkzeug. Verwendet dieselben
+  Standardpfade für `anchors.csv`, Quellbilder und optionale Schutzzonen
+  wie die Hauptpipeline. Prüft Maskenabdeckung,
   Abstand zu OCR-Ankern und Body-Box-Coverage. Erzeugt unter anderem
   `routing_report.csv`, `body_box_coverage.csv`, `instances.csv` und
   visuelle Kontaktbögen. Kein LaMa-Lauf und keine Änderung der Quelldateien.
@@ -270,7 +283,10 @@ and stores masks, cleaned candidates, and reports under `yolo_mask_winners/`.
 
 The module package separates the implementation:
 
-- `config.py`: paths, model settings, thresholds, and scoring configuration.
+- `config.py`: shared paths, model settings, thresholds, and scoring configuration.
+  The default `anchors.csv` is read from
+  `~/Downloads/yabai proj/output/csv/anchors.csv`; optional
+  `protected_zones.csv` is discovered beside the selected anchors file.
 - `cli.py`: command-line arguments.
 - `io_utils.py`: image/CSV discovery, anchor handling, masks, and I/O helpers.
 - `scoring.py`: candidate metrics and candidate selection.
@@ -300,10 +316,22 @@ These are separate utilities, not duplicate pipeline implementations:
 - `scripts/cleanup_repo.py`: reports repository cleanup candidates by
   default; with `--apply`, removes Python caches and archives old backups,
   the known accidental patch dump, and root-level log files outside the repo.
-- `tools/bundle.py`: combines the main pipeline, supporting Python tools,
-  tests, scripts, and project documentation into a single `bundle.txt`.
-  Generated result images, `yolo_mask_winners/`, `diagnostics/`, caches,
-  and virtual environments are excluded.
+
+## CSV and source paths
+
+The pipeline, standalone routing audit, and labeling tool share the defaults
+from `yolo_mask_auto_select_modules/config.py`:
+
+- CSV directory: `~/Downloads/yabai proj/output/csv/`
+- Anchors: `anchors.csv` in that directory.
+- Optional protected zones: `protected_zones.csv` in that directory.
+- Source images: `~/Downloads/yabai proj/mit_kanji/`
+
+All three tools support their existing command-line path overrides. If the
+anchors CSV is moved, pass its new path with `--anchors`; protected zones
+will then be discovered beside that file unless an explicit protected CSV
+path is supplied. Run-specific CSVs such as `labels.csv` and
+`candidate_scores.csv` remain inside their respective run directories.
 
 ## Run the pipeline
 
@@ -317,18 +345,6 @@ python yolo_mask_auto_select.py --random-sample 10 --min-m-images 3 --seed 20261
 
 Remove `--dry-run` only when you intend to start processing. Check the
 arguments with `python yolo_mask_auto_select.py --help` before a larger run.
-
-## Create a project bundle
-
-From the repository root, run:
-
-```bash
-python tools/bundle.py
-```
-
-The script writes `bundle.txt` in the repository root. The output is a local
-analysis artifact and is ignored by Git; it does not include generated result
-images or diagnostic evidence.
 
 ## Tests
 
@@ -518,9 +534,10 @@ from urllib.parse import parse_qs, unquote, urlparse
 import numpy as np
 from PIL import Image
 
-HOME = Path.home()
-DEFAULT_IMAGES = HOME / "Downloads/yabai proj/yabaiproject - Copy/mit_kanji"
-DEFAULT_ANCHORS = HOME / "Downloads/yabai proj/processed_output/anchors.csv"
+from yolo_mask_auto_select_modules.config import DEFAULT_ANCHORS_CSV, DEFAULT_IMAGES_DIR
+
+DEFAULT_IMAGES = DEFAULT_IMAGES_DIR
+DEFAULT_ANCHORS = DEFAULT_ANCHORS_CSV
 IMAGE_EXTS = {".png", ".jpg", ".jpeg", ".webp", ".bmp", ".tif", ".tiff"}
 
 # file suffix -> candidate id used in candidate_scores.csv ("distance_px" column)
@@ -1577,6 +1594,117 @@ if __name__ == "__main__":
 """Modular implementation of yolo_mask_auto_select.py."""
 
 
+===== yolo_mask_auto_select_modules/candidate_masks.py =====
+
+"""Single source of truth for all candidate masks of one image.
+
+Every candidate mask (YOLO distances, hybrids, contrast, smart-ink, box-only) and every
+reference mask used for scoring is built here, with the protected zones already
+subtracted. LaMa staging, compositing and scoring all use this one result, so the mask
+LaMa inpaints is always the mask that is composited and scored.
+"""
+from __future__ import annotations
+
+from dataclasses import dataclass, field
+from typing import Any
+
+import numpy as np
+
+from .geometry import protected_mask
+from .io_utils import make_box_only_mask
+from .scoring import make_contrast_mask, make_smart_ink_mask
+
+HYBRID_DISTANCES = (2, 6)
+
+
+@dataclass
+class ImageMaskSet:
+    candidates: dict[int | str, np.ndarray]
+    box_mask: np.ndarray
+    smart_mask: np.ndarray
+    body_box_mask: np.ndarray
+    yolo_reference_mask: np.ndarray
+    scoring_envelope: np.ndarray
+    protected: np.ndarray
+    zones: list[dict[str, Any]] = field(default_factory=list)
+
+
+def stage_token(candidate_id: int | str) -> str:
+    """File-name token used when staging a candidate for LaMa (unchanged naming)."""
+    if isinstance(candidate_id, int):
+        return f"d{candidate_id:02d}"
+    if candidate_id.startswith("HYBRID_D"):
+        return f"hybrid_d{int(candidate_id[len('HYBRID_D'):]):02d}"
+    return candidate_id.lower()
+
+
+def build_image_mask_set(
+    *,
+    rgb: np.ndarray,
+    alpha: np.ndarray,
+    boxes: list[dict[str, Any]],
+    zones: list[dict[str, Any]],
+    yolo_masks: dict[int, np.ndarray],
+    box_only_mask: np.ndarray,
+    contrast_thresholds: tuple[float, ...],
+    contrast_candidate_ids: list[str],
+    protected_margin_px: int = 0,
+) -> ImageMaskSet:
+    height, width = rgb.shape[:2]
+    protected = protected_mask(zones, width, height, protected_margin_px)
+    has_protection = bool(protected.any())
+
+    def prot(mask: np.ndarray) -> np.ndarray:
+        mask = np.asarray(mask) > 0
+        return mask & ~protected if has_protection else mask
+
+    masks = {d: prot(m) for d, m in yolo_masks.items()}
+    box_mask = prot(box_only_mask)
+    smart_mask = prot(make_smart_ink_mask(rgb, boxes))
+    body_boxes = [b for b in boxes if str(b.get("type", "")).casefold() == "body"]
+    body_box_mask = prot(make_box_only_mask(width, height, body_boxes))
+
+    candidates: dict[int | str, np.ndarray] = dict(sorted(masks.items()))
+    for d in HYBRID_DISTANCES:
+        candidates[f"HYBRID_D{d}"] = box_mask | masks[d]
+    for threshold, candidate_id in zip(contrast_thresholds, contrast_candidate_ids):
+        candidates[candidate_id] = prot(make_contrast_mask(rgb, alpha, boxes, threshold))
+    candidates["SMART_INK"] = smart_mask
+    candidates["BOX_ONLY"] = box_mask
+
+    yolo_reference = masks[max(masks)]
+    return ImageMaskSet(
+        candidates=candidates,
+        box_mask=box_mask,
+        smart_mask=smart_mask,
+        body_box_mask=body_box_mask,
+        yolo_reference_mask=yolo_reference,
+        scoring_envelope=yolo_reference | box_mask | smart_mask,
+        protected=protected,
+        zones=zones,
+    )
+
+
+def enforce_protection(
+    final_rgb: np.ndarray, final_alpha: np.ndarray,
+    original_rgb: np.ndarray, original_alpha: np.ndarray,
+    protected: np.ndarray,
+) -> dict[str, float]:
+    """Hard guarantee: protected pixels are restored to the original (in place).
+
+    Returns metrics; ``protected_pixels_restored`` > 0 means some earlier step touched a
+    protected pixel (a bug worth investigating) - the pixels are restored regardless.
+    """
+    count = int(np.count_nonzero(protected))
+    if not count:
+        return {"protected_pixels": 0.0, "protected_pixels_restored": 0.0}
+    differs = (final_rgb != original_rgb).any(axis=-1) | (final_alpha != original_alpha)
+    restored = int(np.count_nonzero(differs & protected))
+    final_rgb[protected] = original_rgb[protected]
+    final_alpha[protected] = original_alpha[protected]
+    return {"protected_pixels": float(count), "protected_pixels_restored": float(restored)}
+
+
 ===== yolo_mask_auto_select_modules/cli.py =====
 
 """Command-line argument parsing."""
@@ -1590,6 +1718,7 @@ from .config import (
     DEFAULT_DISTANCES,
     DEFAULT_IMAGES_DIR,
     DEFAULT_OUTPUT_DIR,
+    DEFAULT_PROTECTED_ZONES_CSV,
     DEFAULT_WEIGHTS,
 )
 
@@ -1599,6 +1728,11 @@ def parse_args(project: Path) -> argparse.Namespace:
                    help="Original source image folder")
     p.add_argument("--anchors", type=Path, default=DEFAULT_ANCHORS_CSV,
                    help="Path to anchors CSV file")
+    p.add_argument("--protected-zones", type=Path, default=DEFAULT_PROTECTED_ZONES_CSV,
+                   help="CSV with protected zones that no candidate may change; "
+                        "default: protected_zones.csv next to the anchors CSV, if it exists")
+    p.add_argument("--no-protected-zones", action="store_true",
+                   help="Ignore protected zones even if a CSV is found")
     p.add_argument("--weights", type=Path, default=DEFAULT_WEIGHTS,
                    help="Path to YOLO segmentation weights")
     p.add_argument("--image", help="Process only this image, e.g. m004_015.png; default: all anchor images")
@@ -1636,17 +1770,28 @@ from pathlib import Path
 # Wurzelverzeichnis des Projekts (automatisch erkannt)
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 
-# 1. Pfad zur CSV-Datei (bereits korrekt angepasst)
-DEFAULT_ANCHORS_CSV = Path("/home/secret/Downloads/yabai proj/processed_output/anchors.csv")
+# Gemeinsamer Datenstamm für die von Yabai erzeugten Eingabedaten.
+# Path.home() vermeidet einen fest codierten Benutzernamen wie /home/secret.
+YABAI_PROJECT_ROOT = Path.home() / "Downloads" / "yabai proj"
+DEFAULT_CSV_DIR = YABAI_PROJECT_ROOT / "output" / "csv"
 
-# 2. Pfad zum Quellbilder-Ordner
-DEFAULT_IMAGES_DIR = Path.home() / "Downloads/yabai proj/yabaiproject - Copy/mit_kanji"
+# 1. Zentrale Anchors-CSV für Pipeline, Routing-Audit und Label-Tool.
+DEFAULT_ANCHORS_CSV = DEFAULT_CSV_DIR / "anchors.csv"
 
-# 3. Pfad zum YOLO-Checkpoint / Model-Weights
-DEFAULT_WEIGHTS = Path.home() / ".cache/cleanup-models/manga-inpainter-best.pt"
+# 2. Quellbilder, auf die sich die Dateinamen in anchors.csv beziehen.
+DEFAULT_IMAGES_DIR = YABAI_PROJECT_ROOT / "mit_kanji"
+
+# 3. YOLO-Checkpoint / Model-Weights.
+DEFAULT_WEIGHTS = Path.home() / ".cache" / "cleanup-models" / "manga-inpainter-best.pt"
 
 # 4. Standard-Ausgabeordner für die Gewinner und Reports
 DEFAULT_OUTPUT_DIR = PROJECT_ROOT / "yolo_mask_winners"
+
+# 5. Schutzzonen-CSV (optional). Automatische Suche neben der aktiven anchors.csv.
+#    Dateiname: protected_zones.csv. Per CLI: --protected-zones PFAD
+#    bzw. --no-protected-zones.
+PROTECTED_ZONES_FILENAME = "protected_zones.csv"
+DEFAULT_PROTECTED_ZONES_CSV = None
 
 
 # ==============================================================================
@@ -1670,6 +1815,17 @@ DEBUG_SAVE_SIDE_BY_SIDE_SHEET = False  # Doppelte Side-by-Side Sheets
 # ==============================================================================
 IMAGE_EXTS = {".png", ".jpg", ".jpeg", ".webp", ".bmp", ".tif", ".tiff"}
 DEFAULT_DISTANCES = "0,2,4,6,8,10"
+
+# Polygone statt Rechtecken (anchors.csv):
+#   body   -> Spalte mask_polygon (Fallback: polygon)
+#   header -> Spalte polygon (gedrehte Vierecke)
+# Auf False setzen, um das alte Rechteck-Verhalten exakt zu reproduzieren.
+USE_BODY_MASK_POLYGONS = True
+USE_HEADER_POLYGONS = True
+
+# Schutzzonen: Pixel darin werden von keinem Kandidaten verändert.
+# Optionaler Rand in Pixeln, um den jede Zone vergrößert wird (0 = exakt die Zone).
+PROTECTED_ZONE_MARGIN_PX = 0
 
 # Alpha-Postprocessing für transparente Sprites
 POSTPROCESS_REMOVE_SMALL_ALPHA_ISLANDS = True
@@ -1846,15 +2002,39 @@ def save_debug_contact_sheet(
     output_path.parent.mkdir(parents=True, exist_ok=True)
     canvas.save(output_path, quality=92)
 
+def _draw_outline(draw: ImageDraw.ImageDraw, box: dict[str, Any], width: int, height: int,
+                  color: tuple[int, int, int]) -> None:
+    """Outline a box: polygon if the box has one, else its rectangle."""
+    poly_value = box.get("poly")
+    if poly_value is not None:
+        polygons = [poly_value] if isinstance(poly_value, np.ndarray) else poly_value
+        for poly in polygons:
+            pts = [(float(x), float(y)) for x, y in poly]
+            if len(pts) >= 3:
+                draw.line(pts + [pts[0]], fill=color, width=2)
+        return
+    try:
+        x1 = max(0, min(width - 1, int(round(float(box["x1"])))))
+        y1 = max(0, min(height - 1, int(round(float(box["y1"])))))
+        x2 = max(0, min(width - 1, int(round(float(box["x2"])))))
+        y2 = max(0, min(height - 1, int(round(float(box["y2"])))))
+    except (KeyError, TypeError, ValueError):
+        return
+    if x2 < x1 or y2 < y1:
+        return
+    draw.rectangle((x1, y1, x2, y2), outline=color, width=2)
+
 def build_debug_mask_overlay(
     original_rgb: np.ndarray,
     candidate_mask: np.ndarray,
     boxes: list[dict[str, Any]],
+    zones: list[dict[str, Any]] | None = None,
 ) -> np.ndarray:
     """Render a magenta candidate-mask tint over raw RGB and outline OCR boxes.
 
-    Body boxes are red; header boxes are violet. The image is RGB (not RGBA) so
-    the mask tint remains visible even where the source alpha is transparent.
+    Body boxes are red; header boxes are violet; boxes with a polygon are drawn as
+    polygons. Protected zones (optional) are outlined in blue. The image is RGB (not
+    RGBA) so the mask tint remains visible even where the source alpha is transparent.
     """
     base = np.asarray(original_rgb, dtype=np.float32).copy()
     selected = np.asarray(candidate_mask).astype(bool)
@@ -1864,18 +2044,11 @@ def build_debug_mask_overlay(
     draw = ImageDraw.Draw(overlay)
     width, height = overlay.size
     for box in boxes:
-        try:
-            x1 = max(0, min(width - 1, int(round(float(box["x1"])))))
-            y1 = max(0, min(height - 1, int(round(float(box["y1"])))))
-            x2 = max(0, min(width - 1, int(round(float(box["x2"])))))
-            y2 = max(0, min(height - 1, int(round(float(box["y2"])))))
-        except (KeyError, TypeError, ValueError):
-            continue
-        if x2 < x1 or y2 < y1:
-            continue
         box_type = str(box.get("type", "")).casefold()
         color = (225, 45, 45) if box_type == "body" else ((170, 90, 215) if box_type == "header" else (255, 170, 0))
-        draw.rectangle((x1, y1, x2, y2), outline=color, width=2)
+        _draw_outline(draw, box, width, height, color)
+    for zone in zones or []:
+        _draw_outline(draw, zone, width, height, (30, 90, 255))
     return np.asarray(overlay, dtype=np.uint8)
 
 def save_debug_side_by_side_sheet(
@@ -1940,6 +2113,238 @@ def save_debug_side_by_side_sheet(
     canvas.save(output_path, quality=92)
 
 
+===== yolo_mask_auto_select_modules/geometry.py =====
+
+"""Shared geometry: polygon anchors (instead of plain boxes) and protected zones.
+
+Used by the pipeline, the scoring module and the routing audit so that all of them
+rasterise anchors and protected zones in exactly the same way.
+
+Box dictionaries keep their rectangle (``x1..y2``). If a usable polygon exists, it is
+stored under ``"poly"`` (float array, shape (N, 2)); axis-aligned rectangles are
+stored as plain boxes with ``poly=None`` so the historic rectangle code path and its
+pixel semantics (inclusive floor/ceil rectangle) stay untouched.
+"""
+from __future__ import annotations
+
+import csv
+import math
+import sys
+from collections import defaultdict
+from pathlib import Path
+from typing import Any
+
+import cv2
+import numpy as np
+
+from .config import (
+    PROTECTED_ZONES_FILENAME,
+    USE_BODY_MASK_POLYGONS,
+    USE_HEADER_POLYGONS,
+)
+
+
+def resolve_protected_zones_csv(
+    anchors_path: Path,
+    explicit_path: Path | None = None,
+) -> Path | None:
+    """Resolve an explicit protected-zones CSV or discover it beside anchors.csv.
+
+    An explicit path is returned even when it does not exist so the subsequent
+    CSV reader can raise a clear FileNotFoundError. Without an explicit path,
+    protected_zones.csv is optional and is only returned when present next to
+    the selected anchors CSV.
+    """
+    if explicit_path is not None:
+        return explicit_path.expanduser().resolve()
+    candidate = anchors_path.expanduser().resolve().with_name(PROTECTED_ZONES_FILENAME)
+    return candidate if candidate.is_file() else None
+
+
+def parse_polygon(text: str | None) -> np.ndarray | None:
+    """Parse ``"x,y;x,y;..."``. Returns None for empty or invalid input."""
+    if not text or not str(text).strip():
+        return None
+    try:
+        pts = [tuple(float(v) for v in part.split(",")) for part in str(text).split(";") if part.strip()]
+        arr = np.asarray(pts, dtype=np.float64)
+    except ValueError:
+        return None
+    if arr.ndim != 2 or arr.shape[0] < 3 or arr.shape[1] != 2 or not np.isfinite(arr).all():
+        return None
+    return arr
+
+
+def _is_axis_aligned_rect(poly: np.ndarray) -> bool:
+    return (
+        poly.shape[0] == 4
+        and len(set(poly[:, 0].tolist())) == 2
+        and len(set(poly[:, 1].tolist())) == 2
+    )
+
+
+def parse_polygons(text: str | None) -> list[np.ndarray] | None:
+    """Parse Yabai mask_polygon; disconnected components are separated by '|'."""
+    if not text or not str(text).strip():
+        return None
+    pieces = [piece.strip() for piece in str(text).split('|')]
+    if not pieces or any(not piece for piece in pieces):
+        return None
+    polygons: list[np.ndarray] = []
+    for piece in pieces:
+        polygon = parse_polygon(piece)
+        if polygon is None:
+            return None
+        polygons.append(polygon)
+    return polygons
+
+
+def anchor_polygon(row: dict[str, Any]) -> np.ndarray | list[np.ndarray] | None:
+    """Return white cleaning geometry; None means use the red rectangle fallback.
+
+    Body anchors use ONLY mask_polygon. The separate polygon field is the
+    original OCR contour and must not replace the red box if the white mask is absent.
+    Header anchors continue to use their rotated OCR polygon.
+    """
+    kind = str(row.get("type") or "").strip().casefold()
+    if kind == "body":
+        if not USE_BODY_MASK_POLYGONS:
+            return None
+        polygons = parse_polygons(row.get("mask_polygon"))
+        if not polygons:
+            return None
+        if len(polygons) == 1 and _is_axis_aligned_rect(polygons[0]):
+            return None
+        return polygons[0] if len(polygons) == 1 else polygons
+
+    if not USE_HEADER_POLYGONS:
+        return None
+    poly = parse_polygon(row.get("polygon"))
+    if poly is None or _is_axis_aligned_rect(poly):
+        return None
+    return poly
+
+
+
+def box_region(box: dict[str, Any], width: int, height: int) -> tuple[int, int, int, int, np.ndarray] | None:
+    """Return ``(x1, y1, x2, y2, crop_mask)`` with inclusive pixel bounds.
+
+    ``crop_mask`` is a bool array of shape ``(y2-y1+1, x2-x1+1)``. Rectangles use the
+    historic floor/ceil clamp; polygons use rounded vertices clamped to the image.
+    """
+    poly_value = box.get("poly")
+    if poly_value is None:
+        try:
+            x1 = max(0, min(width - 1, math.floor(float(box["x1"]))))
+            y1 = max(0, min(height - 1, math.floor(float(box["y1"]))))
+            x2 = max(0, min(width - 1, math.ceil(float(box["x2"]))))
+            y2 = max(0, min(height - 1, math.ceil(float(box["y2"]))))
+        except (KeyError, TypeError, ValueError, OverflowError):
+            return None
+        if x2 < x1 or y2 < y1:
+            return None
+        return x1, y1, x2, y2, np.ones((y2 - y1 + 1, x2 - x1 + 1), dtype=bool)
+
+    raw_polygons = [poly_value] if isinstance(poly_value, np.ndarray) else list(poly_value)
+    if not raw_polygons:
+        return None
+    points: list[np.ndarray] = []
+    for raw_poly in raw_polygons:
+        pts = np.rint(np.asarray(raw_poly, dtype=np.float64)).astype(np.int32)
+        if pts.ndim != 2 or pts.shape[0] < 3 or pts.shape[1] != 2:
+            return None
+        pts[:, 0] = np.clip(pts[:, 0], 0, width - 1)
+        pts[:, 1] = np.clip(pts[:, 1], 0, height - 1)
+        points.append(pts)
+    all_points = np.concatenate(points, axis=0)
+    x1, y1 = int(all_points[:, 0].min()), int(all_points[:, 1].min())
+    x2, y2 = int(all_points[:, 0].max()), int(all_points[:, 1].max())
+    crop = np.zeros((y2 - y1 + 1, x2 - x1 + 1), dtype=np.uint8)
+    offset = np.array([x1, y1], dtype=np.int32)
+    cv2.fillPoly(crop, [pts - offset for pts in points], 255)
+    return x1, y1, x2, y2, crop > 0
+
+
+def box_mask(box: dict[str, Any], width: int, height: int) -> np.ndarray:
+    """Full-image bool mask of one anchor (polygon if present, else rectangle)."""
+    out = np.zeros((height, width), dtype=bool)
+    region = box_region(box, width, height)
+    if region is not None:
+        x1, y1, x2, y2, crop = region
+        out[y1:y2 + 1, x1:x2 + 1] |= crop
+    return out
+
+
+def boxes_union_mask(boxes: list[dict[str, Any]], width: int, height: int) -> np.ndarray:
+    out = np.zeros((height, width), dtype=bool)
+    for box in boxes:
+        region = box_region(box, width, height)
+        if region is not None:
+            x1, y1, x2, y2, crop = region
+            out[y1:y2 + 1, x1:x2 + 1] |= crop
+    return out
+
+
+def inset_region(crop: np.ndarray, inset_x: int, inset_y: int) -> np.ndarray:
+    """Erode a region mask by (inset_x, inset_y) pixels; fall back to the full region if it vanishes."""
+    h, w = crop.shape
+    padded = np.pad(crop.astype(np.uint8), ((inset_y, inset_y), (inset_x, inset_x)))
+    kernel = np.ones((2 * inset_y + 1, 2 * inset_x + 1), dtype=np.uint8)
+    eroded = cv2.erode(padded, kernel)[inset_y:inset_y + h, inset_x:inset_x + w] > 0
+    return eroded if eroded.any() else crop
+
+
+# --------------------------------------------------------------------------- protected zones
+
+def read_protected_zones(path: Path) -> dict[str, list[dict[str, Any]]]:
+    """Read ``protected_zones.csv`` -> ``{image_name: [zone_box, ...]}``.
+
+    Required column: ``image``. Geometry from ``polygon`` or, if missing/invalid, from
+    ``x1,y1,x2,y2``. Invalid rows are skipped with a warning.
+    """
+    if not path.is_file():
+        raise FileNotFoundError(f"protected zones CSV not found: {path}")
+    by_image: dict[str, list[dict[str, Any]]] = defaultdict(list)
+    with path.open("r", encoding="utf-8-sig", newline="") as f:
+        reader = csv.DictReader(f)
+        if "image" not in (reader.fieldnames or []):
+            raise ValueError("protected zones CSV missing column: image")
+        for n, row in enumerate(reader, start=2):
+            name = Path((row.get("image") or "").strip()).name
+            if not name:
+                continue
+            poly = parse_polygon(row.get("polygon"))
+            try:
+                if poly is not None:
+                    x1, y1 = poly.min(axis=0)
+                    x2, y2 = poly.max(axis=0)
+                else:
+                    x1, y1, x2, y2 = (float(row[k]) for k in ("x1", "y1", "x2", "y2"))
+                if not all(math.isfinite(v) for v in (x1, y1, x2, y2)) or x2 < x1 or y2 < y1:
+                    raise ValueError
+            except (KeyError, TypeError, ValueError):
+                print(f"WARN: invalid protected zone at CSV row {n}; ignored", file=sys.stderr)
+                continue
+            if poly is not None and _is_axis_aligned_rect(poly):
+                poly = None
+            by_image[name].append({
+                "zone_id": (row.get("zone_id") or "").strip(),
+                "text": (row.get("text") or "").strip(),
+                "x1": float(x1), "y1": float(y1), "x2": float(x2), "y2": float(y2),
+                "poly": poly,
+            })
+    return dict(by_image)
+
+
+def protected_mask(zones: list[dict[str, Any]], width: int, height: int, margin_px: int = 0) -> np.ndarray:
+    """Full-image bool mask of all protected zones, optionally grown by ``margin_px``."""
+    mask = boxes_union_mask(zones, width, height)
+    if margin_px > 0 and mask.any():
+        k = margin_px * 2 + 1
+        mask = cv2.dilate(mask.astype(np.uint8), np.ones((k, k), dtype=np.uint8)) > 0
+    return mask
+
+
 ===== yolo_mask_auto_select_modules/io_utils.py =====
 
 """Source discovery, CSV/box utilities and alpha post-processing."""
@@ -1961,6 +2366,7 @@ import numpy as np
 from PIL import Image
 
 from .config import *
+from .geometry import anchor_polygon, box_region
 
 def choose_random_sample(
     available_names: set[str], sample_count: int, min_m_count: int, seed: int
@@ -2033,6 +2439,7 @@ def read_anchor_csv(path: Path) -> tuple[list[str], list[dict[str, str]], dict[s
         by_image[name].append({
             "type": (row.get("type") or "").strip().casefold(),
             "x1": x1, "y1": y1, "x2": x2, "y2": y2,
+            "poly": anchor_polygon(row),
         })
     if not by_image:
         raise ValueError(f"No valid anchor boxes found in {path}")
@@ -2117,22 +2524,23 @@ def rgb_array(path: Path) -> tuple[np.ndarray, np.ndarray]:
         return np.asarray(rgba.convert("RGB"), dtype=np.uint8), np.asarray(rgba.getchannel("A"), dtype=np.uint8)
 
 def make_box_only_mask(width: int, height: int, boxes: list[dict[str, Any]]) -> np.ndarray:
-    """Build the same inclusive rectangle union as the routing-audit script."""
+    """Union of all anchors as uint8 0/255 mask (same rasterisation as the routing audit).
+
+    Boxes with a ``"poly"`` entry are filled as polygons, all others as inclusive
+    rectangles (floor/ceil), exactly as before.
+    """
     mask = np.zeros((height, width), dtype=np.uint8)
     for box in boxes:
-        try:
-            x1 = max(0, min(width - 1, math.floor(float(box["x1"]))))
-            y1 = max(0, min(height - 1, math.floor(float(box["y1"]))))
-            x2 = max(0, min(width - 1, math.ceil(float(box["x2"]))))
-            y2 = max(0, min(height - 1, math.ceil(float(box["y2"]))))
-        except (KeyError, TypeError, ValueError, OverflowError):
+        region = box_region(box, width, height)
+        if region is None:
             continue
-        if x2 >= x1 and y2 >= y1:
-            cv2.rectangle(mask, (x1, y1), (x2, y2), 255, -1)
+        x1, y1, x2, y2, crop = region
+        mask[y1:y2 + 1, x1:x2 + 1][crop] = 255
     return mask
 
 def remove_small_alpha_islands(
-    rgb: np.ndarray, alpha: np.ndarray, source_alpha: np.ndarray
+    rgb: np.ndarray, alpha: np.ndarray, source_alpha: np.ndarray,
+    protected: np.ndarray | None = None,
 ) -> tuple[np.ndarray, np.ndarray, dict[str, float]]:
     """Remove tiny disconnected visible-alpha components for transparent-canvas sprites.
 
@@ -2142,6 +2550,8 @@ def remove_small_alpha_islands(
     Components are 8-connected; any isolated visible component up to the configured
     size is made fully transparent. RGB is set to zero at removed pixels to avoid
     leaving hidden colour data behind.
+
+    Components that touch a ``protected`` pixel are never removed.
     """
     transparent_ratio = float(np.mean(source_alpha <= ALPHA_VISIBILITY_THRESHOLD))
     metadata = {
@@ -2158,9 +2568,12 @@ def remove_small_alpha_islands(
     component_count, labels, stats, _centroids = cv2.connectedComponentsWithStats(visible, connectivity=8)
     remove = np.zeros(visible.shape, dtype=bool)
     removed_components = 0
+    touches_protected: set[int] = (
+        {int(v) for v in np.unique(labels[protected])} if protected is not None and protected.any() else set()
+    )
     for label in range(1, component_count):
         area = int(stats[label, cv2.CC_STAT_AREA])
-        if area <= ALPHA_SMALL_OBJECT_MAX_PIXELS:
+        if area <= ALPHA_SMALL_OBJECT_MAX_PIXELS and label not in touches_protected:
             remove |= labels == label
             removed_components += 1
 
@@ -2200,9 +2613,11 @@ import cv2
 import numpy as np
 from PIL import Image
 
+from .candidate_masks import ImageMaskSet, build_image_mask_set, enforce_protection, stage_token
 from .cli import parse_args
 from .config import *
 from .debug_output import build_debug_mask_overlay, save_debug_contact_sheet, save_debug_side_by_side_sheet
+from .geometry import read_protected_zones, resolve_protected_zones_csv
 from .io_utils import (
     choose_output_dir,
     choose_random_sample,
@@ -2304,6 +2719,19 @@ def main() -> int:
             if not weights_path.is_file():
                 raise FileNotFoundError(f"YOLO checkpoint not found: {weights_path}")
 
+        zones_path = None
+        zones_by_image: dict[str, list[dict[str, Any]]] = {}
+        if not args.no_protected_zones:
+            zones_path = resolve_protected_zones_csv(
+                anchors_path, args.protected_zones
+            )
+            if zones_path is not None:
+                zones_by_image = read_protected_zones(zones_path)
+                unknown = sorted(set(zones_by_image) - available_names)
+                if unknown:
+                    print(f"WARN: protected zones for {len(unknown)} image(s) not in anchors CSV: "
+                          f"{', '.join(unknown[:8])}", file=sys.stderr)
+
         iopaint = find_iopaint()
         output_dir = choose_output_dir(args.output, project)
     except Exception as exc:
@@ -2318,6 +2746,11 @@ def main() -> int:
 
     print(f"Selected images: {len(ordered_names)} (Batch-Größe: {batch_size} Bilder pro Durchlauf)")
     print(f"Persistente Ausgabe: {output_dir}")
+    if zones_path is not None:
+        selected_zone_count = sum(len(zones_by_image.get(n, [])) for n in ordered_names)
+        print(f"Schutzzonen: {zones_path} ({selected_zone_count} Zonen in der Auswahl)")
+    else:
+        print("Schutzzonen: keine")
     print(f"Debug-Optionen: Cleaned={save_cleaned}, Comparison-Sheet={save_comparison}, Overlays={save_overlays}, Side-By-Side={save_side_by_side}")
 
     if args.dry_run:
@@ -2352,6 +2785,9 @@ def main() -> int:
                     "--distances", ",".join(map(str, distances)),
                     "--device", args.device,
                 ]
+                if zones_path is not None:
+                    audit_cmd += ["--protected", str(zones_path),
+                                  "--protected-margin", str(PROTECTED_ZONE_MARGIN_PX)]
                 print(f"\n[1/3] Building YOLO candidate masks for {len(yolo_selected_names)} images...", flush=True)
                 proc = subprocess.run(audit_cmd, cwd=project, check=False)
                 if proc.returncode != 0:
@@ -2398,39 +2834,33 @@ def main() -> int:
 
                 candidate_images.append(name)
 
+            def yolo_masks_for(name: str) -> dict[int, np.ndarray]:
+                result: dict[int, np.ndarray] = {}
+                for d in distances:
+                    with Image.open(mask_paths[(name, d)]) as mask_im:
+                        result[d] = np.asarray(mask_im.convert("L"), dtype=np.uint8) > 0
+                return result
+
+            def mask_set_for(name: str, rgb: np.ndarray, alpha: np.ndarray) -> ImageMaskSet:
+                return build_image_mask_set(
+                    rgb=rgb, alpha=alpha,
+                    boxes=anchors_by_image.get(name, []),
+                    zones=zones_by_image.get(name, []),
+                    yolo_masks=yolo_masks_for(name),
+                    box_only_mask=read_box_mask(box_masks_dir / f"{Path(name).stem}.png"),
+                    contrast_thresholds=contrast_thresholds,
+                    contrast_candidate_ids=contrast_candidate_ids,
+                    protected_margin_px=PROTECTED_ZONE_MARGIN_PX,
+                )
+
             outline_leak_cache: dict[tuple[str, int | str], dict[str, float]] = {}
             for name in ordered_names:
                 source_rgb, source_alpha = rgb_array(source_paths[name])
-                h_img, w_img = source_alpha.shape
-                body_boxes = [b for b in anchors_by_image.get(name, []) if str(b.get("type", "")).casefold() == "body"]
-                body_box_mask = make_box_only_mask(w_img, h_img, body_boxes) > 0
                 source_detail = ink_strength_map(source_rgb)
-                box_only_mask = read_box_mask(box_masks_dir / f"{Path(name).stem}.png")
-                smart_mask = make_smart_ink_mask(source_rgb, anchors_by_image.get(name, []))
-
-                if name in candidate_images:
-                    cached_yolo_masks: dict[int, np.ndarray] = {}
-                    for d in distances:
-                        with Image.open(mask_paths[(name, d)]) as mask_im:
-                            c_mask = np.asarray(mask_im.convert("L"), dtype=np.uint8) > 0
-                        cached_yolo_masks[d] = c_mask
-                        outline_leak_cache[(name, d)] = outline_leak_metrics(source_detail, source_alpha, body_box_mask, c_mask)
-
-                    # Hybride Kandidaten: vollständige Box-Maske OR YOLO-Maske.
-                    for d in (2, 6):
-                        hybrid_mask = (np.asarray(box_only_mask) > 0) | cached_yolo_masks[d]
-                        outline_leak_cache[(name, f"HYBRID_D{d}")] = outline_leak_metrics(
-                            source_detail, source_alpha, body_box_mask, hybrid_mask
-                        )
-
-                outline_leak_cache[(name, "BOX_ONLY")] = outline_leak_metrics(source_detail, source_alpha, body_box_mask, box_only_mask)
-                outline_leak_cache[(name, "SMART_INK")] = outline_leak_metrics(source_detail, source_alpha, body_box_mask, smart_mask)
-                for threshold, candidate_id in zip(contrast_thresholds, contrast_candidate_ids):
-                    contrast_mask = make_contrast_mask(
-                        source_rgb, source_alpha, anchors_by_image.get(name, []), threshold
-                    )
-                    outline_leak_cache[(name, candidate_id)] = outline_leak_metrics(
-                        source_detail, source_alpha, body_box_mask, contrast_mask
+                pre_set = mask_set_for(name, source_rgb, source_alpha)
+                for cid, cmask in pre_set.candidates.items():
+                    outline_leak_cache[(name, cid)] = outline_leak_metrics(
+                        source_detail, source_alpha, pre_set.body_box_mask, cmask
                     )
 
             # ==================================================================
@@ -2456,88 +2886,27 @@ def main() -> int:
                 masks_stage.mkdir(parents=True, exist_ok=True)
                 raw_stage.mkdir(parents=True, exist_ok=True)
 
-                stage_meta: dict[tuple[str, int], tuple[str, str]] = {}
-                hybrid_stage_meta: dict[tuple[str, int], tuple[str, str]] = {}
-                contrast_stage_meta: dict[tuple[str, str], tuple[str, str]] = {}
-                contrast_masks_by_batch: dict[tuple[str, str], np.ndarray] = {}
-                box_stage_meta: dict[str, tuple[str, str]] = {}
-                smart_stage_meta: dict[str, tuple[str, str]] = {}
+                stage_names: dict[tuple[str, int | str], tuple[str, str]] = {}
+                batch_sets: dict[str, ImageMaskSet] = {}
 
                 for name in batch_names:
                     rgb, alpha = rgb_array(source_paths[name])
                     stem = "".join(ch if ch.isalnum() or ch in "-_" else "_" for ch in Path(name).stem)
+                    mask_set = mask_set_for(name, rgb, alpha)
+                    batch_sets[name] = mask_set
 
-                    if name in candidate_images:
-                        for d in distances:
-                            staged_name = f"{stem}__d{d:02d}_rgb.png"
-                            alpha_name = f"{stem}__d{d:02d}_alpha.png"
-                            Image.fromarray(rgb, mode="RGB").save(images_stage / staged_name)
-                            Image.fromarray(alpha, mode="L").convert("RGB").save(images_stage / alpha_name)
-                            c_mask_path = mask_paths[(name, d)]
-                            shutil.copy2(c_mask_path, masks_stage / staged_name)
-                            shutil.copy2(c_mask_path, masks_stage / alpha_name)
-                            stage_meta[(name, d)] = (staged_name, alpha_name)
-
-                    # Box-Only stagen
-                    staged_box = f"{stem}__box_only_rgb.png"
-                    alpha_box = f"{stem}__box_only_alpha.png"
-                    Image.fromarray(rgb, mode="RGB").save(images_stage / staged_box)
-                    Image.fromarray(alpha, mode="L").convert("RGB").save(images_stage / alpha_box)
-                    b_path = box_masks_dir / f"{Path(name).stem}.png"
-                    shutil.copy2(b_path, masks_stage / staged_box)
-                    shutil.copy2(b_path, masks_stage / alpha_box)
-                    box_stage_meta[name] = (staged_box, alpha_box)
-
-                    # HYBRID_D2 / HYBRID_D6: full box mask OR distance-clipped YOLO mask.
-                    box_mask_for_hybrid = np.asarray(read_box_mask(b_path)) > 0
-                    for d in (2, 6):
-                        with Image.open(mask_paths[(name, d)]) as mask_im:
-                            yolo_mask_for_hybrid = np.asarray(
-                                mask_im.convert("L"), dtype=np.uint8
-                            ) > 0
-                        hybrid_mask = box_mask_for_hybrid | yolo_mask_for_hybrid
-
-                        staged_hybrid = f"{stem}__hybrid_d{d:02d}_rgb.png"
-                        alpha_hybrid = f"{stem}__hybrid_d{d:02d}_alpha.png"
-                        Image.fromarray(rgb, mode="RGB").save(images_stage / staged_hybrid)
-                        Image.fromarray(alpha, mode="L").convert("RGB").save(images_stage / alpha_hybrid)
-                        hybrid_mask_image = Image.fromarray(
-                            hybrid_mask.astype(np.uint8) * 255, mode="L"
-                        )
-                        hybrid_mask_image.save(masks_stage / staged_hybrid)
-                        hybrid_mask_image.save(masks_stage / alpha_hybrid)
-                        hybrid_stage_meta[(name, d)] = (staged_hybrid, alpha_hybrid)
-
-                    # Kontrastmasken stagen: jede Schwelle wird wie die
-                    # bestehenden Kandidaten durch LaMa geschickt und danach bewertet.
-                    for threshold, candidate_id in zip(contrast_thresholds, contrast_candidate_ids):
-                        contrast_mask = make_contrast_mask(
-                            rgb, alpha, anchors_by_image.get(name, []), threshold
-                        )
-                        contrast_masks_by_batch[(name, candidate_id)] = contrast_mask
-                        token = candidate_id.lower()
-                        staged_contrast = f"{stem}__{token}_rgb.png"
-                        alpha_contrast = f"{stem}__{token}_alpha.png"
-                        Image.fromarray(rgb, mode="RGB").save(images_stage / staged_contrast)
-                        Image.fromarray(alpha, mode="L").convert("RGB").save(images_stage / alpha_contrast)
-                        contrast_mask_image = Image.fromarray(
-                            contrast_mask.astype(np.uint8) * 255, mode="L"
-                        )
-                        contrast_mask_image.save(masks_stage / staged_contrast)
-                        contrast_mask_image.save(masks_stage / alpha_contrast)
-                        contrast_stage_meta[(name, candidate_id)] = (
-                            staged_contrast, alpha_contrast
-                        )
-
-                    # Smart-Ink stagen
-                    smart_mask = make_smart_ink_mask(rgb, anchors_by_image.get(name, []))
-                    staged_smart = f"{stem}__smart_ink_rgb.png"
-                    alpha_smart = f"{stem}__smart_ink_alpha.png"
-                    Image.fromarray(rgb, mode="RGB").save(images_stage / staged_smart)
-                    Image.fromarray(alpha, mode="L").convert("RGB").save(images_stage / alpha_smart)
-                    Image.fromarray((smart_mask.astype(np.uint8) * 255), mode="L").save(masks_stage / staged_smart)
-                    Image.fromarray((smart_mask.astype(np.uint8) * 255), mode="L").save(masks_stage / alpha_smart)
-                    smart_stage_meta[name] = (staged_smart, alpha_smart)
+                    # Jeder Kandidat (inkl. Schutzzonen-Abzug) wird genau so an LaMa gegeben,
+                    # wie er danach zusammengesetzt und bewertet wird.
+                    for cid, cmask in mask_set.candidates.items():
+                        token = stage_token(cid)
+                        staged_rgb = f"{stem}__{token}_rgb.png"
+                        staged_alpha = f"{stem}__{token}_alpha.png"
+                        Image.fromarray(rgb, mode="RGB").save(images_stage / staged_rgb)
+                        Image.fromarray(alpha, mode="L").convert("RGB").save(images_stage / staged_alpha)
+                        mask_image = Image.fromarray(cmask.astype(np.uint8) * 255, mode="L")
+                        mask_image.save(masks_stage / staged_rgb)
+                        mask_image.save(masks_stage / staged_alpha)
+                        stage_names[(name, cid)] = (staged_rgb, staged_alpha)
 
                 lama_cmd = [iopaint, "run", f"--model={args.model}", f"--device={args.lama_device}",
                             f"--image={images_stage}", f"--mask={masks_stage}", f"--output={raw_stage}"]
@@ -2548,38 +2917,13 @@ def main() -> int:
 
                 for name in batch_names:
                     original_rgb, original_alpha = rgb_array(source_paths[name])
-                    box_mask = read_box_mask(box_masks_dir / f"{Path(name).stem}.png")
-                    smart_mask = make_smart_ink_mask(original_rgb, anchors_by_image.get(name, []))
-
-                    masks: dict[int, np.ndarray] = {}
-                    for d in distances:
-                        with Image.open(mask_paths[(name, d)]) as mask_im:
-                            masks[d] = np.asarray(mask_im.convert("L"), dtype=np.uint8) > 0
-
-                    # Eigene, echte Hybridkandidaten; nicht nur ein Scoring-Envelope.
-                    hybrid_masks: dict[str, np.ndarray] = {
-                        f"HYBRID_D{d}": (box_mask | masks[d]) for d in (2, 6)
-                    }
-                    contrast_masks: dict[str, np.ndarray] = {
-                        candidate_id: contrast_masks_by_batch[(name, candidate_id)]
-                        for candidate_id in contrast_candidate_ids
-                    }
-                    yolo_reference_mask = masks[max(distances)]
-                    scoring_envelope = yolo_reference_mask | box_mask | smart_mask
-                    candidate_ids: list[int | str] = [
-                        *distances, "HYBRID_D2", "HYBRID_D6",
-                        *contrast_candidate_ids, "SMART_INK", "BOX_ONLY"
-                    ]
-                    candidate_masks: dict[int | str, np.ndarray] = {
-                        **masks,
-                        **hybrid_masks,
-                        **contrast_masks,
-                        "SMART_INK": smart_mask,
-                        "BOX_ONLY": box_mask,
-                    }
-
-                    body_boxes = [b for b in anchors_by_image.get(name, []) if str(b.get("type", "")).casefold() == "body"]
-                    body_box_mask = make_box_only_mask(original_rgb.shape[1], original_rgb.shape[0], body_boxes) > 0
+                    mask_set = batch_sets.pop(name)
+                    box_mask = mask_set.box_mask
+                    candidate_masks = mask_set.candidates
+                    candidate_ids: list[int | str] = list(candidate_masks)
+                    body_box_mask = mask_set.body_box_mask
+                    yolo_reference_mask = mask_set.yolo_reference_mask
+                    scoring_envelope = mask_set.scoring_envelope
 
                     scored: list[tuple[float, int | str, np.ndarray, dict[str, float]]] = []
                     debug_results: dict[int | str, np.ndarray] = {}
@@ -2587,18 +2931,7 @@ def main() -> int:
                     alpha_postprocess_by_candidate: dict[int | str, dict[str, float]] = {}
 
                     for cid in candidate_ids:
-                        if isinstance(cid, int):
-                            s_name, a_name = stage_meta[(name, cid)]
-                        elif cid == "HYBRID_D2":
-                            s_name, a_name = hybrid_stage_meta[(name, 2)]
-                        elif cid == "HYBRID_D6":
-                            s_name, a_name = hybrid_stage_meta[(name, 6)]
-                        elif cid in contrast_candidate_ids:
-                            s_name, a_name = contrast_stage_meta[(name, cid)]
-                        elif cid == "BOX_ONLY":
-                            s_name, a_name = box_stage_meta[name]
-                        else:
-                            s_name, a_name = smart_stage_meta[name]
+                        s_name, a_name = stage_names[(name, cid)]
 
                         with Image.open(raw_stage / s_name) as p_im:
                             pred_rgb = np.asarray(p_im.convert("RGB"), dtype=np.uint8)
@@ -2610,7 +2943,12 @@ def main() -> int:
                         f_rgb[c_mask] = pred_rgb[c_mask]
                         f_alpha = original_alpha.copy()
                         f_alpha[c_mask] = pred_alpha[c_mask]
-                        f_rgb, f_alpha, a_meta = remove_small_alpha_islands(f_rgb, f_alpha, original_alpha)
+                        f_rgb, f_alpha, a_meta = remove_small_alpha_islands(
+                            f_rgb, f_alpha, original_alpha, protected=mask_set.protected
+                        )
+                        a_meta.update(enforce_protection(
+                            f_rgb, f_alpha, original_rgb, original_alpha, mask_set.protected
+                        ))
                         final_composites[cid] = (f_rgb, f_alpha)
                         alpha_postprocess_by_candidate[cid] = a_meta
 
@@ -2645,7 +2983,7 @@ def main() -> int:
                         # Overlays nur speichern, falls explizit gewünscht
                         if save_overlays:
                             stem = Path(name).stem
-                            ov = build_debug_mask_overlay(original_rgb, c_mask, anchors_by_image.get(name, []))
+                            ov = build_debug_mask_overlay(original_rgb, c_mask, anchors_by_image.get(name, []), zones=mask_set.zones)
                             o_tok = (
                                 "smart_ink" if cid == "SMART_INK"
                                 else "box_only" if cid == "BOX_ONLY"
@@ -2764,6 +3102,8 @@ def main() -> int:
                         "box_only_rescue_inside_detail_advantage": (
                             f"{float(best_metrics.get('box_only_rescue_inside_detail_advantage', 0.0)):.6f}"
                         ),
+                        "protected_pixels": int(best_metrics.get("protected_pixels", 0.0)),
+                        "protected_pixels_restored": int(best_metrics.get("protected_pixels_restored", 0.0)),
                         "reason": rsn,
                     })
 
@@ -2853,6 +3193,7 @@ import cv2
 import numpy as np
 
 from .config import *
+from .geometry import box_region, inset_region
 
 def edge_map_lab(rgb: np.ndarray) -> np.ndarray:
     """Build a hue-independent contour map from Lab luminance and chroma."""
@@ -3048,6 +3389,16 @@ def make_contrast_mask(
     roi_union = np.zeros((height, width), dtype=bool)
     box_union = np.zeros((height, width), dtype=bool)
     for box in boxes:
+        if box.get("poly") is not None:
+            # Polygon anchor: the ROI is the polygon eroded by the same asymmetric
+            # inset (1 px horizontal, 2 px vertical); the hard limit is the polygon.
+            region = box_region(box, width, height)
+            if region is None:
+                continue
+            px1, py1, px2, py2, crop = region
+            box_union[py1:py2 + 1, px1:px2 + 1] |= crop
+            roi_union[py1:py2 + 1, px1:px2 + 1] |= inset_region(crop, 1, 2)
+            continue
         try:
             x1 = max(0, min(width - 1, math.floor(float(box["x1"]))))
             y1 = max(0, min(height - 1, math.floor(float(box["y1"]))))
@@ -3103,6 +3454,22 @@ def make_smart_ink_mask(
     )
 
     for b in boxes:
+        if b.get("poly") is not None:
+            # Polygon anchor: same logic inside the polygon eroded by inset_px.
+            region = box_region(b, w, h)
+            if region is None:
+                continue
+            px1, py1, px2, py2, crop = region
+            roi = inset_region(crop, inset_px, inset_px)
+            poly_contrast = contrast[py1:py2 + 1, px1:px2 + 1]
+            poly_text = ((poly_contrast >= contrast_threshold) & roi).astype(np.uint8) * 255
+            if np.any(poly_text):
+                poly_closed = cv2.morphologyEx(poly_text, cv2.MORPH_CLOSE, close_kernel)
+                poly_result = (cv2.dilate(poly_closed, dilate_kernel, iterations=1) > 0) & roi
+            else:
+                poly_result = roi
+            mask[py1:py2 + 1, px1:px2 + 1][poly_result] = 255
+            continue
         try:
             x1 = max(0, min(w - 1, int(math.floor(float(b["x1"])))))
             y1 = max(0, min(h - 1, int(math.floor(float(b["y1"])))))
@@ -4348,6 +4715,257 @@ def select_candidate(
 """Regression tests for the auto-select modules."""
 
 
+===== yolo_mask_auto_select_modules/tests/test_config_paths.py =====
+
+"""Regression tests for external Yabai input paths."""
+from yolo_mask_auto_select_modules import config
+
+
+def test_yabai_input_paths_match_current_repository_layout():
+    assert config.DEFAULT_CSV_DIR == config.YABAI_PROJECT_ROOT / "output" / "csv"
+    assert config.DEFAULT_ANCHORS_CSV == config.DEFAULT_CSV_DIR / "anchors.csv"
+    assert config.DEFAULT_IMAGES_DIR == config.YABAI_PROJECT_ROOT / "mit_kanji"
+
+
+===== yolo_mask_auto_select_modules/tests/test_polygons_and_protection.py =====
+
+"""Tests for polygon anchors and protected zones."""
+from __future__ import annotations
+
+import csv
+import tempfile
+import unittest
+from pathlib import Path
+from unittest import mock
+
+import numpy as np
+
+from yolo_mask_auto_select_modules import geometry
+from yolo_mask_auto_select_modules.candidate_masks import (
+    build_image_mask_set, enforce_protection, stage_token,
+)
+from yolo_mask_auto_select_modules.io_utils import (
+    make_box_only_mask, read_anchor_csv, remove_small_alpha_islands,
+)
+from yolo_mask_auto_select_modules.scoring import make_contrast_mask, make_smart_ink_mask
+from yolo_mask_routing_audit import body_box_coverage_metrics, overlap_with_box
+
+# L-shaped body polygon inside the rectangle (10,5)-(49,24): upper-right notch missing.
+L_POLY = "10,5;49,5;49,14;30,14;30,24;10,24"
+L_ROW = {"type": "body", "mask_polygon": L_POLY, "polygon": "10,5;49,5;49,24;10,24"}
+
+
+def l_box() -> dict:
+    return {"type": "body", "x1": 10, "y1": 5, "x2": 49, "y2": 24, "poly": geometry.anchor_polygon(L_ROW)}
+
+
+class ParsingTests(unittest.TestCase):
+    def test_parse_polygon(self):
+        self.assertEqual(geometry.parse_polygon("1,2;3,4;5,6").shape, (3, 2))
+        for bad in ("", None, "1,2;3,4", "a,b;c,d;e,f", "1,2,3;4,5,6;7,8,9"):
+            self.assertIsNone(geometry.parse_polygon(bad))
+
+    def test_body_uses_mask_polygon_and_rectangles_stay_rectangles(self):
+        self.assertIsNotNone(geometry.anchor_polygon(L_ROW))
+        rect = {"type": "body", "mask_polygon": "1,1;9,1;9,5;1,5", "polygon": "1,1;9,1;9,5;1,5"}
+        self.assertIsNone(geometry.anchor_polygon(rect))
+
+    def test_body_mask_polygon_keeps_multiple_white_components_separate(self):
+        row = {
+            "type": "body",
+            "mask_polygon": "10,5;19,5;19,14;10,14|40,15;49,15;49,24;40,24",
+            "polygon": "10,5;49,5;49,24;10,24",
+        }
+        box = {"x1": 10, "y1": 5, "x2": 49, "y2": 24, "poly": geometry.anchor_polygon(row)}
+        mask = make_box_only_mask(60, 30, [box]) > 0
+        self.assertTrue(mask[10, 15])
+        self.assertTrue(mask[20, 45])
+        self.assertFalse(mask[12, 30])  # gap between white components stays untouched
+
+    def test_body_uses_red_rectangle_only_when_white_mask_is_missing(self):
+        row = {
+            "type": "body",
+            "mask_polygon": "",
+            "polygon": L_POLY,  # This is the OCR contour, not the white cleaning mask.
+        }
+        self.assertIsNone(geometry.anchor_polygon(row))
+        box = {"x1": 10, "y1": 5, "x2": 49, "y2": 24, "poly": geometry.anchor_polygon(row)}
+        mask = make_box_only_mask(60, 30, [box]) > 0
+        self.assertTrue(mask[20, 40])  # the red rectangle fallback covers the notch
+
+    def test_header_uses_rotated_polygon(self):
+        header = {"type": "header", "mask_polygon": "", "polygon": "569,27;628,31;627,55;568,51"}
+        self.assertIsNotNone(geometry.anchor_polygon(header))
+
+    def test_flags_restore_rectangle_behaviour(self):
+        with mock.patch.object(geometry, "USE_BODY_MASK_POLYGONS", False):
+            self.assertIsNone(geometry.anchor_polygon(L_ROW))
+        header = {"type": "header", "polygon": "569,27;628,31;627,55;568,51"}
+        with mock.patch.object(geometry, "USE_HEADER_POLYGONS", False):
+            self.assertIsNone(geometry.anchor_polygon(header))
+
+
+class PolygonMaskTests(unittest.TestCase):
+    def test_polygon_excludes_notch_rectangle_does_not(self):
+        poly_mask = make_box_only_mask(60, 30, [l_box()]) > 0
+        rect_mask = make_box_only_mask(60, 30, [{"x1": 10, "y1": 5, "x2": 49, "y2": 24}]) > 0
+        self.assertTrue(poly_mask[20, 15])      # lower-left arm
+        self.assertFalse(poly_mask[20, 40])     # notch
+        self.assertTrue(rect_mask[20, 40])
+        self.assertTrue(np.all(rect_mask >= poly_mask))
+
+    def test_read_anchor_csv_keeps_polygon(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "anchors.csv"
+            with path.open("w", encoding="utf-8-sig", newline="") as f:
+                w = csv.DictWriter(f, fieldnames=["image", "type", "x1", "y1", "x2", "y2", "polygon", "mask_polygon"])
+                w.writeheader()
+                w.writerow({"image": "a.png", "type": "body", "x1": 10, "y1": 5, "x2": 49, "y2": 24,
+                            "polygon": L_ROW["polygon"], "mask_polygon": L_POLY})
+                w.writerow({"image": "a.png", "type": "header", "x1": 0, "y1": 0, "x2": 5, "y2": 5,
+                            "polygon": "0,0;5,0;5,5;0,5", "mask_polygon": ""})
+            _fields, _rows, by_image = read_anchor_csv(path)
+        body, header = by_image["a.png"]
+        self.assertIsNotNone(body["poly"])
+        self.assertIsNone(header["poly"])
+
+    def test_contrast_and_smart_ink_stay_inside_polygon(self):
+        rng = np.random.default_rng(3)
+        rgb = rng.integers(0, 255, (30, 60, 3), dtype=np.uint8)
+        alpha = np.full((30, 60), 255, dtype=np.uint8)
+        poly_region = make_box_only_mask(60, 30, [l_box()]) > 0
+        self.assertFalse((make_contrast_mask(rgb, alpha, [l_box()]) & ~poly_region).any())
+        self.assertFalse((make_smart_ink_mask(rgb, [l_box()]) & ~poly_region).any())
+
+    def test_coverage_uses_polygon_and_exclude_mask(self):
+        h, w = 30, 60
+        alpha = np.full((h, w), 255, dtype=np.uint8)
+        detail = np.zeros((h, w), dtype=np.float32)
+        detail[5:25, 10:50] = 0.8
+        full = np.full((h, w), 255, dtype=np.uint8)
+        self.assertEqual(overlap_with_box(full, l_box()), int((make_box_only_mask(w, h, [l_box()]) > 0).sum()))
+        # A mask covering only the notch must not count as covering the polygon.
+        notch = np.zeros((h, w), dtype=np.uint8)
+        notch[16:25, 32:50] = 255
+        self.assertEqual(body_box_coverage_metrics(notch, detail, alpha, l_box())["overlap_pixels"], 0)
+        # Excluded pixels outside the polygon change nothing ...
+        left_only = np.zeros((h, w), dtype=np.uint8)
+        left_only[5:25, 10:30] = 255
+        exclude = np.zeros((h, w), dtype=bool)
+        exclude[16:25, 32:50] = True  # lies in the notch (outside the polygon): must change nothing
+        base = body_box_coverage_metrics(left_only, detail, alpha, l_box())
+        self.assertEqual(body_box_coverage_metrics(left_only, detail, alpha, l_box(), exclude_mask=exclude), base)
+        # ... while excluded pixels inside the polygon are no longer required coverage.
+        inside = np.zeros((h, w), dtype=bool)
+        inside[5:15, 31:50] = True
+        with_exclude = body_box_coverage_metrics(left_only, detail, alpha, l_box(), exclude_mask=inside)
+        self.assertLess(with_exclude["visible_box_pixels"], base["visible_box_pixels"])
+        self.assertGreater(with_exclude["detail_energy_coverage_ratio"], base["detail_energy_coverage_ratio"])
+
+
+class ProtectedZoneTests(unittest.TestCase):
+    def _csv(self, tmp: str) -> Path:
+        path = Path(tmp) / "protected_zones.csv"
+        with path.open("w", encoding="utf-8-sig", newline="") as f:
+            w = csv.DictWriter(f, fieldnames=["image", "zone_id", "x1", "y1", "x2", "y2", "polygon", "text"])
+            w.writeheader()
+            w.writerow({"image": "a.png", "zone_id": "a#z1", "x1": 2, "y1": 3, "x2": 6, "y2": 5,
+                        "polygon": "2,3;6,3;6,5;2,5", "text": "OK"})
+            w.writerow({"image": "a.png", "zone_id": "bad", "x1": "x", "y1": 0, "x2": 1, "y2": 1, "polygon": "", "text": ""})
+        return path
+
+    def test_default_protected_csv_is_discovered_next_to_anchors(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            anchors = Path(tmp) / "anchors.csv"
+            anchors.touch()
+            expected = Path(tmp) / "protected_zones.csv"
+            self.assertIsNone(geometry.resolve_protected_zones_csv(anchors))
+            expected.touch()
+            self.assertEqual(geometry.resolve_protected_zones_csv(anchors), expected)
+
+    def test_explicit_protected_csv_overrides_sibling_discovery(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            anchors = Path(tmp) / "anchors.csv"
+            explicit = Path(tmp) / "elsewhere" / "zones.csv"
+            resolved = geometry.resolve_protected_zones_csv(anchors, explicit)
+            self.assertEqual(resolved, explicit.resolve())
+
+    def test_read_and_mask(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            zones = geometry.read_protected_zones(self._csv(tmp))
+        self.assertEqual(len(zones["a.png"]), 1)          # invalid row skipped
+        mask = geometry.protected_mask(zones["a.png"], 20, 10)
+        self.assertTrue(mask[3, 2] and mask[5, 6])         # inclusive corners
+        self.assertEqual(int(mask.sum()), 5 * 3)
+        self.assertGreater(int(geometry.protected_mask(zones["a.png"], 20, 10, margin_px=1).sum()), 15)
+
+    def test_no_candidate_touches_protected_pixels(self):
+        rng = np.random.default_rng(7)
+        h, w = 30, 60
+        rgb = rng.integers(0, 255, (h, w, 3), dtype=np.uint8)
+        alpha = np.full((h, w), 255, dtype=np.uint8)
+        zone = {"x1": 20.0, "y1": 8.0, "x2": 35.0, "y2": 20.0, "poly": None}
+        yolo = {d: np.ones((h, w), dtype=bool) for d in (0, 2, 4, 6, 8, 10)}
+        ms = build_image_mask_set(
+            rgb=rgb, alpha=alpha, boxes=[l_box()], zones=[zone], yolo_masks=yolo,
+            box_only_mask=make_box_only_mask(w, h, [l_box()]) > 0,
+            contrast_thresholds=(0.38,), contrast_candidate_ids=["CONTRAST_T38"],
+        )
+        self.assertEqual(list(ms.candidates)[:6], [0, 2, 4, 6, 8, 10])
+        self.assertEqual(list(ms.candidates)[6:], ["HYBRID_D2", "HYBRID_D6", "CONTRAST_T38", "SMART_INK", "BOX_ONLY"])
+        self.assertTrue(ms.protected.any())
+        for cid, mask in ms.candidates.items():
+            self.assertFalse((mask & ms.protected).any(), cid)
+        for ref in (ms.box_mask, ms.body_box_mask, ms.yolo_reference_mask, ms.scoring_envelope):
+            self.assertFalse((ref & ms.protected).any())
+
+    def test_without_zones_masks_equal_unprotected_masks(self):
+        h, w = 30, 60
+        rgb = np.random.default_rng(1).integers(0, 255, (h, w, 3), dtype=np.uint8)
+        alpha = np.full((h, w), 255, dtype=np.uint8)
+        yolo = {d: np.ones((h, w), dtype=bool) for d in (0, 2, 4, 6, 8, 10)}
+        box_only = make_box_only_mask(w, h, [l_box()]) > 0
+        ms = build_image_mask_set(rgb=rgb, alpha=alpha, boxes=[l_box()], zones=[], yolo_masks=yolo,
+                                  box_only_mask=box_only, contrast_thresholds=(0.38,),
+                                  contrast_candidate_ids=["CONTRAST_T38"])
+        self.assertFalse(ms.protected.any())
+        self.assertTrue(np.array_equal(ms.candidates["BOX_ONLY"], box_only))
+
+    def test_alpha_island_touching_protected_is_kept(self):
+        h, w = 20, 40
+        rgb = np.full((h, w, 3), 90, dtype=np.uint8)
+        alpha = np.zeros((h, w), dtype=np.uint8)
+        alpha[2:5, 2:5] = 255          # island A (protected)
+        alpha[10:13, 20:23] = 255      # island B (free)
+        protected = np.zeros((h, w), dtype=bool)
+        protected[3, 3] = True
+        _rgb, out_alpha, meta = remove_small_alpha_islands(rgb, alpha, alpha, protected=protected)
+        self.assertTrue((out_alpha[2:5, 2:5] == 255).all())
+        self.assertTrue((out_alpha[10:13, 20:23] == 0).all())
+        self.assertEqual(meta["alpha_small_components_removed"], 1.0)
+
+    def test_enforce_protection_restores_and_reports(self):
+        h, w = 10, 10
+        orig_rgb = np.full((h, w, 3), 50, dtype=np.uint8)
+        orig_alpha = np.full((h, w), 255, dtype=np.uint8)
+        f_rgb, f_alpha = orig_rgb.copy(), orig_alpha.copy()
+        f_rgb[2, 2] = 0
+        f_alpha[3, 3] = 0
+        protected = np.zeros((h, w), dtype=bool)
+        protected[2:4, 2:4] = True
+        meta = enforce_protection(f_rgb, f_alpha, orig_rgb, orig_alpha, protected)
+        self.assertEqual(meta, {"protected_pixels": 4.0, "protected_pixels_restored": 2.0})
+        self.assertTrue(np.array_equal(f_rgb, orig_rgb) and np.array_equal(f_alpha, orig_alpha))
+
+    def test_stage_tokens_keep_historic_file_names(self):
+        self.assertEqual([stage_token(c) for c in (0, 10, "HYBRID_D2", "HYBRID_D6", "CONTRAST_T38", "SMART_INK", "BOX_ONLY")],
+                         ["d00", "d10", "hybrid_d02", "hybrid_d06", "contrast_t38", "smart_ink", "box_only"])
+
+
+if __name__ == "__main__":
+    unittest.main()
+
+
 ===== yolo_mask_auto_select_modules/tests/test_report_fields.py =====
 
 """Regression test for dynamically added candidate score fields."""
@@ -4602,12 +5220,22 @@ from yolo_mask_auto_select_modules.config import (
     BODY_BOX_MIN_OVERLAP_FRACTION,
     BODY_BOX_MIN_OVERLAP_PIXELS,
     OUTLINE_LEAK_DETAIL_THRESHOLD,
+    DEFAULT_ANCHORS_CSV,
+    DEFAULT_IMAGES_DIR,
+    DEFAULT_WEIGHTS,
+    PROTECTED_ZONE_MARGIN_PX,
+)
+from yolo_mask_auto_select_modules.geometry import (
+    anchor_polygon,
+    box_region,
+    boxes_union_mask,
+    protected_mask,
+    read_protected_zones,
+    resolve_protected_zones_csv,
 )
 from yolo_mask_auto_select_modules.scoring import ink_strength_map
 
 IMAGE_EXTS = {".png", ".jpg", ".jpeg", ".webp", ".bmp", ".tif", ".tiff"}
-DEFAULT_IMAGES_DIR = Path.home() / "Downloads/yabai proj/yabaiproject - Copy/mit_kanji"
-DEFAULT_WEIGHTS = Path.home() / ".cache/cleanup-models/manga-inpainter-best.pt"
 DISTANCE_SWEEP_DEFAULT = "0,4,8,12,16"
 CONFIDENCE_THRESHOLDS = (0.05, 0.10)
 
@@ -4616,8 +5244,12 @@ def parse_args() -> argparse.Namespace:
     project = Path(__file__).resolve().parent
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument("--images-dir", type=Path, default=DEFAULT_IMAGES_DIR)
-    p.add_argument("--anchors", type=Path, default=project / "anchors.csv")
+    p.add_argument("--anchors", type=Path, default=DEFAULT_ANCHORS_CSV)
     p.add_argument("--weights", type=Path, default=DEFAULT_WEIGHTS)
+    p.add_argument("--protected", type=Path, default=None,
+                   help="CSV with protected zones; default: protected_zones.csv beside --anchors")
+    p.add_argument("--protected-margin", type=int, default=PROTECTED_ZONE_MARGIN_PX,
+                   help="Pixels by which each protected zone is grown")
     p.add_argument("--output", type=Path, default=project / "yolo_mask_routing_audit")
     p.add_argument("--imgsz", type=int, default=1280)
     p.add_argument("--min-conf", type=float, default=0.025,
@@ -4676,6 +5308,7 @@ def read_anchors(path: Path) -> tuple[dict[str, list[dict[str, Any]]], set[str]]
                 "row": (row.get("row") or "").strip(),
                 "col": (row.get("col") or "").strip(),
                 "csv_line": row_number,
+                "poly": anchor_polygon(row),
             })
     if not by_image:
         raise ValueError(f"No valid anchor boxes found in {path}")
@@ -4708,13 +5341,9 @@ def rect_bounds(box: dict[str, Any], w: int, h: int) -> tuple[int, int, int, int
 
 
 def draw_box_mask(size: tuple[int, int], boxes: list[dict[str, Any]]) -> np.ndarray:
+    """Union of all boxes (polygon where available, else rectangle) as uint8 0/255."""
     w, h = size
-    mask = np.zeros((h, w), np.uint8)
-    for box in boxes:
-        bounds = rect_bounds(box, w, h)
-        if bounds:
-            cv2.rectangle(mask, (bounds[0], bounds[1]), (bounds[2], bounds[3]), 255, -1)
-    return mask
+    return boxes_union_mask(boxes, w, h).astype(np.uint8) * 255
 
 
 def dilate(mask: np.ndarray, radius: int) -> np.ndarray:
@@ -4745,11 +5374,11 @@ def min_distance_to_boxes(instance_mask: np.ndarray, box_distance: np.ndarray) -
 
 def overlap_with_box(mask: np.ndarray, box: dict[str, Any]) -> int:
     h, w = mask.shape
-    bounds = rect_bounds(box, w, h)
-    if not bounds:
+    region = box_region(box, w, h)
+    if region is None:
         return 0
-    x1, y1, x2, y2 = bounds
-    return int(np.count_nonzero(mask[y1:y2 + 1, x1:x2 + 1]))
+    x1, y1, x2, y2, crop = region
+    return int(np.count_nonzero((mask[y1:y2 + 1, x1:x2 + 1] > 0) & crop))
 
 
 def body_box_coverage_metrics(
@@ -4757,8 +5386,12 @@ def body_box_coverage_metrics(
     source_detail: np.ndarray,
     source_alpha: np.ndarray,
     box: dict[str, Any],
+    exclude_mask: np.ndarray | None = None,
 ) -> dict[str, Any]:
     """Measure meaningful YOLO coverage of a body OCR box, not just any overlap.
+
+    The box is its polygon if it has one. Pixels in ``exclude_mask`` (protected zones)
+    are ignored: they can never be masked, so they must not count as missing coverage.
 
     Ratios are calculated over visible source pixels in the box. Detail-energy
     coverage measures how much original local contrast is actually covered;
@@ -4767,8 +5400,8 @@ def body_box_coverage_metrics(
     non-trivial absolute mask overlap.
     """
     h, w = candidate_mask.shape
-    bounds = rect_bounds(box, w, h)
-    if bounds is None:
+    region = box_region(box, w, h)
+    if region is None:
         return {
             "raw_overlap_nonzero": False, "overlap_pixels": 0,
             "visible_box_pixels": 0, "minimum_required_overlap_pixels": BODY_BOX_MIN_OVERLAP_PIXELS,
@@ -4777,9 +5410,11 @@ def body_box_coverage_metrics(
             "covered_high_contrast_pixels": 0, "combined_detail_coverage_score": 0.0,
             "meaningfully_covered": False,
         }
-    x1, y1, x2, y2 = bounds
+    x1, y1, x2, y2, region_crop = region
     region_alpha = source_alpha[y1:y2 + 1, x1:x2 + 1]
-    visible = region_alpha > ALPHA_VISIBILITY_THRESHOLD
+    visible = (region_alpha > ALPHA_VISIBILITY_THRESHOLD) & region_crop
+    if exclude_mask is not None:
+        visible &= ~(exclude_mask[y1:y2 + 1, x1:x2 + 1] > 0)
     mask_crop = candidate_mask[y1:y2 + 1, x1:x2 + 1] > 0
     covered = visible & mask_crop
     detail_crop = source_detail[y1:y2 + 1, x1:x2 + 1]
@@ -4831,7 +5466,19 @@ def body_box_coverage_metrics(
     }
 
 
-def build_overlay(rgb: np.ndarray, candidate: np.ndarray, boxes: list[dict[str, Any]]) -> Image.Image:
+def _outline_box(draw: ImageDraw.ImageDraw, b: dict[str, Any], w: int, h: int, color: tuple[int, int, int]) -> None:
+    poly = b.get("poly")
+    if poly is not None:
+        pts = [(float(x), float(y)) for x, y in poly]
+        draw.line(pts + [pts[0]], fill=color, width=2)
+        return
+    bounds = rect_bounds(b, w, h)
+    if bounds:
+        draw.rectangle(bounds, outline=color, width=2)
+
+
+def build_overlay(rgb: np.ndarray, candidate: np.ndarray, boxes: list[dict[str, Any]],
+                  zones: list[dict[str, Any]] | None = None) -> Image.Image:
     base = rgb.astype(np.float32).copy()
     selected = candidate > 0
     tint = np.array([255.0, 35.0, 185.0], dtype=np.float32)
@@ -4840,11 +5487,10 @@ def build_overlay(rgb: np.ndarray, candidate: np.ndarray, boxes: list[dict[str, 
     draw = ImageDraw.Draw(im)
     w, h = im.size
     for b in boxes:
-        bounds = rect_bounds(b, w, h)
-        if not bounds:
-            continue
         color = (225, 45, 45) if b["type"] == "body" else ((170, 90, 215) if b["type"] == "header" else (255, 170, 0))
-        draw.rectangle(bounds, outline=color, width=2)
+        _outline_box(draw, b, w, h, color)
+    for z in zones or []:
+        _outline_box(draw, z, w, h, (30, 90, 255))
     return im
 
 
@@ -4919,6 +5565,8 @@ def main() -> int:
 
     try:
         anchors_by_image, known_names = read_anchors(anchors_path)
+        zones_path = resolve_protected_zones_csv(anchors_path, args.protected)
+        zones_by_image = read_protected_zones(zones_path) if zones_path is not None else {}
         images = discover_images(images_dir, known_names)
         if args.limit:
             images = images[:args.limit]
@@ -4930,6 +5578,7 @@ def main() -> int:
         return 2
 
     print(f"Anchors CSV: {anchors_path}")
+    print(f"Protected zones CSV: {zones_path if zones_path is not None else 'none'}")
     print(f"Source images: {images_dir}")
     print(f"Matched images: {len(images)} / {len(known_names)} anchor image names")
     print(f"Checkpoint: {weights_path}")
@@ -4987,14 +5636,20 @@ def main() -> int:
             header_boxes = [b for b in boxes if b["type"] == "header"]
             all_box_mask = draw_box_mask((w, h), boxes)
             header_mask = draw_box_mask((w, h), header_boxes)
+            image_zones = zones_by_image.get(name, [])
+            protected = protected_mask(image_zones, w, h, max(0, args.protected_margin))
+            # Box-only baseline: anchors minus protected zones. Distances below are still
+            # measured from the unmodified anchors (protection only removes pixels).
+            box_only_mask_out = all_box_mask.copy()
+            box_only_mask_out[protected] = 0
             box_mask_dir = output / "box_only" / "masks"
             box_overlay_dir = output / "box_only" / "overlays"
             box_mask_dir.mkdir(parents=True, exist_ok=True)
             box_overlay_dir.mkdir(parents=True, exist_ok=True)
             box_mask_path = box_mask_dir / f"{Path(name).stem}.png"
             box_overlay_path = box_overlay_dir / f"{Path(name).stem}.jpg"
-            Image.fromarray(all_box_mask, mode="L").save(box_mask_path)
-            build_overlay(rgb, all_box_mask, boxes).save(box_overlay_path, quality=90)
+            Image.fromarray(box_only_mask_out, mode="L").save(box_mask_path)
+            build_overlay(rgb, box_only_mask_out, boxes, image_zones).save(box_overlay_path, quality=90)
             box_only_overlays.append((name, box_overlay_path))
             # Exact Euclidean distance (in pixels) to the nearest anchor-box pixel.
             # Pixels inside any OCR box have distance 0.
@@ -5053,7 +5708,8 @@ def main() -> int:
                     untrimmed_union = cv2.bitwise_or(untrimmed_union, inst["mask"])
                 pixels_before_clip = int(np.count_nonzero(untrimmed_union))
                 body_coverage = [
-                    body_box_coverage_metrics(untrimmed_union, source_detail, source_alpha, body)
+                    body_box_coverage_metrics(untrimmed_union, source_detail, source_alpha, body,
+                                              exclude_mask=protected if protected.any() else None)
                     for body in body_boxes
                 ]
                 missing = [i for i, coverage in enumerate(body_coverage)
@@ -5082,6 +5738,8 @@ def main() -> int:
                             partially_clipped_instances += 1
                         yolo_union = cv2.bitwise_or(yolo_union, clipped_mask)
                     candidate = cv2.bitwise_or(yolo_union, header_mask)
+                    candidate_before_protection = int(np.count_nonzero(candidate))
+                    candidate[protected] = 0
                     total_yolo_pixels = int(np.count_nonzero(yolo_union))
                     pixels_removed_by_clip = max(0, pixels_before_clip - total_yolo_pixels)
                     yolo_inside_boxes = int(np.count_nonzero((yolo_union > 0) & (all_box_mask > 0)))
@@ -5097,7 +5755,7 @@ def main() -> int:
                         mask_file = output_mask_dir / f"{Path(name).stem}.png"
                         overlay_file = output_overlay_dir / f"{Path(name).stem}.jpg"
                         Image.fromarray(candidate, mode="L").save(mask_file)
-                        build_overlay(rgb, candidate, boxes).save(overlay_file, quality=90)
+                        build_overlay(rgb, candidate, boxes, image_zones).save(overlay_file, quality=90)
                         mask_path = str(mask_file)
                         overlay_path = str(overlay_file)
                         overlays_by_distance[d].append((name, overlay_file))
@@ -5125,6 +5783,9 @@ def main() -> int:
                         "yolo_pixels_outside_anchor_boxes": yolo_outside_boxes,
                         "yolo_pixels_outside_box_fraction": f"{yolo_outside_boxes / max(1, total_yolo_pixels):.6f}",
                         "candidate_mask_pixels_including_header_boxes": int(np.count_nonzero(candidate)),
+                        "protected_zone_count": len(image_zones),
+                        "protected_pixels": int(np.count_nonzero(protected)),
+                        "protected_pixels_removed_from_candidate": candidate_before_protection - int(np.count_nonzero(candidate)),
                         "candidate_mask_path": str(mask_path), "overlay_path": str(overlay_path),
                     })
 
