@@ -36,6 +36,7 @@ from .io_utils import (
     write_filtered_anchors,
 )
 from .reports import write_csv_with_union_fields
+from .fill_repair import repair_flat_fill_artifacts
 from .scoring import (
     ink_strength_map, make_contrast_mask, make_smart_ink_mask, outline_leak_metrics,
     score_candidate, select_candidate,
@@ -344,6 +345,7 @@ def main() -> int:
                         c_mask = candidate_masks[cid]
                         f_rgb = original_rgb.copy()
                         f_rgb[c_mask] = pred_rgb[c_mask]
+                        f_rgb, fr_meta = repair_flat_fill_artifacts(original_rgb, f_rgb, c_mask, mask_set.protected)
                         f_alpha = original_alpha.copy()
                         f_alpha[c_mask] = pred_alpha[c_mask]
                         f_rgb, f_alpha, a_meta = remove_small_alpha_islands(
