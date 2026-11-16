@@ -30,7 +30,7 @@ def repair_flat_fill_artifacts(
     *,
     median_ksize: int = 25,            # odd; blob must cover < 50 % of the window
     dev_levels: int = 11,              # min. max-channel deviation from local background
-    min_cluster_px: int = 20,
+    min_cluster_px: int = 8,
     ring_inner: int = 3,
     ring_outer: int = 8,
     ring_keep_levels: int = 15,        # ring pixels within this distance of ring median are "background"
