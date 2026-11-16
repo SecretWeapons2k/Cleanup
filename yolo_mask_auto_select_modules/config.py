@@ -43,7 +43,7 @@ DEBUG_SAVE_CANDIDATES = True
 # Granulare Schalter für Debug-Dateien:
 DEBUG_SAVE_CLEANED_IMAGES = True       # Bereinigte PNGs speichern (in cleaned_images/)
 DEBUG_SAVE_COMPARISON_SHEET = True     # Vergleichs-JPG speichern (in contact_sheets/)
-DEBUG_SAVE_RAW_MASK_OVERLAYS = False   # Magenta-Overlays (spart viel Speicherplatz!)
+DEBUG_SAVE_RAW_MASK_OVERLAYS = True   # Magenta-Overlays (spart viel Speicherplatz!)
 DEBUG_SAVE_SIDE_BY_SIDE_SHEET = False  # Doppelte Side-by-Side Sheets
 
 
