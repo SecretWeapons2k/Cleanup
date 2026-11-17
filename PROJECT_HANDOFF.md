@@ -1,6 +1,6 @@
 # PROJECT HANDOFF — Cleanup YOLO/LaMa
 
-Stand: 16. November 2026
+Stand: 17. November 2026
 Projektpfad: ~/Downloads/Cleanup
 Sprache der Zusammenarbeit: Deutsch
 
@@ -205,9 +205,12 @@ Unit-Tests:
 python -m unittest discover -s yolo_mask_auto_select_modules/tests -v
 ```
 
-Teststand: Laut Nutzer lief die Suite am 16.11.2026 **vor** dem Einbau von
-`fill_repair` ohne Probleme durch. Nach dem Einbau wurde sie nicht erneut
-ausgeführt; für `fill_repair.py` existieren noch keine Unit-Tests.
+Teststand: Für den aktuellen Stand auf GitHub liegt in dieser Übergabe kein
+verifizierter vollständiger Testlauf nach der Integration von `fill_repair`
+vor. Eine Datei `yolo_mask_auto_select_modules/tests/test_fill_repair.py` ist
+im Repository nicht vorhanden. Der letzte bekannte erfolgreiche Lauf der
+bestehenden Suite stammt laut Nutzer vom 16.11.2026 **vor** dem Einbau von
+`fill_repair`; er bestätigt nicht den aktuellen Stand.
 
 Kleiner Pipeline-Dry-Run:
 
@@ -221,13 +224,10 @@ Einzelbild-Testlauf (eigener Ausgabeordner, `yolo_mask_winners` bleibt sauber):
 python yolo_mask_auto_select.py --image f002_004.png --output ~/Downloads/Cleanup/test_runs
 ```
 
-Vorher/Nachher-Vergleich für `fill_repair` (Schalter per Umgebungsvariable,
-sofern so in `pipeline.py` eingebaut, siehe Abschnitt 9):
-
-```bash
-FILL_REPAIR=0 python yolo_mask_auto_select.py --image f002_004.png --output ~/Downloads/Cleanup/test_runs
-FILL_REPAIR=1 python yolo_mask_auto_select.py --image f002_004.png --output ~/Downloads/Cleanup/test_runs
-```
+Aktueller Hinweis: `fill_repair` wird in `pipeline.py` ohne Umgebungsvariablen-
+Schalter aufgerufen. `FILL_REPAIR=0/1` hat im derzeit geprüften Code keine
+Wirkung. Ein echter Vorher/Nachher-Vergleich benötigt zunächst einen
+Code-Schalter oder zwei getrennte Code-Stände.
 
 Routing-Audit-Hilfe:
 
@@ -347,89 +347,105 @@ Sprites mit dunklem Glow (`m001_001`, `n004_003`, `n005_000`).
 - Hypothese: Ein deterministischer Alpha-Fill löst diese Bildklasse. Für
   `n004_003` und `n005_000` liegen nur verkleinerte Kontaktbögen vor.
 
-### 9.3 `fill_repair.py` (RGB-Post-Fill-Check)
+### 9.3 Aktuelle Implementierung von `fill_repair.py` (Stand 17.11.2026)
 
-Funktion `repair_flat_fill_artifacts(original_rgb, filled_rgb, mask, protected)`
-→ `(repaired_rgb, meta)`.
+Die alte Beschreibung als Navier-Stokes-Vergleich ist überholt. Der aktuelle
+Code in `yolo_mask_auto_select_modules/fill_repair.py` verwendet einen
+Medianfilter als lokale Hintergrundreferenz:
 
-Ablauf:
-1. Deterministischer Vergleichsfill der Maske mit cv2 Navier-Stokes.
-2. Cluster in der Maske, in denen LaMa und NS um mehr als 45 Stufen
-   (max. Kanaldifferenz) abweichen, mindestens 25 px groß.
-3. Nur wenn das Umfeld des Clusters flach ist (Ring-Std ≤ 20) und NS klar näher
-   am Umfeld liegt als LaMa (Faktor 2), wird der Cluster (+2 px) durch NS ersetzt.
-4. Geschützte Zonen werden nicht verändert. Nur RGB, Alpha bleibt unberührt.
+1. Medianfilter über das gefüllte RGB-Bild (`median_ksize=25`).
+2. Abweichende Pixel innerhalb der aktuellen Kandidatenmaske werden über
+   maximale Kanalabweichung erkannt (`dev_levels=11`).
+3. Zusammenhängende Cluster werden nach Mindestgröße gefiltert
+   (`min_cluster_px=8`).
+4. Cluster, deren Struktur über den Maskenrand hinaus weiterläuft und
+   länglich ist, werden übersprungen.
+5. Der Umgebungsring wird auf Homogenität geprüft
+   (`ring_inner=3`, `ring_outer=8`, `ring_keep_levels=15`,
+   `ring_min_keep_frac=0.6`, `flat_ring_std=12.0`).
+6. Geeignete Cluster werden innerhalb der Maske und außerhalb geschützter
+   Zonen mit einer weichgezeichneten Medianreferenz ersetzt
+   (`grow_px=5`, `soften_sigma=2.0`).
 
-Standardparameter: `min_cluster_px=25`, `disagree_levels=45`,
-`flat_ring_std=20.0`, `ring_inner=2`, `ring_outer=6`, `grow_px=2`,
-`inpaint_radius=4`. Meta-Felder: `fill_repair_clusters_found`,
-`fill_repair_clusters_repaired`, `fill_repair_pixels_replaced`.
+Die Funktion verändert ausschließlich RGB-Pixel innerhalb der Maske.
+Geschützte Pixel bleiben unangetastet; Alpha wird von dieser Funktion nicht
+bearbeitet. Die Parameter sind direkt in `fill_repair.py` definiert und
+nicht in `config.py` zentralisiert.
 
-Offline-Testergebnisse (gespeicherte PNGs, ohne Pipeline-Lauf):
-- `f002_004` SMART_INK: 2 Cluster gefunden, 1 repariert (126 px); Punkt von
-  (6, 14, 22) auf (63, 9, 32). Ein schwach dunklerer Kreisrand bleibt.
-- `f002_004` CONTRAST_T38: 14 Cluster gefunden, 0 repariert (alle an Rahmen-
-  linien, Ring-Std ≥ 40,9; der Punkt hatte 12,8). Der Grenzwert 20 beruht auf
-  diesem Abstand und ist **an nur zwei Bildern abgeleitet**.
-- `d002_001` (Bild aus dem Vormittagslauf, `CONTRAST_T38`): Ring in Panel 4
-  großteils entfernt, zwei Blobs in Panel 5 bleiben; höchster RGB-Wert in der
-  Maske 77 → 52. Die Reparatur ist also unvollständig.
+**Integration in der Pipeline (bestätigt im aktuellen Quellcode):**
+- `pipeline.py` importiert `repair_flat_fill_artifacts`.
+- Der Aufruf erfolgt unmittelbar nach dem Einsetzen des LaMa-RGB-Ergebnisses
+  in die Kandidatenmaske.
+- Der Aufruf ist derzeit unbedingt: Es gibt keinen `FILL_REPAIR`-Schalter.
+- Die zurückgegebenen `fr_meta`-Zähler werden im aktuell geprüften
+  Pipeline-Code nicht in `a_meta` oder einen Report übernommen. Die Funktion
+  liefert zwar `fill_repair_clusters_found`,
+  `fill_repair_clusters_repaired` und `fill_repair_pixels_replaced`,
+  diese Werte sind damit nicht als Laufdiagnostik verfügbar.
 
-Einbau in `pipeline.py` (Composite-Block, direkt nach
-`f_rgb[c_mask] = pred_rgb[c_mask]`):
+### 9.4 Aktueller gespeicherter Testlauf: `run_20261116_225034`
 
-```python
-from .fill_repair import repair_flat_fill_artifacts   # bei den relativen Imports
+Im Repository liegt ein Ergebnislauf vom 16.11.2026 mit genau einem
+ausgewerteten Bild: `f002_004.png`.
 
-fr_meta = {}
-if os.environ.get("FILL_REPAIR", "1") == "1":          # Schalter (vorgeschlagen)
-    f_rgb, fr_meta = repair_flat_fill_artifacts(original_rgb, f_rgb, c_mask, mask_set.protected)
-...
-a_meta.update(fr_meta)    # nach remove_small_alpha_islands(...)
-```
+**Aus dem Laufbericht bestätigt:**
+- Gewinner: `SMART_INK`.
+- Route: `SMART_INK_COMPETITION_SELECTED`.
+- Routing-Audit-Vorschlag: `BOX_MASK_FALLBACK_WEAK_COVERAGE`.
+- Ausgewiesener Score: 0,479091.
+- Textqualität: 0,572759.
+- Struktur-Score: 0,479091.
+- Beste Textqualität eines Kandidaten: 0,559216.
 
-Status: Der Nutzer hat die Aufrufzeile eingefügt; der erste Testlauf
-(`--image f002_004.png`) brach mit `NameError: name 'repair_flat_fill_artifacts'
-is not defined` ab, weil der Import in `pipeline.py` fehlte (ggf. auch
-`import os`). Ob der Lauf nach dem Nachtragen des Imports durchläuft und was
-der Schalter im Detail tut, ist **offen** (aktuellen Stand von `pipeline.py`
-prüfen, nicht diesem Dokument vertrauen).
+Die zugehörige `candidate_scores.csv` enthält sechs Distanzkandidaten
+(0, 2, 4, 6, 8, 10) sowie `SMART_INK`, `HYBRID_D2`, `HYBRID_D6`,
+`CONTRAST_T38` und `BOX_ONLY`. Der Gewinnerbericht weist SMART_INK aus.
+Dieser gespeicherte Lauf ist **kein vollständiger Reprocess** und belegt
+nicht, dass der verbliebene schwarze Punkt visuell vollständig entfernt ist.
+Die Ergebnisdaten enthalten in diesem Laufbericht keine belastbare
+Vorher/Nachher-Auswertung mit deaktivierter und aktivierter Reparatur.
 
-### 9.4 Entscheidungen und Rückmeldungen des Nutzers
+Wichtig: Der Laufordnername und die CSV-Dateien belegen einen Ein-Bild-Lauf.
+Ob die darin gespeicherten PNGs den aktuellen Code exakt widerspiegeln,
+muss bei einer erneuten visuellen Prüfung anhand der Laufdateien und des
+zugehörigen Commits abgeglichen werden.
 
-- Fehler im Cleaning beheben, nicht durch Anpassen von Score-Zahlen.
-- Alpha-LaMa-Lauf darf entfallen, wenn das die Ergebnisse nicht stark
-  beeinflusst (halbiert die LaMa-Läufe pro Kandidat). Umsetzung als
-  schaltbare Option, vorab Vergleich mit/ohne.
-- Alpha-Fill: Nutzer hat keine Präferenz zwischen „für alle Bilder“ und
-  „nur bei transparentem Umfeld“; vorgeschlagen ist die vorsichtige Variante.
-- Es gibt nur wenige Beispiele für den Fehlertyp; außer dem schwarzen Glow
-  keine weiteren ähnlichen Bilder.
+### 9.5 Was gegenüber der alten Übergabe korrigiert wurde
 
-### 9.5 Offene Punkte / nächste Schritte
+- Der alte Navier-Stokes-Ablauf samt den Parametern
+  `disagree_levels=45`, `flat_ring_std=20`, `grow_px=2` und
+  `inpaint_radius=4` ist nicht mehr die aktuelle Implementierung.
+- Die alte Aussage, der Import fehle und der Pipeline-Aufruf breche deshalb
+  mit `NameError` ab, ist überholt: Import und Aufruf sind jetzt im
+  aktuellen `pipeline.py` vorhanden.
+- Die früheren Offline-Ergebnisse (z. B. 126 ersetzte Pixel bei
+  `f002_004`) gehören zur alten Methode und dürfen nicht als Ergebnis der
+  aktuellen Median-Reparatur interpretiert werden.
+- Der frühere Vorschlag, per `FILL_REPAIR=0/1` zu vergleichen, ist mit dem
+  aktuellen Code nicht ausführbar, weil dieser Schalter nicht implementiert
+  ist.
+- Ein dedizierter Unit-Test für `fill_repair.py` wurde unter dem erwarteten
+  Pfad nicht gefunden. Ein erfolgreicher Testlauf nach Integration ist nicht
+  belegt.
 
-1. Import in `pipeline.py` nachtragen, Testlauf `f002_004` mit
-   `FILL_REPAIR=0` und `=1` vergleichen (Punkt sollte nur mit 1 verschwinden,
-   falls SMART_INK wieder gewinnt; Gewinner kann abweichen).
-2. Unit-Tests für `fill_repair.py` schreiben; Gesamt-Suite nach dem Einbau
-   erneut ausführen.
-3. Alpha-Fill (deterministisch, z. B. cv2 NS/TELEA auf dem Alpha-Kanal) mit
-   Gate „Umfeld überwiegend transparent“ (Rand-Alpha bei `m001_001`: Mittel 6,9)
-   prototypisch bauen und an `m001_001`, `n004_003`, `n005_000` prüfen.
-   Grenzwert für das Gate ist unbekannt; Sprites mit echter Alpha-Struktur
-   dürfen nicht schlechter werden. Dafür werden Originale (RGBA), Gewinner-
-   masken und PNG-Kandidatenbilder dieser Bilder benötigt.
-4. Optional: Komponenten-Vervollständigung für YOLO-Masken („。“, siehe 9.2).
-5. Optional: LaMa pro Maskenregion mit Kontextrand statt auf dem ganzen Streifen
-   testen (Hypothese: Ringe entstehen durch zu großen/schmalen Bildstreifen mit
-   mehreren Panels; **nicht geprüft**, da LaMa in der Analyseumgebung nicht
-   verfügbar war).
-6. Vor einer Festlegung einen Regressionslauf auf einer Stichprobe
-   (`--random-sample`) vorher/nachher durchführen und Reports/Bilder
-   vergleichen.
-7. Scoring-Beobachtungen (Abschnitt 4: Gate-Toleranz 0,02, Struktur-Score
-   dominiert, Micro-Metrik erkennt dunkle Punkte nicht) sind dokumentiert, aber
-   bewusst nicht geändert.
+### 9.6 Nächste sinnvolle Schritte
+
+1. **Reparatur messbar machen:** `fr_meta` in die Kandidaten-Metadaten und
+   `candidate_scores.csv` übernehmen, damit pro Kandidat sichtbar wird,
+   wie viele Cluster gefunden und wie viele Pixel tatsächlich verändert
+   wurden.
+2. **Gezielter visueller Test:** `f002_004.png` erneut mit aktuellem Code
+   ausführen und Original, Gewinner-Maske sowie Gewinnerbild aus demselben
+   Lauf prüfen. Der aktuelle gespeicherte CSV-Bericht allein beantwortet
+   nicht, ob der schwarze Punkt und sein Rand sauber entfernt wurden.
+3. **Regressionstests ergänzen:** Tests für einen kompakten dunklen Fleck auf
+   flachem Hintergrund, eine Kontur/Rahmenlinie, eine längliche Struktur am
+   Maskenrand und geschützte Pixel schreiben.
+4. **Gesamte Testsuite ausführen:** Erst danach Syntaxprüfung und
+   `python -m unittest discover -s yolo_mask_auto_select_modules/tests -v`.
+5. **Erst nach Sichtprüfung entscheiden**, ob die Schwellenwerte der
+   Median-Reparatur geändert werden. Keine Score-Gewichte oder
+   Auswahlregeln verändern, um einen Cleaning-Fehler zu kaschieren.
 
 ## 10. Bekannte Dokumentationsgrenzen
 
