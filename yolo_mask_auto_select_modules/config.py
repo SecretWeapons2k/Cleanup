@@ -35,7 +35,12 @@ DEFAULT_PROTECTED_ZONES_CSV = None
 # ⚙️ BATCH- & SPEICHER-EINSTELLUNGEN FÜR GROSSE MENGEN (700+ BILDER)
 # ==============================================================================
 # Wie viele Bilder gleichzeitig an LaMa geschickt werden (schützt /tmp und RAM):
-LAMA_BATCH_SIZE = 25
+# Gemessen (40 Bilder): jeder IOPaint-Start kostet ~44 s Fixzeit; 25 -> 100 spart bei 716 Bildern ~15 min.
+LAMA_BATCH_SIZE = 100
+
+# Gleichzeitige IOPaint-Prozesse pro Batch. Die GPU war im LaMa-Fenster nur ~42 % belegt (Lücken durch
+# PNG-Lesen/Schreiben); VRAM-Bedarf ~1 GB je Prozess. 1 = altes Verhalten.
+LAMA_PARALLEL_PROCESSES = 2
 
 # Hauptschalter für Debugging:
 DEBUG_SAVE_CANDIDATES = True
@@ -63,6 +68,13 @@ USE_HEADER_POLYGONS = True
 # Schutzzonen: Pixel darin werden von keinem Kandidaten verändert.
 # Optionaler Rand in Pixeln, um den jede Zone vergrößert wird (0 = exakt die Zone).
 PROTECTED_ZONE_MARGIN_PX = 0
+
+# Identische Kandidatenmasken nur einmal durch LaMa/Scoring schicken (Ergebnis bleibt identisch;
+# Kandidaten-IDs und Reports bleiben erhalten). False = altes Verhalten.
+DEDUPLICATE_IDENTICAL_MASKS = True
+
+# fill_repair.py (Median-Reparatur dunkler Artefakte in LaMa-Füllungen) ein-/ausschalten.
+FILL_REPAIR_ENABLED = True
 
 # Alpha-Postprocessing für transparente Sprites
 POSTPROCESS_REMOVE_SMALL_ALPHA_ISLANDS = True

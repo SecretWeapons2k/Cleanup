@@ -8,6 +8,7 @@ from .config import (
     DEFAULT_ANCHORS_CSV,
     DEFAULT_DISTANCES,
     DEFAULT_IMAGES_DIR,
+    LAMA_PARALLEL_PROCESSES,
     DEFAULT_OUTPUT_DIR,
     DEFAULT_PROTECTED_ZONES_CSV,
     DEFAULT_WEIGHTS,
@@ -44,7 +45,16 @@ def parse_args(project: Path) -> argparse.Namespace:
                    help="YOLO inference device")
     p.add_argument("--lama-device", choices=("cuda", "cpu"), default="cuda")
     p.add_argument("--model", default="lama", help="IOPaint model name")
+    p.add_argument("--lama-processes", type=int, default=LAMA_PARALLEL_PROCESSES,
+                   help="Concurrent IOPaint processes per batch (1 = sequential, old behaviour)")
     p.add_argument("--output", type=Path, default=DEFAULT_OUTPUT_DIR,
                    help="Directory for winning masks, reports and debug files")
+    p.add_argument("--no-debug-images", action="store_true",
+                   help="Production mode: skip cleaned candidate PNGs, contact sheets and overlays "
+                        "(candidate_scores.csv and winner masks are still written)")
+    p.add_argument("--no-fill-repair", action="store_true",
+                   help="Disable fill_repair.py for this run (A/B comparison)")
+    p.add_argument("--no-dedup", action="store_true",
+                   help="Process identical candidate masks separately (old behaviour)")
     p.add_argument("--dry-run", action="store_true")
     return p.parse_args()

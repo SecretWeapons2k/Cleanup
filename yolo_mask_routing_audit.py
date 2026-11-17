@@ -75,6 +75,8 @@ def parse_args() -> argparse.Namespace:
                    help="Comma-separated max distance in pixels from any anchor box")
     p.add_argument("--device", choices=("auto", "cuda", "cpu"), default="auto")
     p.add_argument("--limit", type=int, default=0, help="Optional image limit for a pilot run")
+    p.add_argument("--no-visuals", action="store_true",
+                   help="Skip overlay images and contact sheets (masks and reports are unchanged)")
     p.add_argument("--dry-run", action="store_true")
     return p.parse_args()
 
@@ -464,8 +466,9 @@ def main() -> int:
             box_mask_path = box_mask_dir / f"{Path(name).stem}.png"
             box_overlay_path = box_overlay_dir / f"{Path(name).stem}.jpg"
             Image.fromarray(box_only_mask_out, mode="L").save(box_mask_path)
-            build_overlay(rgb, box_only_mask_out, boxes, image_zones).save(box_overlay_path, quality=90)
-            box_only_overlays.append((name, box_overlay_path))
+            if not args.no_visuals:
+                build_overlay(rgb, box_only_mask_out, boxes, image_zones).save(box_overlay_path, quality=90)
+                box_only_overlays.append((name, box_overlay_path))
             # Exact Euclidean distance (in pixels) to the nearest anchor-box pixel.
             # Pixels inside any OCR box have distance 0.
             distance_to_anchor = cv2.distanceTransform(
@@ -570,10 +573,11 @@ def main() -> int:
                         mask_file = output_mask_dir / f"{Path(name).stem}.png"
                         overlay_file = output_overlay_dir / f"{Path(name).stem}.jpg"
                         Image.fromarray(candidate, mode="L").save(mask_file)
-                        build_overlay(rgb, candidate, boxes, image_zones).save(overlay_file, quality=90)
                         mask_path = str(mask_file)
-                        overlay_path = str(overlay_file)
-                        overlays_by_distance[d].append((name, overlay_file))
+                        if not args.no_visuals:
+                            build_overlay(rgb, candidate, boxes, image_zones).save(overlay_file, quality=90)
+                            overlay_path = str(overlay_file)
+                            overlays_by_distance[d].append((name, overlay_file))
 
                     report_rows.append({
                         "image": name, "confidence_threshold": f"{threshold:.2f}", "max_distance_px": d,
@@ -661,8 +665,9 @@ def main() -> int:
     write_csv(output / "routing_report.csv", report_rows)
     write_csv(output / "body_box_coverage.csv", box_rows)
     write_csv(output / "instances.csv", instance_rows)
-    save_contact_sheets(box_only_overlays, output / "box_only" / "contact_sheets", "Box-only masks (all body + header rectangles)")
-    for d, entries in overlays_by_distance.items():
+    if not args.no_visuals:
+        save_contact_sheets(box_only_overlays, output / "box_only" / "contact_sheets", "Box-only masks (all body + header rectangles)")
+    for d, entries in ([] if args.no_visuals else overlays_by_distance.items()):
         save_contact_sheets(entries, output / "conf_005" / f"distance_{d:02d}" / "contact_sheets", f"YOLO conf 0.05 pixelwise trim: retain mask pixels <= {d}px from nearest anchor box + headers")
 
     # Aggregate a quick summary for stdout/README.

@@ -38,9 +38,14 @@ virtual environments are intentionally excluded.
 
 # PROJECT HANDOFF — Cleanup YOLO/LaMa
 
-Stand: 15. November 2026
+Stand: 17. November 2026
 Projektpfad: ~/Downloads/Cleanup
 Sprache der Zusammenarbeit: Deutsch
+
+Kennzeichnung in diesem Dokument:
+- **Bestätigt** = anhand konkreter Dateien/Zahlen geprüft (Quelle genannt).
+- **Hypothese** = plausibel, aber nicht geprüft.
+- **Offen** = noch nicht getestet oder nicht entschieden.
 
 ## 1. Projektziel
 
@@ -64,7 +69,6 @@ Variante samt Masken, Kandidatenbildern und Berichten.
   - Anchors: `anchors.csv` in diesem Verzeichnis
   - optionale Schutzzonen: `protected_zones.csv` im selben Verzeichnis
   - Quellbilder: `~/Downloads/yabai proj/mit_kanji/`
-  - optionale Schutzzonen: `protected_zones.csv` neben der aktiven Anchors-CSV.
   Pipeline, Routing-Audit und Label-Tool verwenden dieselben Defaults.
   Abweichende Speicherorte können per CLI angegeben werden. Für aktuelle
   Einstellungen ist ausschließlich diese Datei maßgeblich; alte Logs und
@@ -72,7 +76,13 @@ Variante samt Masken, Kandidatenbildern und Berichten.
 
 `yolo_mask_auto_select_modules/cli.py`
   Kommandozeilenargumente für Bilder, Anchors, YOLO-Gewichte, Stichprobe,
-  Distanzen, Geräte, Ausgabe und Dry-Run.
+  Distanzen, Geräte, Ausgabe und Dry-Run. Relevant für Einzeltests:
+  `--image <Dateiname>` (nur dieses Bild) und `--output <Basisordner>`
+  (darin entsteht `run_JJJJMMTT_HHMMSS`).
+
+`yolo_mask_auto_select_modules/candidate_masks.py`
+  Baut die Maskenkandidaten (Distanz-, Box-only-, Smart-Ink-, Contrast-,
+  Hybrid-Varianten) und `enforce_protection`.
 
 `yolo_mask_auto_select_modules/io_utils.py`
   Bild- und CSV-Verarbeitung, Quellenfindung, Anchor-/Box-Masken,
@@ -85,7 +95,10 @@ Variante samt Masken, Kandidatenbildern und Berichten.
 
 `yolo_mask_auto_select_modules/pipeline.py`
   Orchestriert YOLO-Kandidaten, Maskenvarianten, LaMa-Verarbeitung,
-  Bewertung, Auswahl und Speicherung.
+  Bewertung, Auswahl und Speicherung. RGB und Alpha werden getrennt als
+  Stage-Bilder durch LaMa geschickt und im Composite-Block zusammengesetzt
+  (`f_rgb[c_mask] = pred_rgb[c_mask]`, `f_alpha[c_mask] = pred_alpha[c_mask]`,
+  danach `remove_small_alpha_islands` und `enforce_protection`).
 
 `yolo_mask_auto_select_modules/debug_output.py`
   Debug-Overlays, Kontaktbögen und Vorher-/Nachher-Vergleiche.
@@ -93,6 +106,9 @@ Variante samt Masken, Kandidatenbildern und Berichten.
 `yolo_mask_auto_select_modules/reports.py`
   CSV-Ausgabe mit der Vereinigung der bevorzugten und tatsächlich vorhandenen
   Metrikfelder. Verhindert Abbrüche, wenn neue Score-Felder hinzukommen.
+
+`yolo_mask_auto_select_modules/fill_repair.py`  **(NEU, 16.11.2026, Integration noch nicht abgenommen)**
+  Post-Fill-Sanity-Check für LaMa-Ergebnisse, siehe Abschnitt 9.
 
 ## 3. Eigenständige Hilfsprogramme
 
@@ -102,10 +118,10 @@ Hauptpipeline:
 `yolo_mask_routing_audit.py`
   Eigenständiges YOLO-Inferenz-/Diagnosewerkzeug. Verwendet dieselben
   Standardpfade für `anchors.csv`, Quellbilder und optionale Schutzzonen
-  wie die Hauptpipeline. Prüft Maskenabdeckung,
-  Abstand zu OCR-Ankern und Body-Box-Coverage. Erzeugt unter anderem
-  `routing_report.csv`, `body_box_coverage.csv`, `instances.csv` und
-  visuelle Kontaktbögen. Kein LaMa-Lauf und keine Änderung der Quelldateien.
+  wie die Hauptpipeline. Prüft Maskenabdeckung, Abstand zu OCR-Ankern und
+  Body-Box-Coverage. Erzeugt unter anderem `routing_report.csv`,
+  `body_box_coverage.csv`, `instances.csv` und visuelle Kontaktbögen.
+  Kein LaMa-Lauf und keine Änderung der Quelldateien.
 
 `label_tool.py`
   Lokale Browser-Oberfläche zur manuellen Bewertung der berechneten Kandidaten.
@@ -131,27 +147,39 @@ Hauptpipeline:
 
 Die konfigurierten YOLO-Distanzen und zusätzlichen Kandidaten werden in
 `config.py` festgelegt. Historische Läufe verwendeten unter anderem
-Distanzen 0, 2, 4, 6, 8 und 10 Pixel sowie Box-only-, Smart-Ink- und
-Hybrid-Varianten. Vor einem neuen Lauf die aktuell aktiven Werte im Code
-prüfen, statt historische Logs als Konfiguration zu behandeln.
+Distanzen 0, 2, 4, 6, 8 und 10 Pixel sowie Box-only-, Smart-Ink-, Contrast-
+(z. B. `CONTRAST_T38`) und Hybrid-Varianten (`HYBRID_D2`, `HYBRID_D6`).
+Vor einem neuen Lauf die aktuell aktiven Werte im Code prüfen, statt
+historische Logs als Konfiguration zu behandeln.
 
 Die Auswahl berücksichtigt nicht nur die rohe Maskenüberlappung. Für das
 Routing sind unter anderem absolute Überlappung, Detailenergie und
 hochkontrastige Pixel relevant. Bei unzureichender inhaltlicher Abdeckung
-kann der Box-only-Fallback greifen.
+kann der Box-only-Fallback greifen (im Report z. B. als
+`BOX_MASK_FALLBACK_WEAK_COVERAGE`).
 
-Die Scoring-Logik berücksichtigt unter anderem Schriftreste, Detailerhaltung,
-Konturen, Strukturveränderungen, Farbverschiebungen und Artefakte. Die genauen
-Metriken und Entscheidungszweige müssen vor einer Änderung im aktuellen
-`scoring.py` und `pipeline.py` überprüft werden.
+Beobachtetes Auswahlverhalten (aus `candidate_scores.csv` / `winner_report.csv`
+des Laufs `run_20261116_113900`; Code in `scoring.py`/`pipeline.py` bei einer
+Änderung immer neu prüfen):
+- Der finale Score entspricht dem `structure_score`; nicht eligible
+  Kandidaten (`text_quality_eligible = 0`) erhalten +2,0.
+- Das Eligibility-Gate hat eine Toleranz von 0,02 auf den `text_quality_score`
+  relativ zum besten Kandidaten. Innerhalb dieser Toleranz entscheidet allein
+  der `structure_score`.
+- Ein Micro-Component-Tie-Break kann den strukturell besten Kandidaten durch
+  einen mit weniger Restfläche ersetzen (Beispiel `d002_001`: SMART_INK
+  → CONTRAST_T38, Restfläche −230 px, Struktur +0,016).
+- D4, D6, D8 und D10 liefern bei einigen Bildern identische Masken/Ergebnisse
+  (z. B. `d002_001`: pixelgenau identisch im Vormittagslauf).
 
 ## 5. Ergebnis- und Diagnoseverzeichnisse
 
 `yolo_mask_winners/`
-  Enthält Laufverzeichnisse mit Gewinner-Masken, Kandidatenbildern,
-  `candidate_scores.csv`, `winner_report.csv` und Debug-Ausgaben.
-  Dieses Verzeichnis ist groß und wird in Git ignoriert. Es ist Nutzdaten-
-  und Ergebnisbestand, kein temporärer Cache.
+  Enthält Laufverzeichnisse mit Gewinner-Masken (`masks/`), Kandidatenbildern
+  (`debug_candidates/cleaned_images/`), Kontaktbögen
+  (`debug_candidates/contact_sheets/`), `debug_candidates/candidate_scores.csv`,
+  `winner_report.csv` und Debug-Ausgaben. Dieses Verzeichnis ist groß und wird
+  in Git ignoriert. Es ist Nutzdaten- und Ergebnisbestand, kein temporärer Cache.
 
 `diagnostics/`
   Enthält gezielte Diagnose- und Replay-Ergebnisse. Diese Daten bleiben
@@ -180,6 +208,20 @@ Vorhandene Ergebnisdaten vom Lauf
 `full_recheck_after_alpha_island_025_20261025_022053` umfassen unter anderem
 `winner_report.csv`, Kandidaten-Scores, Masken und Debug-Ausgaben.
 
+Lauf `run_20261116_113900` (16.11.2026) enthält u. a. `d002_001` (und vermutlich
+`f002_004`; Gesamtumfang nicht geprüft). Zwischen diesem Lauf und dem
+vorherigen Vormittagslauf haben sich Scores geändert (z. B. `CONTRAST_T38` in
+`d002_001`: Micro-Komponenten 18 → 0, Eligibility nein → ja, D0 jetzt eligible).
+Laut Nutzer wurde nur geändert, dass weiße Boxen statt der roten verwendet
+werden, falls vorhanden (laut Nutzer war das schon vorher so). Die Ursache der
+Score-Änderung ist **offen**.
+
+**Wichtig für jede Analyse:** `candidate_scores.csv`, `winner_report.csv`,
+Masken und Kandidatenbilder müssen aus **demselben** Laufverzeichnis stammen.
+Am 16.11.2026 passten ein älteres `candidate_scores.csv` und ein neueres
+`winner_report.csv` nicht zusammen (z. B. `text_quality_score` von
+`CONTRAST_T38`: 0,345 vs. 0,261), was zu falschen Schlüssen führte.
+
 ## 7. Tests und wichtige Befehle
 
 Projektverzeichnis:
@@ -201,11 +243,29 @@ Unit-Tests:
 python -m unittest discover -s yolo_mask_auto_select_modules/tests -v
 ```
 
+Teststand: Für den aktuellen Stand auf GitHub liegt in dieser Übergabe kein
+verifizierter vollständiger Testlauf nach der Integration von `fill_repair`
+vor. Eine Datei `yolo_mask_auto_select_modules/tests/test_fill_repair.py` ist
+im Repository nicht vorhanden. Der letzte bekannte erfolgreiche Lauf der
+bestehenden Suite stammt laut Nutzer vom 16.11.2026 **vor** dem Einbau von
+`fill_repair`; er bestätigt nicht den aktuellen Stand.
+
 Kleiner Pipeline-Dry-Run:
 
 ```bash
 python yolo_mask_auto_select.py --random-sample 10 --min-m-images 3 --seed 20261018 --dry-run
 ```
+
+Einzelbild-Testlauf (eigener Ausgabeordner, `yolo_mask_winners` bleibt sauber):
+
+```bash
+python yolo_mask_auto_select.py --image f002_004.png --output ~/Downloads/Cleanup/test_runs
+```
+
+Aktueller Hinweis: `fill_repair` wird in `pipeline.py` ohne Umgebungsvariablen-
+Schalter aufgerufen. `FILL_REPAIR=0/1` hat im derzeit geprüften Code keine
+Wirkung. Ein echter Vorher/Nachher-Vergleich benötigt zunächst einen
+Code-Schalter oder zwei getrennte Code-Stände.
 
 Routing-Audit-Hilfe:
 
@@ -253,13 +313,188 @@ python scripts/cleanup_repo.py --apply
 - Keine Aussage über bestandene Tests machen, solange kein Testlauf vorliegt.
 - Generierte Ergebnisbilder und Diagnoseberichte nicht pauschal löschen.
 - Backups vor einer Entfernung außerhalb des Repositorys archivieren.
+- **Grundsatz (16.11.2026):** Fehler nach Möglichkeit im Cleaning (Maske,
+  Inpainting, Alpha-Behandlung) beheben und nicht durch Anpassen von
+  Score-Zahlen. Score-Änderungen verschieben Fehler leicht auf andere Bilder.
+- Vor jeder Analyse prüfen, **welchem Kandidaten** eine Masken- oder Bilddatei
+  gehört (am 16.11. war `d002_001.png` die YOLO-Maske D4–D10, nicht die
+  Gewinnermaske) und ob alle Dateien aus demselben Lauf stammen.
+- Kontaktbogen-JPGs sind komprimiert und bei breiten Bildern verkleinert;
+  für Pixel-Analysen die PNGs aus `cleaned_images/` verwenden.
 
-## 9. Bekannte Dokumentationsgrenzen
+## 9. Arbeitsstand 16. November 2026: Cleaning-Artefakte
 
-Diese Übergabe beschreibt die am 15. November 2026 geprüfte Repository-
-Struktur und die oben genannten gespeicherten Diagnoseergebnisse. Sie ersetzt
-keine Prüfung der aktuellen lokalen Laufdaten und aktualisiert sich nicht
-automatisch.
+### 9.1 Problem
+
+Nach dem Cleaning bleiben bei einzelnen Bildern Artefakte zurück:
+dunkle Punkte/Ringe (`d002_001`), ein schwarzer Punkt in einem Button
+(`f002_004`) und dunkle, halbtransparente Flecken an Glyph-Positionen bei
+Sprites mit dunklem Glow (`m001_001`, `n004_003`, `n005_000`).
+
+### 9.2 Befunde
+
+**`d002_001` (Panels mit Ringen/Punkten)**
+- Bestätigt: Die Maske des Gewinners (`CONTRAST_T38`, Maskendatei
+  `d002_001_b3a150.png` aus dem Lauf) deckt Text und Halo vollständig ab
+  (0 Alpha-Pixel ≥ 215 und 0 RGB-Pixel > 60 außerhalb der Maske).
+  Die Ringe waren daher von LaMa erzeugt, kein Abdeckungsproblem.
+- Widerlegt: Die erste Hypothese „Maske zu knapp“ gilt nicht für diesen
+  Gewinner.
+- Nutzermeldung: `d002_001` ist inzwischen „gefixt“, vermutlich durch bessere
+  Boxen. Von mir nicht verifiziert.
+
+**YOLO-Masken (D0–D10) und „。“**
+- Bestätigt (`d002_001`): Die YOLO-Maske lässt zwei „。“ am Ende von Zeile 2 in
+  Panel 2 und 3 teilweise außerhalb (99 bzw. 70 Alpha-Pixel, Abstand 1 px
+  zur Maske). Box-only-, Contrast- und Hybrid-Masken decken sie ab.
+- Prototyp (nicht eingebaut): hochkontrastige Komponenten, die ≤ 2 px an der
+  Maske liegen und teilweise außerhalb liegen, vollständig in die Maske
+  aufnehmen. Ergebnis: Maske 30.241 → 30.685 px, danach kein Alpha-Rest außerhalb.
+  Zurückgestellt, weil der Gewinner das Problem nicht hatte.
+
+**Alpha-Kanal wird von LaMa „erfunden“**
+- Bestätigt (`d002_001`): Höchster Alpha im veränderten Bereich 253 bis 254
+  (CONTRAST_T38, D4, BOX_ONLY) bei Original-Maximum 245; HYBRID_D6 bleibt bei
+  206. Ein deterministischer Fill (cv2 TELEA) liefert 203 bis 209.
+- Ursache im Code: Alpha wird als Graubild separat durch LaMa geschickt
+  (`pipeline.py`, Composite-Block).
+
+**`f002_004` (Sprite-Sheet mit Buttons)**
+- Bestätigt: Gewinner `SMART_INK` (Route `SMART_INK_COMPETITION_SELECTED`,
+  Grund `BOX_MASK_FALLBACK_WEAK_COVERAGE`) hat einen schwarzen Punkt
+  (ca. 12×11 px, RGB (6, 14, 22) auf Umfeld (86, 3, 31)) innerhalb der
+  Gewinnermaske (`f002_004.png` im Lauf).
+- Bestätigt: `CONTRAST_T38` hat keinen Punkt. SMART_INK gewinnt über den
+  Struktur-Score (0,479 vs. 0,532); beide sind eligible
+  (`text_quality_score` 0,573 vs. 0,560, Toleranz 0,02).
+- Bestätigt: Die Metriken erkennen den Punkt nicht (Micro-Komponenten SMART_INK
+  6/64 px vs. CONTRAST_T38 13/104 px).
+- Beobachtet: D0–D10 lassen Textgeister stehen; Hybrid und Box-only erzeugen
+  waagerechte Schlieren.
+- Spaltenzuordnung der CSV-Zeilen erfolgte über den Header aus
+  `candidate_scores_1.csv` (109 Spalten; Annahme gleiches Schema).
+
+**`m001_001` (schwarzer Glow, Box-only gewinnt)**
+- Bestätigt: Die Box-only-Maske deckt 29.892 von 35.685 px ab (84 %).
+- Bestätigt: Im Original haben 27.407 px in der Maske Alpha > 10 (Mittel 161);
+  der „schwarze Glow“ ist ein halbtransparenter dunkler Hof hinter den
+  Glyphen. Außerhalb der Maske: Alpha Mittel 6,9, Maximum 66.
+- Bestätigt: LaMa-Ergebnis in der Maske hat Alpha Mittel 76,5, Maximum 189
+  (16.685 px > 60); ein deterministischer Fill (cv2 NS) hat Mittel 17,5,
+  Maximum 63 (302 px > 60), mit schwachen senkrechten Schlieren links.
+- Hypothese: Ein deterministischer Alpha-Fill löst diese Bildklasse. Für
+  `n004_003` und `n005_000` liegen nur verkleinerte Kontaktbögen vor.
+
+### 9.3 Aktuelle Implementierung von `fill_repair.py` (Stand 17.11.2026)
+
+Die alte Beschreibung als Navier-Stokes-Vergleich ist überholt. Der aktuelle
+Code in `yolo_mask_auto_select_modules/fill_repair.py` verwendet einen
+Medianfilter als lokale Hintergrundreferenz:
+
+1. Medianfilter über das gefüllte RGB-Bild (`median_ksize=25`).
+2. Abweichende Pixel innerhalb der aktuellen Kandidatenmaske werden über
+   maximale Kanalabweichung erkannt (`dev_levels=11`).
+3. Zusammenhängende Cluster werden nach Mindestgröße gefiltert
+   (`min_cluster_px=8`).
+4. Cluster, deren Struktur über den Maskenrand hinaus weiterläuft und
+   länglich ist, werden übersprungen.
+5. Der Umgebungsring wird auf Homogenität geprüft
+   (`ring_inner=3`, `ring_outer=8`, `ring_keep_levels=15`,
+   `ring_min_keep_frac=0.6`, `flat_ring_std=12.0`).
+6. Geeignete Cluster werden innerhalb der Maske und außerhalb geschützter
+   Zonen mit einer weichgezeichneten Medianreferenz ersetzt
+   (`grow_px=5`, `soften_sigma=2.0`).
+
+Die Funktion verändert ausschließlich RGB-Pixel innerhalb der Maske.
+Geschützte Pixel bleiben unangetastet; Alpha wird von dieser Funktion nicht
+bearbeitet. Die Parameter sind direkt in `fill_repair.py` definiert und
+nicht in `config.py` zentralisiert.
+
+**Integration in der Pipeline (bestätigt im aktuellen Quellcode):**
+- `pipeline.py` importiert `repair_flat_fill_artifacts`.
+- Der Aufruf erfolgt unmittelbar nach dem Einsetzen des LaMa-RGB-Ergebnisses
+  in die Kandidatenmaske.
+- Der Aufruf ist derzeit unbedingt: Es gibt keinen `FILL_REPAIR`-Schalter.
+- Die zurückgegebenen `fr_meta`-Zähler werden im aktuell geprüften
+  Pipeline-Code nicht in `a_meta` oder einen Report übernommen. Die Funktion
+  liefert zwar `fill_repair_clusters_found`,
+  `fill_repair_clusters_repaired` und `fill_repair_pixels_replaced`,
+  diese Werte sind damit nicht als Laufdiagnostik verfügbar.
+
+### 9.4 Aktueller gespeicherter Testlauf: `run_20261116_225034`
+
+Im Repository liegt ein Ergebnislauf vom 16.11.2026 mit genau einem
+ausgewerteten Bild: `f002_004.png`.
+
+**Aus dem Laufbericht bestätigt:**
+- Gewinner: `SMART_INK`.
+- Route: `SMART_INK_COMPETITION_SELECTED`.
+- Routing-Audit-Vorschlag: `BOX_MASK_FALLBACK_WEAK_COVERAGE`.
+- Ausgewiesener Score: 0,479091.
+- Textqualität: 0,572759.
+- Struktur-Score: 0,479091.
+- Beste Textqualität eines Kandidaten: 0,559216.
+
+Die zugehörige `candidate_scores.csv` enthält sechs Distanzkandidaten
+(0, 2, 4, 6, 8, 10) sowie `SMART_INK`, `HYBRID_D2`, `HYBRID_D6`,
+`CONTRAST_T38` und `BOX_ONLY`. Der Gewinnerbericht weist SMART_INK aus.
+Dieser gespeicherte Lauf ist **kein vollständiger Reprocess** und belegt
+nicht, dass der verbliebene schwarze Punkt visuell vollständig entfernt ist.
+Die Ergebnisdaten enthalten in diesem Laufbericht keine belastbare
+Vorher/Nachher-Auswertung mit deaktivierter und aktivierter Reparatur.
+
+Wichtig: Der Laufordnername und die CSV-Dateien belegen einen Ein-Bild-Lauf.
+Ob die darin gespeicherten PNGs den aktuellen Code exakt widerspiegeln,
+muss bei einer erneuten visuellen Prüfung anhand der Laufdateien und des
+zugehörigen Commits abgeglichen werden.
+
+### 9.5 Was gegenüber der alten Übergabe korrigiert wurde
+
+- Der alte Navier-Stokes-Ablauf samt den Parametern
+  `disagree_levels=45`, `flat_ring_std=20`, `grow_px=2` und
+  `inpaint_radius=4` ist nicht mehr die aktuelle Implementierung.
+- Die alte Aussage, der Import fehle und der Pipeline-Aufruf breche deshalb
+  mit `NameError` ab, ist überholt: Import und Aufruf sind jetzt im
+  aktuellen `pipeline.py` vorhanden.
+- Die früheren Offline-Ergebnisse (z. B. 126 ersetzte Pixel bei
+  `f002_004`) gehören zur alten Methode und dürfen nicht als Ergebnis der
+  aktuellen Median-Reparatur interpretiert werden.
+- Der frühere Vorschlag, per `FILL_REPAIR=0/1` zu vergleichen, ist mit dem
+  aktuellen Code nicht ausführbar, weil dieser Schalter nicht implementiert
+  ist.
+- Ein dedizierter Unit-Test für `fill_repair.py` wurde unter dem erwarteten
+  Pfad nicht gefunden. Ein erfolgreicher Testlauf nach Integration ist nicht
+  belegt.
+
+### 9.6 Nächste sinnvolle Schritte
+
+1. **Reparatur messbar machen:** `fr_meta` in die Kandidaten-Metadaten und
+   `candidate_scores.csv` übernehmen, damit pro Kandidat sichtbar wird,
+   wie viele Cluster gefunden und wie viele Pixel tatsächlich verändert
+   wurden.
+2. **Gezielter visueller Test:** `f002_004.png` erneut mit aktuellem Code
+   ausführen und Original, Gewinner-Maske sowie Gewinnerbild aus demselben
+   Lauf prüfen. Der aktuelle gespeicherte CSV-Bericht allein beantwortet
+   nicht, ob der schwarze Punkt und sein Rand sauber entfernt wurden.
+3. **Regressionstests ergänzen:** Tests für einen kompakten dunklen Fleck auf
+   flachem Hintergrund, eine Kontur/Rahmenlinie, eine längliche Struktur am
+   Maskenrand und geschützte Pixel schreiben.
+4. **Gesamte Testsuite ausführen:** Erst danach Syntaxprüfung und
+   `python -m unittest discover -s yolo_mask_auto_select_modules/tests -v`.
+5. **Erst nach Sichtprüfung entscheiden**, ob die Schwellenwerte der
+   Median-Reparatur geändert werden. Keine Score-Gewichte oder
+   Auswahlregeln verändern, um einen Cleaning-Fehler zu kaschieren.
+
+## 10. Bekannte Dokumentationsgrenzen
+
+Diese Übergabe beschreibt den am 16. November 2026 bekannten Stand anhand der
+oben genannten Dateien und Analysen. Sie ersetzt keine Prüfung der aktuellen
+lokalen Laufdaten und aktualisiert sich nicht automatisch.
+
+Nicht von mir ausgeführt oder verifiziert: LaMa-Läufe (in der Analyse-
+umgebung nicht verfügbar), der aktuelle Inhalt von `pipeline.py` nach den
+Nutzeränderungen, der Pipeline-Lauf mit `fill_repair`, die Unit-Tests nach dem
+Einbau und die Behauptung, `d002_001` sei inzwischen gefixt.
 
 Bei einem neuen Arbeitsschritt immer den aktuellen Quellcode, die letzten
 relevanten Testergebnisse und die konkreten zu untersuchenden Bilder oder
@@ -1807,7 +2042,7 @@ DEBUG_SAVE_CANDIDATES = True
 # Granulare Schalter für Debug-Dateien:
 DEBUG_SAVE_CLEANED_IMAGES = True       # Bereinigte PNGs speichern (in cleaned_images/)
 DEBUG_SAVE_COMPARISON_SHEET = True     # Vergleichs-JPG speichern (in contact_sheets/)
-DEBUG_SAVE_RAW_MASK_OVERLAYS = False   # Magenta-Overlays (spart viel Speicherplatz!)
+DEBUG_SAVE_RAW_MASK_OVERLAYS = True   # Magenta-Overlays (spart viel Speicherplatz!)
 DEBUG_SAVE_SIDE_BY_SIDE_SHEET = False  # Doppelte Side-by-Side Sheets
 
 
@@ -2118,10 +2353,20 @@ def save_debug_side_by_side_sheet(
 
 """Post-fill sanity check for inpainting results (LaMa).
 
-Finds clusters inside the candidate mask where the LaMa fill disagrees strongly
-with a deterministic fill (cv2 Navier-Stokes) AND where the local surrounding is
-flat. Only such clusters are replaced by the deterministic fill. Clusters next to
-frames/outlines/textures are left untouched (LaMa is better there).
+LaMa sometimes invents small dark dots/rings/smudges inside a mask on flat
+backgrounds (e.g. button sprites). This module finds such blobs *inside the
+mask* by comparing the fill with a robust local background (large median
+filter) and, only if the surroundings of a blob are flat, replaces the blob
+with that smoothed background.
+
+Why not compare against cv2 Navier-Stokes (previous version): NS bleeds dark
+glyph halos from just outside the mask into the mask, so it often agrees with
+the artefact (ring/smudge on f002_004) and the blob is never detected.
+
+Blobs next to frames/outlines/textures are left alone: there the ring around
+the blob is not flat or contains too many pixels far from its median, or the
+blob continues across the mask border into the unmasked image.
+Only RGB inside the mask is changed; protected zones are never touched.
 """
 from __future__ import annotations
 
@@ -2131,55 +2376,86 @@ from scipy import ndimage as ndi
 
 
 def repair_flat_fill_artifacts(
-    original_rgb: np.ndarray,
+    original_rgb: np.ndarray,          # kept for API compatibility (not needed any more)
     filled_rgb: np.ndarray,
     mask: np.ndarray,
     protected: np.ndarray | None = None,
     *,
-    min_cluster_px: int = 25,
-    disagree_levels: int = 45,
-    flat_ring_std: float = 20.0,
-    ring_inner: int = 2,
-    ring_outer: int = 6,
-    grow_px: int = 2,
-    inpaint_radius: int = 4,
+    median_ksize: int = 25,            # odd; blob must cover < 50 % of the window
+    dev_levels: int = 11,              # min. max-channel deviation from local background
+    min_cluster_px: int = 8,
+    ring_inner: int = 3,
+    ring_outer: int = 8,
+    ring_keep_levels: int = 15,        # ring pixels within this distance of ring median are "background"
+    ring_min_keep_frac: float = 0.6,   # else: frame/outline/texture nearby -> skip
+    flat_ring_std: float = 12.0,
+    grow_px: int = 5,
+    soften_sigma: float = 2.0,
+    max_contact_aspect: float = 2.5,   # lines crossing the mask border are skipped
 ) -> tuple[np.ndarray, dict[str, float]]:
-    """Return (repaired_rgb, meta). Inputs are uint8 HxWx3 and a bool HxW mask."""
-    mask = mask.astype(bool)
+    """Return (repaired_rgb, meta). Inputs: uint8 HxWx3 and a bool HxW mask."""
+    mask = np.asarray(mask).astype(bool)
     meta = {"fill_repair_clusters_found": 0.0, "fill_repair_clusters_repaired": 0.0,
             "fill_repair_pixels_replaced": 0.0}
     if not mask.any():
         return filled_rgb, meta
 
-    ns = cv2.inpaint(np.ascontiguousarray(original_rgb), mask.astype(np.uint8) * 255,
-                     inpaint_radius, cv2.INPAINT_NS)
-    diff = np.abs(filled_rgb.astype(np.int16) - ns.astype(np.int16)).max(axis=2)
-    seeds = ndi.binary_opening((diff > disagree_levels) & mask, iterations=1)
+    f = np.ascontiguousarray(filled_rgb)
+    ref = cv2.medianBlur(f, int(median_ksize) | 1)
+    dev = np.abs(f.astype(np.int16) - ref.astype(np.int16)).max(axis=2)
+    seeds = ndi.binary_opening((dev > dev_levels) & mask, iterations=1)
     labels, count = ndi.label(seeds)
+    if count == 0:
+        return filled_rgb, meta
 
-    out = filled_rgb.copy()
+    prot = None if protected is None else np.asarray(protected).astype(bool)
+    soft_ref = cv2.GaussianBlur(ref.astype(np.float32), (0, 0), soften_sigma)
+    out = filled_rgb.astype(np.float32).copy()
+    changed = np.zeros(mask.shape, dtype=bool)
+
     for idx in range(1, count + 1):
         cluster = labels == idx
         if int(cluster.sum()) < min_cluster_px:
             continue
         meta["fill_repair_clusters_found"] += 1
+        # Structure that continues outside the mask (frame/outline crossing the mask
+        # border) is real image content, not a fill artefact: leave it alone.
+        # Compact blobs (dots/rings) that merely touch the border are still repaired
+        # (inside the mask only); elongated ones (lines) are skipped.
+        outside_contact = ndi.binary_dilation(cluster, iterations=2) & ~mask
+        if int((dev[outside_contact] > dev_levels).sum()) >= 3:
+            ys, xs = np.nonzero(cluster)
+            h, w = int(ys.max() - ys.min() + 1), int(xs.max() - xs.min() + 1)
+            if max(h, w) / max(1, min(h, w)) >= max_contact_aspect:
+                continue
         ring = (ndi.binary_dilation(cluster, iterations=ring_outer)
                 & ~ndi.binary_dilation(cluster, iterations=ring_inner))
-        ring_px = filled_rgb[ring].astype(np.float32)
-        if ring_px.shape[0] < 20 or float(ring_px.std(axis=0).max()) > flat_ring_std:
-            continue  # not flat around the cluster: leave LaMa result alone
+        ring_px = f[ring].astype(np.float32)
+        if ring_px.shape[0] < 20:
+            continue
         med = np.median(ring_px, axis=0)
-        lama_dev = np.abs(filled_rgb[cluster].astype(np.float32) - med).max(axis=1).mean()
-        ns_dev = np.abs(ns[cluster].astype(np.float32) - med).max(axis=1).mean()
-        if ns_dev * 2.0 > lama_dev:
-            continue  # deterministic fill is not clearly closer to the surroundings
+        keep = np.abs(ring_px - med).max(axis=1) <= ring_keep_levels
+        if keep.mean() < ring_min_keep_frac or keep.sum() < 10:
+            continue  # frame/outline/texture around: leave LaMa result alone
+        if float(ring_px[keep].std(axis=0).max()) > flat_ring_std:
+            continue
         region = ndi.binary_dilation(cluster, iterations=grow_px) & mask
-        if protected is not None:
-            region &= ~protected.astype(bool)
-        out[region] = ns[region]
+        if prot is not None:
+            region &= ~prot
+        if not region.any():
+            continue
+        w = cv2.GaussianBlur(region.astype(np.float32), (0, 0), 1.0)
+        w = np.where(region, np.maximum(w, 0.0), w) * mask  # never leave the mask
+        if prot is not None:
+            w = w * (~prot)
+        out = out * (1.0 - w[..., None]) + soft_ref * w[..., None]
+        changed |= w > 0
         meta["fill_repair_clusters_repaired"] += 1
-        meta["fill_repair_pixels_replaced"] += float(region.sum())
-    return out, meta
+
+    repaired = np.clip(np.rint(out), 0, 255).astype(np.uint8)
+    repaired[~changed] = filled_rgb[~changed]
+    meta["fill_repair_pixels_replaced"] = float((repaired != filled_rgb).any(axis=2).sum())
+    return repaired, meta
 
 
 ===== yolo_mask_auto_select_modules/geometry.py =====

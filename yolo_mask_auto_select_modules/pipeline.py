@@ -2,13 +2,16 @@
 from __future__ import annotations
 
 import csv
+import json
 import math
 import os
 import shutil
 import subprocess
 import sys
 import tempfile
+import types
 import time
+from collections import defaultdict
 from pathlib import Path
 from typing import Any
 
@@ -16,7 +19,9 @@ import cv2
 import numpy as np
 from PIL import Image
 
-from .candidate_masks import ImageMaskSet, build_image_mask_set, enforce_protection, stage_token
+from .candidate_masks import (
+    ImageMaskSet, build_image_mask_set, enforce_protection, group_identical_masks, stage_token,
+)
 from .cli import parse_args
 from .config import *
 from .debug_output import build_debug_mask_overlay, save_debug_contact_sheet, save_debug_side_by_side_sheet
@@ -41,6 +46,27 @@ from .scoring import (
     ink_strength_map, make_contrast_mask, make_smart_ink_mask, outline_leak_metrics,
     score_candidate, select_candidate,
 )
+
+class RunStats:
+    """Wall-clock per pipeline phase plus job counters (written to run_stats.json)."""
+
+    def __init__(self) -> None:
+        self.seconds: dict[str, float] = defaultdict(float)
+        self.counts: dict[str, int] = defaultdict(int)
+        self.batch_log: list[dict[str, Any]] = []
+
+    def timer(self, phase: str):
+        stats = self
+
+        class _Timer:
+            def __enter__(self_inner):
+                self_inner.t0 = time.perf_counter()
+
+            def __exit__(self_inner, *exc):
+                stats.seconds[phase] += time.perf_counter() - self_inner.t0
+
+        return _Timer()
+
 
 def sort_dist_key(val: Any) -> int:
     s = str(val)
@@ -147,6 +173,13 @@ def main() -> int:
     save_comparison = getattr(sys.modules[__name__], "DEBUG_SAVE_COMPARISON_SHEET", True) and DEBUG_SAVE_CANDIDATES
     save_overlays = getattr(sys.modules[__name__], "DEBUG_SAVE_RAW_MASK_OVERLAYS", False) and DEBUG_SAVE_CANDIDATES
     save_side_by_side = getattr(sys.modules[__name__], "DEBUG_SAVE_SIDE_BY_SIDE_SHEET", False) and DEBUG_SAVE_CANDIDATES
+    if args.no_debug_images:
+        save_cleaned = save_comparison = save_overlays = save_side_by_side = False
+    use_fill_repair = FILL_REPAIR_ENABLED and not args.no_fill_repair
+    use_dedup = DEDUPLICATE_IDENTICAL_MASKS and not args.no_dedup
+    stats = RunStats()
+    run_t0 = time.perf_counter()
+    dedup_rows: list[dict[str, Any]] = []
 
     print(f"Selected images: {len(ordered_names)} (Batch-Größe: {batch_size} Bilder pro Durchlauf)")
     print(f"Persistente Ausgabe: {output_dir}")
@@ -155,6 +188,7 @@ def main() -> int:
         print(f"Schutzzonen: {zones_path} ({selected_zone_count} Zonen in der Auswahl)")
     else:
         print("Schutzzonen: keine")
+    print(f"Fill-Repair={use_fill_repair}, Maskendedup={use_dedup}")
     print(f"Debug-Optionen: Cleaned={save_cleaned}, Comparison-Sheet={save_comparison}, Overlays={save_overlays}, Side-By-Side={save_side_by_side}")
 
     if args.dry_run:
@@ -188,12 +222,14 @@ def main() -> int:
                     "--dilation", str(args.dilation),
                     "--distances", ",".join(map(str, distances)),
                     "--device", args.device,
+                    "--no-visuals",
                 ]
                 if zones_path is not None:
                     audit_cmd += ["--protected", str(zones_path),
                                   "--protected-margin", str(PROTECTED_ZONE_MARGIN_PX)]
                 print(f"\n[1/3] Building YOLO candidate masks for {len(yolo_selected_names)} images...", flush=True)
-                proc = subprocess.run(audit_cmd, cwd=project, check=False)
+                with stats.timer("yolo_routing_audit"):
+                    proc = subprocess.run(audit_cmd, cwd=project, check=False)
                 if proc.returncode != 0:
                     print(f"ERROR: routing audit failed with code {proc.returncode}", file=sys.stderr)
                     return proc.returncode or 1
@@ -257,16 +293,6 @@ def main() -> int:
                     protected_margin_px=PROTECTED_ZONE_MARGIN_PX,
                 )
 
-            outline_leak_cache: dict[tuple[str, int | str], dict[str, float]] = {}
-            for name in ordered_names:
-                source_rgb, source_alpha = rgb_array(source_paths[name])
-                source_detail = ink_strength_map(source_rgb)
-                pre_set = mask_set_for(name, source_rgb, source_alpha)
-                for cid, cmask in pre_set.candidates.items():
-                    outline_leak_cache[(name, cid)] = outline_leak_metrics(
-                        source_detail, source_alpha, pre_set.body_box_mask, cmask
-                    )
-
             # ==================================================================
             # [2/3] & [3/3] BATCH-VERARBEITUNG IN HÄPPCHEN (SCHONT /tmp UND RAM)
             # ==================================================================
@@ -292,29 +318,79 @@ def main() -> int:
 
                 stage_names: dict[tuple[str, int | str], tuple[str, str]] = {}
                 batch_sets: dict[str, ImageMaskSet] = {}
+                batch_groups: dict[str, dict[int | str, int | str]] = {}
 
-                for name in batch_names:
-                    rgb, alpha = rgb_array(source_paths[name])
-                    stem = "".join(ch if ch.isalnum() or ch in "-_" else "_" for ch in Path(name).stem)
-                    mask_set = mask_set_for(name, rgb, alpha)
-                    batch_sets[name] = mask_set
+                with stats.timer("mask_generation_and_staging"):
+                    for name in batch_names:
+                        rgb, alpha = rgb_array(source_paths[name])
+                        stem = "".join(ch if ch.isalnum() or ch in "-_" else "_" for ch in Path(name).stem)
+                        mask_set = mask_set_for(name, rgb, alpha)
+                        batch_sets[name] = mask_set
+                        groups = (group_identical_masks(mask_set.candidates) if use_dedup
+                                  else {cid: cid for cid in mask_set.candidates})
+                        batch_groups[name] = groups
 
-                    # Jeder Kandidat (inkl. Schutzzonen-Abzug) wird genau so an LaMa gegeben,
-                    # wie er danach zusammengesetzt und bewertet wird.
-                    for cid, cmask in mask_set.candidates.items():
-                        token = stage_token(cid)
-                        staged_rgb = f"{stem}__{token}_rgb.png"
-                        staged_alpha = f"{stem}__{token}_alpha.png"
-                        Image.fromarray(rgb, mode="RGB").save(images_stage / staged_rgb)
-                        Image.fromarray(alpha, mode="L").convert("RGB").save(images_stage / staged_alpha)
-                        mask_image = Image.fromarray(cmask.astype(np.uint8) * 255, mode="L")
-                        mask_image.save(masks_stage / staged_rgb)
-                        mask_image.save(masks_stage / staged_alpha)
-                        stage_names[(name, cid)] = (staged_rgb, staged_alpha)
+                        # Every UNIQUE candidate mask (protected zones already subtracted) goes to LaMa
+                        # exactly as it is later composited and scored; duplicates reuse the result.
+                        for cid, cmask in mask_set.candidates.items():
+                            stats.counts["candidates_total"] += 1
+                            if groups[cid] != cid:
+                                stats.counts["candidates_deduplicated"] += 1
+                                dedup_rows.append({
+                                    "image": name, "candidate": str(cid), "identical_to": str(groups[cid]),
+                                    "mask_pixels": int(np.count_nonzero(cmask)),
+                                })
+                                continue
+                            stats.counts["lama_mask_jobs"] += 1
+                            token = stage_token(cid)
+                            staged_rgb = f"{stem}__{token}_rgb.png"
+                            staged_alpha = f"{stem}__{token}_alpha.png"
+                            Image.fromarray(rgb, mode="RGB").save(images_stage / staged_rgb)
+                            Image.fromarray(alpha, mode="L").convert("RGB").save(images_stage / staged_alpha)
+                            mask_image = Image.fromarray(cmask.astype(np.uint8) * 255, mode="L")
+                            mask_image.save(masks_stage / staged_rgb)
+                            mask_image.save(masks_stage / staged_alpha)
+                            stage_names[(name, cid)] = (staged_rgb, staged_alpha)
 
                 lama_cmd = [iopaint, "run", f"--model={args.model}", f"--device={args.lama_device}",
                             f"--image={images_stage}", f"--mask={masks_stage}", f"--output={raw_stage}"]
-                proc = subprocess.run(lama_cmd, cwd=project, check=False)
+                t_lama = time.perf_counter()
+                n_workers = max(1, int(args.lama_processes))
+                with stats.timer("lama_iopaint"):
+                    staged_files = sorted(p_.name for p_ in images_stage.iterdir())
+                    n_workers = min(n_workers, len(staged_files))
+                    if n_workers <= 1:
+                        proc = subprocess.run(lama_cmd, cwd=project, check=False)
+                        worker_codes = [proc.returncode]
+                    else:
+                        # Round-robin shards: every worker gets its own image/mask folder and the
+                        # same output folder (file names are unique), so results are unchanged.
+                        shard_root = tmp / "lama_shards"
+                        raw_stage.mkdir(parents=True, exist_ok=True)
+                        shard_cmds = []
+                        for k in range(n_workers):
+                            (shard_root / f"s{k}" / "images").mkdir(parents=True, exist_ok=True)
+                            (shard_root / f"s{k}" / "masks").mkdir(parents=True, exist_ok=True)
+                            shard_cmds.append([iopaint, "run", f"--model={args.model}", f"--device={args.lama_device}",
+                                               f"--image={shard_root / f's{k}' / 'images'}",
+                                               f"--mask={shard_root / f's{k}' / 'masks'}", f"--output={raw_stage}"])
+                        for i, fname in enumerate(staged_files):
+                            k = i % n_workers
+                            shutil.move(str(images_stage / fname), str(shard_root / f"s{k}" / "images" / fname))
+                            shutil.move(str(masks_stage / fname), str(shard_root / f"s{k}" / "masks" / fname))
+                        workers = [subprocess.Popen(cmd, cwd=project) for cmd in shard_cmds]
+                        try:
+                            worker_codes = [w.wait() for w in workers]
+                        finally:
+                            for w in workers:
+                                if w.poll() is None:
+                                    w.terminate()
+                        shutil.rmtree(shard_root, ignore_errors=True)
+                    proc = types.SimpleNamespace(returncode=next((c_ for c_ in worker_codes if c_ != 0), 0))
+                n_inputs = len(stage_names) * 2
+                stats.batch_log.append({"batch": b_idx + 1, "lama_inputs": n_inputs, "workers": n_workers,
+                                        "seconds": round(time.perf_counter() - t_lama, 3)})
+                print(f"  IOPaint-Batch {b_idx + 1}: {n_inputs} Eingaben, {n_workers} Prozess(e), in {time.perf_counter() - t_lama:.1f}s", flush=True)
                 if proc.returncode != 0:
                     print(f"ERROR: IOPaint failed in Batch {b_idx + 1} with code {proc.returncode}", file=sys.stderr)
                     return proc.returncode or 1
@@ -322,6 +398,8 @@ def main() -> int:
                 for name in batch_names:
                     original_rgb, original_alpha = rgb_array(source_paths[name])
                     mask_set = batch_sets.pop(name)
+                    groups = batch_groups.pop(name)
+                    source_detail = ink_strength_map(original_rgb)
                     box_mask = mask_set.box_mask
                     candidate_masks = mask_set.candidates
                     candidate_ids: list[int | str] = list(candidate_masks)
@@ -334,7 +412,12 @@ def main() -> int:
                     final_composites: dict[int | str, tuple[np.ndarray, np.ndarray]] = {}
                     alpha_postprocess_by_candidate: dict[int | str, dict[str, float]] = {}
 
+                    t_comp = time.perf_counter()
                     for cid in candidate_ids:
+                        if groups[cid] != cid:
+                            final_composites[cid] = final_composites[groups[cid]]
+                            alpha_postprocess_by_candidate[cid] = alpha_postprocess_by_candidate[groups[cid]]
+                            continue
                         s_name, a_name = stage_names[(name, cid)]
 
                         with Image.open(raw_stage / s_name) as p_im:
@@ -345,31 +428,49 @@ def main() -> int:
                         c_mask = candidate_masks[cid]
                         f_rgb = original_rgb.copy()
                         f_rgb[c_mask] = pred_rgb[c_mask]
-                        f_rgb, fr_meta = repair_flat_fill_artifacts(original_rgb, f_rgb, c_mask, mask_set.protected)
+                        if use_fill_repair:
+                            with stats.timer("fill_repair"):
+                                f_rgb, fr_meta = repair_flat_fill_artifacts(original_rgb, f_rgb, c_mask, mask_set.protected)
+                        else:
+                            fr_meta = {"fill_repair_clusters_found": 0.0, "fill_repair_clusters_repaired": 0.0,
+                                       "fill_repair_pixels_replaced": 0.0}
                         f_alpha = original_alpha.copy()
                         f_alpha[c_mask] = pred_alpha[c_mask]
                         f_rgb, f_alpha, a_meta = remove_small_alpha_islands(
                             f_rgb, f_alpha, original_alpha, protected=mask_set.protected
                         )
+                        a_meta.update(fr_meta)
                         a_meta.update(enforce_protection(
                             f_rgb, f_alpha, original_rgb, original_alpha, mask_set.protected
                         ))
                         final_composites[cid] = (f_rgb, f_alpha)
                         alpha_postprocess_by_candidate[cid] = a_meta
+                    stats.seconds["composite_and_postprocess"] += time.perf_counter() - t_comp
 
+                    t_score = time.perf_counter()
+                    metrics_by_rep: dict[int | str, dict[str, float]] = {}
                     for cid in candidate_ids:
                         c_rgb, c_alpha = final_composites[cid]
                         c_mask = candidate_masks[cid]
-                        metrics = score_candidate(
-                            original_rgb, original_alpha, c_rgb, c_alpha,
-                            c_mask, scoring_envelope, box_mask, body_box_mask,
-                            yolo_reference_mask,
-                            outline_leak_precomputed=outline_leak_cache[(name, cid)],
-                        )
-                        metrics.update(alpha_postprocess_by_candidate[cid])
+                        if groups[cid] != cid:
+                            # Same mask => same composite => same metrics. Copy the dict because
+                            # select_candidate() writes rescue/tie-break fields into it.
+                            metrics = dict(metrics_by_rep[groups[cid]])
+                            metrics["mask_is_duplicate"] = 1.0
+                            final_rgba = debug_results[groups[cid]]
+                        else:
+                            leak = outline_leak_metrics(source_detail, original_alpha, body_box_mask, c_mask)
+                            metrics = score_candidate(
+                                original_rgb, original_alpha, c_rgb, c_alpha,
+                                c_mask, scoring_envelope, box_mask, body_box_mask,
+                                yolo_reference_mask,
+                                outline_leak_precomputed=leak,
+                            )
+                            metrics.update(alpha_postprocess_by_candidate[cid])
+                            metrics["mask_is_duplicate"] = 0.0
+                            metrics_by_rep[cid] = dict(metrics)
+                            final_rgba = np.dstack((c_rgb, c_alpha)).astype(np.uint8)
                         scored.append((metrics["score"], cid, c_mask, metrics))
-
-                        final_rgba = np.dstack((c_rgb, c_alpha)).astype(np.uint8)
                         debug_results[cid] = final_rgba
 
                         # Cleaned-PNG speichern
@@ -399,7 +500,9 @@ def main() -> int:
                             ov_path.parent.mkdir(parents=True, exist_ok=True)
                             Image.fromarray(ov, mode="RGB").save(ov_path)
 
-                    winner, best_text_score, text_tolerance = select_candidate(scored)
+                    stats.seconds["scoring_and_debug_images"] += time.perf_counter() - t_score
+                    with stats.timer("winner_selection"):
+                        winner, best_text_score, text_tolerance = select_candidate(scored)
                     best_score, best_candidate_id, best_mask, best_metrics = winner
 
                     # Gewinner-Maske sofort final speichern
@@ -507,6 +610,9 @@ def main() -> int:
                         "box_only_rescue_inside_detail_advantage": (
                             f"{float(best_metrics.get('box_only_rescue_inside_detail_advantage', 0.0)):.6f}"
                         ),
+                        "fill_repair_clusters_found": int(best_metrics.get("fill_repair_clusters_found", 0.0)),
+                        "fill_repair_clusters_repaired": int(best_metrics.get("fill_repair_clusters_repaired", 0.0)),
+                        "fill_repair_pixels_replaced": int(best_metrics.get("fill_repair_pixels_replaced", 0.0)),
                         "protected_pixels": int(best_metrics.get("protected_pixels", 0.0)),
                         "protected_pixels_restored": int(best_metrics.get("protected_pixels_restored", 0.0)),
                         "reason": rsn,
@@ -536,6 +642,24 @@ def main() -> int:
                 shutil.rmtree(masks_stage, ignore_errors=True)
                 shutil.rmtree(raw_stage, ignore_errors=True)
 
+            stats.seconds["total_wall_clock"] = time.perf_counter() - run_t0
+            if dedup_rows:
+                write_csv_with_union_fields(output_dir / "mask_dedup_report.csv", dedup_rows)
+            stats_doc = {
+                "images": total_images,
+                "batch_size": batch_size,
+                "lama_runs_rgb_plus_alpha": 2 * stats.counts["lama_mask_jobs"],
+                "lama_runs_without_dedup": 2 * stats.counts["candidates_total"],
+                "counts": dict(stats.counts),
+                "lama_batches": stats.batch_log,
+                "seconds": {k: round(v, 3) for k, v in stats.seconds.items()},
+                "fill_repair_enabled": use_fill_repair,
+                "dedup_enabled": use_dedup,
+                "debug_images_enabled": bool(save_cleaned or save_comparison or save_overlays),
+            }
+            (output_dir / "run_stats.json").write_text(json.dumps(stats_doc, indent=2), encoding="utf-8")
+            print("Run stats: " + json.dumps(stats_doc["seconds"]) + f" | LaMa jobs {stats_doc['lama_runs_rgb_plus_alpha']}"
+                  f" (ohne Dedup {stats_doc['lama_runs_without_dedup']})")
             print("\n=== AUTO-SELECTION COMPLETE ===")
             print(f"Winner masks: {output_masks}")
             print(f"Decision report: {report_path}")

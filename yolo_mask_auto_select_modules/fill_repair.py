@@ -22,7 +22,7 @@ import numpy as np
 from scipy import ndimage as ndi
 
 
-def repair_flat_fill_artifacts(
+def _repair_core(
     original_rgb: np.ndarray,          # kept for API compatibility (not needed any more)
     filled_rgb: np.ndarray,
     mask: np.ndarray,
@@ -103,3 +103,38 @@ def repair_flat_fill_artifacts(
     repaired[~changed] = filled_rgb[~changed]
     meta["fill_repair_pixels_replaced"] = float((repaired != filled_rgb).any(axis=2).sum())
     return repaired, meta
+
+
+def repair_flat_fill_artifacts(
+    original_rgb: np.ndarray,
+    filled_rgb: np.ndarray,
+    mask: np.ndarray,
+    protected: np.ndarray | None = None,
+    **params,
+) -> tuple[np.ndarray, dict[str, float]]:
+    """Same result as ``_repair_core`` on the full image, computed on a crop.
+
+    Everything the method reads lies within  median_ksize//2 + ring_outer + grow_px  plus
+    the Gaussian support of the mask; the crop margin exceeds that, so the output is
+    bit-identical while the 25px median filter only runs over the mask area.
+    Crop borders that coincide with image borders behave exactly like the full image.
+    """
+    mask = np.asarray(mask).astype(bool)
+    if not mask.any():
+        return _repair_core(original_rgb, filled_rgb, mask, protected, **params)
+    ys, xs = np.nonzero(mask.any(axis=1))[0], np.nonzero(mask.any(axis=0))[0]
+    ksize = int(params.get("median_ksize", 25))
+    margin = ksize // 2 + int(params.get("ring_outer", 8)) + int(params.get("grow_px", 5)) + 24
+    h, w = mask.shape
+    y0, y1 = max(0, int(ys[0]) - margin), min(h, int(ys[-1]) + 1 + margin)
+    x0, x1 = max(0, int(xs[0]) - margin), min(w, int(xs[-1]) + 1 + margin)
+    if (y1 - y0) * (x1 - x0) >= 0.8 * h * w:
+        return _repair_core(original_rgb, filled_rgb, mask, protected, **params)
+    sl = (slice(y0, y1), slice(x0, x1))
+    crop_prot = None if protected is None else np.asarray(protected)[sl]
+    crop_out, meta = _repair_core(original_rgb[sl], filled_rgb[sl], mask[sl], crop_prot, **params)
+    if crop_out is filled_rgb[sl] or not meta["fill_repair_pixels_replaced"]:
+        return filled_rgb, meta
+    full = filled_rgb.copy()
+    full[sl] = crop_out
+    return full, meta

@@ -7,6 +7,7 @@ LaMa inpaints is always the mask that is composited and scored.
 """
 from __future__ import annotations
 
+import hashlib
 from dataclasses import dataclass, field
 from typing import Any
 
@@ -105,3 +106,25 @@ def enforce_protection(
     final_rgb[protected] = original_rgb[protected]
     final_alpha[protected] = original_alpha[protected]
     return {"protected_pixels": float(count), "protected_pixels_restored": float(restored)}
+
+
+def group_identical_masks(candidates: dict[int | str, np.ndarray]) -> dict[int | str, int | str]:
+    """Map every candidate id to the first candidate with a pixel-identical mask.
+
+    Identical masks give identical LaMa output, composite and metrics, so only the
+    representative has to be processed. A hash only pre-selects; equality is always
+    verified pixel by pixel, so a collision can never merge different masks.
+    """
+    buckets: dict[tuple, list[int | str]] = {}
+    representative: dict[int | str, int | str] = {}
+    for cid, mask in candidates.items():
+        arr = np.asarray(mask, dtype=bool)
+        key = (arr.shape, hashlib.sha1(np.packbits(arr).tobytes()).digest())
+        for rep in buckets.setdefault(key, []):
+            if np.array_equal(np.asarray(candidates[rep], dtype=bool), arr):
+                representative[cid] = rep
+                break
+        else:
+            buckets[key].append(cid)
+            representative[cid] = cid
+    return representative
