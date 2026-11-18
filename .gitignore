@@ -25,3 +25,9 @@ __pycache__/
 # Temporary files and generated root-level run logs
 *.tmp
 /*.log
+
+# Generated run and diagnostic data (keep outside the source repository)
+/yolo_mask_routing_audit/
+/test_runs/
+/diagnostics/
+/optimization_reports/
