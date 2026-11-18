@@ -9,6 +9,7 @@ from .config import (
     DEFAULT_DISTANCES,
     DEFAULT_IMAGES_DIR,
     LAMA_PARALLEL_PROCESSES,
+    POSTPROCESS_WORKERS,
     DEFAULT_OUTPUT_DIR,
     DEFAULT_PROTECTED_ZONES_CSV,
     DEFAULT_WEIGHTS,
@@ -49,6 +50,8 @@ def parse_args(project: Path) -> argparse.Namespace:
                    help="Concurrent IOPaint processes per batch (1 = sequential, old behaviour)")
     p.add_argument("--output", type=Path, default=DEFAULT_OUTPUT_DIR,
                    help="Directory for winning masks, reports and debug files")
+    p.add_argument("--postprocess-workers", type=int, default=POSTPROCESS_WORKERS,
+                   help="Images composited/scored concurrently (1 = sequential, old behaviour)")
     p.add_argument("--no-debug-images", action="store_true",
                    help="Production mode: skip cleaned candidate PNGs, contact sheets and overlays "
                         "(candidate_scores.csv and winner masks are still written)")

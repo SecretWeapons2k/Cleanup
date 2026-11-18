@@ -1,6 +1,6 @@
 # PROJECT HANDOFF — Cleanup YOLO/LaMa
 
-Stand: 17. November 2026
+Stand: 18. November 2026 (nach Performance-Optimierung Stufe 1–5, siehe Abschnitt 11)
 Projektpfad: ~/Downloads/Cleanup
 Sprache der Zusammenarbeit: Deutsch
 
@@ -40,11 +40,17 @@ Variante samt Masken, Kandidatenbildern und Berichten.
   Kommandozeilenargumente für Bilder, Anchors, YOLO-Gewichte, Stichprobe,
   Distanzen, Geräte, Ausgabe und Dry-Run. Relevant für Einzeltests:
   `--image <Dateiname>` (nur dieses Bild) und `--output <Basisordner>`
-  (darin entsteht `run_JJJJMMTT_HHMMSS`).
+  (ist der Ordner leer, wird direkt dort geschrieben; sonst entsteht darin
+  `run_JJJJMMTT_HHMMSS`).
+  Seit 17.11.2026 zusätzlich: `--no-dedup`, `--no-fill-repair`,
+  `--no-debug-images`, `--lama-processes N`, `--postprocess-workers N`
+  (Details in Abschnitt 11).
 
 `yolo_mask_auto_select_modules/candidate_masks.py`
   Baut die Maskenkandidaten (Distanz-, Box-only-, Smart-Ink-, Contrast-,
-  Hybrid-Varianten) und `enforce_protection`.
+  Hybrid-Varianten) und `enforce_protection`. Neu: `group_identical_masks()`
+  erkennt pixelgleiche Kandidatenmasken (Hash als Vorfilter, Gleichheit wird
+  immer Pixel für Pixel geprüft).
 
 `yolo_mask_auto_select_modules/io_utils.py`
   Bild- und CSV-Verarbeitung, Quellenfindung, Anchor-/Box-Masken,
@@ -61,6 +67,12 @@ Variante samt Masken, Kandidatenbildern und Berichten.
   Stage-Bilder durch LaMa geschickt und im Composite-Block zusammengesetzt
   (`f_rgb[c_mask] = pred_rgb[c_mask]`, `f_alpha[c_mask] = pred_alpha[c_mask]`,
   danach `remove_small_alpha_islands` und `enforce_protection`).
+  Seit 17.11.2026: pixelgleiche Masken gehen nur einmal durch LaMa/Scoring,
+  IOPaint läuft pro Batch in N gleichzeitigen Prozessen, und Compositing,
+  `fill_repair`, Scoring und Auswahl der Bilder eines Batches laufen in einem
+  Thread-Pool (Abschnitt 11). Der Maskensatz wird pro Bild nur noch einmal
+  gebaut (vorher zweimal). Pro Lauf entstehen `run_stats.json` und
+  `mask_dedup_report.csv`.
 
 `yolo_mask_auto_select_modules/debug_output.py`
   Debug-Overlays, Kontaktbögen und Vorher-/Nachher-Vergleiche.
@@ -69,8 +81,10 @@ Variante samt Masken, Kandidatenbildern und Berichten.
   CSV-Ausgabe mit der Vereinigung der bevorzugten und tatsächlich vorhandenen
   Metrikfelder. Verhindert Abbrüche, wenn neue Score-Felder hinzukommen.
 
-`yolo_mask_auto_select_modules/fill_repair.py`  **(NEU, 16.11.2026, Integration noch nicht abgenommen)**
-  Post-Fill-Sanity-Check für LaMa-Ergebnisse, siehe Abschnitt 9.
+`yolo_mask_auto_select_modules/fill_repair.py`  **(16.11.2026; technisch geprüft am 17.11.2026)**
+  Post-Fill-Sanity-Check für LaMa-Ergebnisse, siehe Abschnitt 9. Technisch
+  geprüft durch Unit-Tests und Läufe; die visuelle Wirkung auf die
+  Problembilder ist **noch nicht abgenommen**.
 
 ## 3. Eigenständige Hilfsprogramme
 
@@ -83,7 +97,9 @@ Hauptpipeline:
   wie die Hauptpipeline. Prüft Maskenabdeckung, Abstand zu OCR-Ankern und
   Body-Box-Coverage. Erzeugt unter anderem `routing_report.csv`,
   `body_box_coverage.csv`, `instances.csv` und visuelle Kontaktbögen.
-  Kein LaMa-Lauf und keine Änderung der Quelldateien.
+  Kein LaMa-Lauf und keine Änderung der Quelldateien. Neu: `--no-visuals`
+  lässt Overlays und Kontaktbögen weg (Masken und Report unverändert); die
+  Hauptpipeline setzt den Schalter immer, weil ihr Audit-Ordner temporär ist.
 
 `label_tool.py`
   Lokale Browser-Oberfläche zur manuellen Bewertung der berechneten Kandidaten.
@@ -98,6 +114,11 @@ Hauptpipeline:
   Kombiniert Ranker-Auswahl und manuelle Labels. Kann akzeptierte
   Kandidatenbilder in einen separaten Ordner kopieren; Quelldateien werden
   dabei nicht verschoben.
+
+`optimize_cleanup/optimize_cleanup*.py`  (NEU, 17.11.2026)
+  Einmalige Migrationsskripte Stufe 1–5 (Abschnitt 11.6). Eigenständige
+  Einzeldateien; nach erfolgreicher Anwendung nur noch als Dokumentation/
+  Rollback-Werkzeug nötig.
 
 `scripts/cleanup_repo.py`
   Repository-Wartung. Standardmäßig nur Dry-Run-Bericht. Mit `--apply`
@@ -160,6 +181,14 @@ Das ist ein gezielter Einzelbild-Replay und kein neuer vollständiger
 
 ## 6. Letzte bekannte Laufdaten
 
+**Vollständiger Lauf mit dem Stand nach Stufe 5 (18.11.2026, Bestätigt aus der
+Terminalausgabe des Nutzers):** 716 Bilder, 8 Batches, ohne Fehler,
+`real 52m20,6s`. Ausgabeordner: `~/cleanup_compare/FULL_stage5/` (außerhalb des
+Repositorys). **Die Ergebnisdateien dieses Laufs (`winner_report.csv`,
+`candidate_scores.csv`, `mask_dedup_report.csv`, `run_stats.json`) sind noch
+nicht ausgewertet.** Ein Vergleich der Gewinner mit einem früheren
+vollständigen Lauf steht aus. Einzelheiten und Zeiten: Abschnitt 11.3.
+
 Der archivierte `full_run.log` dokumentierte einen Lauf mit 716 ausgewählten
 Bildern und 716 gespeicherten Gewinner-Masken am 19. Oktober 2026.
 Das Log wird aus dem Repository heraus in ein lokales Archiv verschoben.
@@ -186,78 +215,90 @@ Am 16.11.2026 passten ein älteres `candidate_scores.csv` und ein neueres
 
 ## 7. Tests und wichtige Befehle
 
-Projektverzeichnis:
+Projektverzeichnis (der Nutzer startet mit `uv run`; `source .venv/bin/activate`
+ist gleichwertig):
 
 ```bash
 cd ~/Downloads/Cleanup
-source .venv/bin/activate
 ```
 
 Syntaxprüfung:
 
 ```bash
-python -m py_compile yolo_mask_auto_select.py yolo_mask_routing_audit.py yolo_mask_auto_select_modules/*.py
+uv run python -m compileall -q yolo_mask_auto_select_modules yolo_mask_auto_select.py yolo_mask_routing_audit.py
 ```
 
 Unit-Tests:
 
 ```bash
-python -m unittest discover -s yolo_mask_auto_select_modules/tests -v
+uv run python -m unittest discover -s yolo_mask_auto_select_modules/tests -t . -v
 ```
 
-Teststand: Für den aktuellen Stand auf GitHub liegt in dieser Übergabe kein
-verifizierter vollständiger Testlauf nach der Integration von `fill_repair`
-vor. Eine Datei `yolo_mask_auto_select_modules/tests/test_fill_repair.py` ist
-im Repository nicht vorhanden. Der letzte bekannte erfolgreiche Lauf der
-bestehenden Suite stammt laut Nutzer vom 16.11.2026 **vor** dem Einbau von
-`fill_repair`; er bestätigt nicht den aktuellen Stand.
+Teststand (Bestätigt): Die Stufenskripte aus Abschnitt 11.6 führen nach jeder
+Stufe Syntaxprüfung und die komplette Suite auf dem System des Nutzers aus;
+alle Stufen meldeten `syntax: OK` und `unit_tests: OK`. Die Suite umfasst im
+Sandbox-Stand 42 Tests (28 bestehende, 14 neue). Neue Testdateien:
+`test_dedup_and_fill_repair.py` (Maskengruppierung, `fill_repair`,
+Pipeline-Gleichheit mit/ohne Dedup, mit 1/3 IOPaint-Prozessen, mit 1/4
+Nachbearbeitungs-Threads, Fehlerpfad), `test_fill_repair_crop.py` (60
+Zufallsszenen: zugeschnittenes `fill_repair` bitgleich zur Vollbild-Variante)
+und `test_audit_no_visuals.py` (Audit mit/ohne `--no-visuals`, mit
+Dummy-YOLO). Die Pipeline-Tests ersetzen YOLO-Audit und IOPaint durch
+Attrappen und belegen die **Logik**, nicht das GPU-Verhalten.
 
 Kleiner Pipeline-Dry-Run:
 
 ```bash
-python yolo_mask_auto_select.py --random-sample 10 --min-m-images 3 --seed 20261018 --dry-run
+uv run python yolo_mask_auto_select.py --random-sample 10 --min-m-images 3 --seed 20261018 --dry-run
 ```
 
 Einzelbild-Testlauf (eigener Ausgabeordner, `yolo_mask_winners` bleibt sauber):
 
 ```bash
-python yolo_mask_auto_select.py --image f002_004.png --output ~/Downloads/Cleanup/test_runs
+uv run python yolo_mask_auto_select.py --image f002_004.png --output ~/Downloads/Cleanup/test_runs
 ```
 
-Aktueller Hinweis: `fill_repair` wird in `pipeline.py` ohne Umgebungsvariablen-
-Schalter aufgerufen. `FILL_REPAIR=0/1` hat im derzeit geprüften Code keine
-Wirkung. Ein echter Vorher/Nachher-Vergleich benötigt zunächst einen
-Code-Schalter oder zwei getrennte Code-Stände.
+Vollständiger Lauf im Hintergrund (GPU währenddessen **frei lassen**, siehe 11.5):
+
+```bash
+nohup bash -c 'time uv run python yolo_mask_auto_select.py --output ~/cleanup_compare/<NAME>' > /tmp/full.log 2>&1 &
+tail -f /tmp/full.log | grep -E "Batch|real|ERROR|COMPLETE"
+```
+
+`fill_repair` ein-/ausschalten für Vergleiche: `--no-fill-repair` bzw.
+`FILL_REPAIR_ENABLED` in `config.py`. (Die frühere Umgebungsvariable
+`FILL_REPAIR=0/1` existiert nicht.)
 
 Routing-Audit-Hilfe:
 
 ```bash
-python yolo_mask_routing_audit.py --help
+uv run python yolo_mask_routing_audit.py --help
 ```
 
-Manuelle Kandidatenbewertung:
+Manuelle Kandidatenbewertung (braucht die Debug-Bilder, also **nicht** mit
+`--no-debug-images` erzeugte Läufe):
 
 ```bash
-python label_tool.py --run-dir <LAUFVERZEICHNIS>
+uv run python label_tool.py --run-dir <LAUFVERZEICHNIS>
 ```
 
 Ranker-Training benötigt Score- und Label-CSV aus demselben Bewertungsworkflow:
 
 ```bash
-python train_ranker.py --scores <candidate_scores.csv> --labels <labels.csv> --out <ranker_out>
+uv run python train_ranker.py --scores <candidate_scores.csv> --labels <labels.csv> --out <ranker_out>
 ```
 
 Finale Auswahl:
 
 ```bash
-python build_final_picks.py --run-dir <LAUFVERZEICHNIS>
+uv run python build_final_picks.py --run-dir <LAUFVERZEICHNIS>
 ```
 
 Repository-Cleanup:
 
 ```bash
-python scripts/cleanup_repo.py
-python scripts/cleanup_repo.py --apply
+uv run python scripts/cleanup_repo.py
+uv run python scripts/cleanup_repo.py --apply
 ```
 
 ## 8. Zusammenarbeit und Sicherheitsregeln
@@ -372,16 +413,25 @@ Geschützte Pixel bleiben unangetastet; Alpha wird von dieser Funktion nicht
 bearbeitet. Die Parameter sind direkt in `fill_repair.py` definiert und
 nicht in `config.py` zentralisiert.
 
-**Integration in der Pipeline (bestätigt im aktuellen Quellcode):**
+**Integration in der Pipeline (Stand 17.11.2026, bestätigt im Quellcode):**
 - `pipeline.py` importiert `repair_flat_fill_artifacts`.
 - Der Aufruf erfolgt unmittelbar nach dem Einsetzen des LaMa-RGB-Ergebnisses
   in die Kandidatenmaske.
-- Der Aufruf ist derzeit unbedingt: Es gibt keinen `FILL_REPAIR`-Schalter.
-- Die zurückgegebenen `fr_meta`-Zähler werden im aktuell geprüften
-  Pipeline-Code nicht in `a_meta` oder einen Report übernommen. Die Funktion
-  liefert zwar `fill_repair_clusters_found`,
-  `fill_repair_clusters_repaired` und `fill_repair_pixels_replaced`,
-  diese Werte sind damit nicht als Laufdiagnostik verfügbar.
+- **Neu:** Der Aufruf ist über `FILL_REPAIR_ENABLED` (`config.py`) bzw.
+  `--no-fill-repair` schaltbar (Standard: an, also unverändertes Verhalten).
+- **Neu:** Die `fr_meta`-Zähler (`fill_repair_clusters_found`,
+  `fill_repair_clusters_repaired`, `fill_repair_pixels_replaced`) stehen pro
+  Kandidat in `candidate_scores.csv` und für den Gewinner in
+  `winner_report.csv`.
+- **Neu:** `repair_flat_fill_artifacts` ist ein Wrapper, der die bisherige
+  Funktion (jetzt `_repair_core`) auf einem Bildausschnitt um die Maske
+  (Rand: `median_ksize//2 + ring_outer + grow_px + 24` px) ausführt. Das
+  Ergebnis ist bitgleich zur Vollbild-Berechnung (Bestätigt: 60
+  Zufallsszenen im Test, außerdem identische Scores im 40-Bilder-Lauf). Ist
+  der Ausschnitt ≥ 80 % des Bildes, wird wie früher das ganze Bild berechnet.
+  Gemessene Wirkung: gering (Abschnitt 11.4), weil die Maskenbereiche der
+  Gewinner meist fast das ganze Bild abdecken (Bestätigt für die
+  Gewinnermasken der 40-Bilder-Stichprobe: 78 % im Rückfall).
 
 ### 9.4 Aktueller gespeicherter Testlauf: `run_20261116_225034`
 
@@ -410,54 +460,254 @@ Ob die darin gespeicherten PNGs den aktuellen Code exakt widerspiegeln,
 muss bei einer erneuten visuellen Prüfung anhand der Laufdateien und des
 zugehörigen Commits abgeglichen werden.
 
-### 9.5 Was gegenüber der alten Übergabe korrigiert wurde
+### 9.5 Was gegenüber früheren Übergaben korrigiert wurde
 
 - Der alte Navier-Stokes-Ablauf samt den Parametern
   `disagree_levels=45`, `flat_ring_std=20`, `grow_px=2` und
   `inpaint_radius=4` ist nicht mehr die aktuelle Implementierung.
-- Die alte Aussage, der Import fehle und der Pipeline-Aufruf breche deshalb
-  mit `NameError` ab, ist überholt: Import und Aufruf sind jetzt im
-  aktuellen `pipeline.py` vorhanden.
+- Die alte Aussage, der Import fehle und der Pipeline-Aufruf breche mit
+  `NameError` ab, ist überholt.
 - Die früheren Offline-Ergebnisse (z. B. 126 ersetzte Pixel bei
-  `f002_004`) gehören zur alten Methode und dürfen nicht als Ergebnis der
-  aktuellen Median-Reparatur interpretiert werden.
-- Der frühere Vorschlag, per `FILL_REPAIR=0/1` zu vergleichen, ist mit dem
-  aktuellen Code nicht ausführbar, weil dieser Schalter nicht implementiert
-  ist.
-- Ein dedizierter Unit-Test für `fill_repair.py` wurde unter dem erwarteten
-  Pfad nicht gefunden. Ein erfolgreicher Testlauf nach Integration ist nicht
-  belegt.
+  `f002_004`) gehören zur alten Methode.
+- **Seit 17.11.2026 erledigt:** `FILL_REPAIR`-Schalter (als Config-Wert und
+  CLI-Flag, nicht als Umgebungsvariable), `fr_meta` im Report,
+  Unit-Tests für `fill_repair` (`test_dedup_and_fill_repair.py`,
+  `test_fill_repair_crop.py`).
 
 ### 9.6 Nächste sinnvolle Schritte
 
-1. **Reparatur messbar machen:** `fr_meta` in die Kandidaten-Metadaten und
-   `candidate_scores.csv` übernehmen, damit pro Kandidat sichtbar wird,
-   wie viele Cluster gefunden und wie viele Pixel tatsächlich verändert
-   wurden.
-2. **Gezielter visueller Test:** `f002_004.png` erneut mit aktuellem Code
-   ausführen und Original, Gewinner-Maske sowie Gewinnerbild aus demselben
-   Lauf prüfen. Der aktuelle gespeicherte CSV-Bericht allein beantwortet
-   nicht, ob der schwarze Punkt und sein Rand sauber entfernt wurden.
-3. **Regressionstests ergänzen:** Tests für einen kompakten dunklen Fleck auf
-   flachem Hintergrund, eine Kontur/Rahmenlinie, eine längliche Struktur am
-   Maskenrand und geschützte Pixel schreiben.
-4. **Gesamte Testsuite ausführen:** Erst danach Syntaxprüfung und
-   `python -m unittest discover -s yolo_mask_auto_select_modules/tests -v`.
-5. **Erst nach Sichtprüfung entscheiden**, ob die Schwellenwerte der
-   Median-Reparatur geändert werden. Keine Score-Gewichte oder
-   Auswahlregeln verändern, um einen Cleaning-Fehler zu kaschieren.
+1. **Gezielter visueller Test:** die fünf Problembilder (`d002_001`,
+   `f002_004`, `m001_001`, `n004_003`, `n005_000`) mit dem aktuellen Stand
+   ausführen und Original, Gewinner-Maske und Gewinnerbild aus **demselben**
+   Lauf prüfen. Bisher gibt es dafür nach den Änderungen keine Sichtprüfung.
+2. **Wirkung von `fill_repair` messen:** Vergleichslauf mit und ohne
+   `--no-fill-repair` über dieselben Bilder; die neuen Zähler in
+   `candidate_scores.csv` zeigen, bei wie vielen Kandidaten die Reparatur
+   überhaupt greift. Erst danach entscheiden, ob Parameter geändert werden.
+3. Keine Score-Gewichte oder Auswahlregeln verändern, um einen
+   Cleaning-Fehler zu kaschieren (Grundsatz aus Abschnitt 8).
 
 ## 10. Bekannte Dokumentationsgrenzen
 
-Diese Übergabe beschreibt den am 16. November 2026 bekannten Stand anhand der
-oben genannten Dateien und Analysen. Sie ersetzt keine Prüfung der aktuellen
+Diese Übergabe beschreibt den am 18. November 2026 bekannten Stand anhand der
+oben genannten Dateien, Messungen und Analysen. Sie ersetzt keine Prüfung der aktuellen
 lokalen Laufdaten und aktualisiert sich nicht automatisch.
 
-Nicht von mir ausgeführt oder verifiziert: LaMa-Läufe (in der Analyse-
-umgebung nicht verfügbar), der aktuelle Inhalt von `pipeline.py` nach den
-Nutzeränderungen, der Pipeline-Lauf mit `fill_repair`, die Unit-Tests nach dem
-Einbau und die Behauptung, `d002_001` sei inzwischen gefixt.
+Nicht verifiziert (Stand 18.11.2026): die visuelle Qualität der Ergebnisse
+nach den Optimierungen (Scores und Gewinner sind in den Vergleichsläufen
+identisch, Bilder wurden nicht angesehen), der Zustand von `d002_001`
+(„gefixt“ laut Nutzer), die Auswertung der Ergebnisdateien des
+716-Bilder-Laufs `FULL_stage5` und ein Vergleich dieses Laufs mit einem
+früheren vollständigen Lauf. Die Sandbox-Tests (Dummy-YOLO/-IOPaint) belegen
+keine GPU-Eigenschaften.
 
 Bei einem neuen Arbeitsschritt immer den aktuellen Quellcode, die letzten
 relevanten Testergebnisse und die konkreten zu untersuchenden Bilder oder
 Reports heranziehen.
+
+## 11. Arbeitsstand 17./18. November 2026: Performance-Optimierung
+
+Ziel war ein deutlich schnellerer vollständiger Lauf **ohne** Änderung der
+Reinigungsergebnisse. Alle Stufen wurden an derselben 40-Bilder-Stichprobe
+(`--random-sample 40`, Standard-Seed) gegen den Lauf `B_dedup` verglichen:
+`candidate_scores.csv` (ohne die neue Spalte `mask_is_duplicate`),
+Gewinner (`selected_distance_px`) und `winner_report.csv` waren in **jedem**
+Vergleichslauf identisch (Bestätigt, Nutzerausgaben). Das belegt
+Reproduzierbarkeit von LaMa/GPU zwischen Läufen mit gleichen Eingaben, aber
+nur für diese 40 Bilder.
+
+Einschränkung der Baseline: Referenzlauf A (`--no-dedup`, Batch 25) lief mit
+dem **gepatchten** Code im alten Verhalten, nicht mit dem unveränderten
+Original. Die Gleichwertigkeit zum Original (Maskensatz nur einmal bauen,
+Outline-Leak im Batch statt vorab) ist durch Code-Lesen begründet, nicht durch
+einen Lauf des unveränderten Codes belegt.
+
+### 11.1 Befunde der Analyse (Bestätigt)
+
+- Pro Bild: 11 Kandidaten × 2 (RGB + Alpha) = 22 LaMa-Eingaben.
+- Der Maskensatz (YOLO-PNGs laden, Contrast-/Smart-Ink-Masken) wurde pro Bild
+  zweimal gebaut (Outline-Leak-Vorberechnung + Batch).
+- `fill_repair` lief immer; seine Metriken wurden verworfen.
+- Das YOLO-Audit schrieb pro Bild Overlays für alle Distanzen, Box-only und
+  Kontaktbögen in einen temporären Ordner, der nach dem Lauf gelöscht wird.
+  Das Audit läuft mit Konfidenz 0,05 und 0,10; die Pipeline liest nur `0.05`
+  (`0.10` ist laut Audit-Code nur eine Metrik-Kontrolle, bleibt unverändert).
+- IOPaint arbeitet mit `HDStrategy.CROP` (Trigger 800 px, Rand 128 px)
+  und verarbeitet Dateien einzeln nacheinander.
+- Alpha-LaMa für deckende Bilder auszulassen ist **verworfen**: Nur 1 von 40
+  Bildern hat durchgehend Alpha 255, und bei diesem liefert LaMa in allen 11
+  Kandidaten nicht exakt 255 zurück (Pixelwerte würden sich ändern).
+
+### 11.2 Umgesetzte Änderungen
+
+| Stufe | Änderung | Ergebnis-Auswirkung |
+|---|---|---|
+| 1 | Identische Masken nur einmal durch LaMa/Compositing/Scoring (`DEDUPLICATE_IDENTICAL_MASKS`, `--no-dedup`); Reports behalten alle Kandidaten-IDs, Metriken werden kopiert; `mask_dedup_report.csv`. Maskensatz nur einmal pro Bild. `FILL_REPAIR_ENABLED`/`--no-fill-repair`; `fr_meta` in Reports. `run_stats.json` (Phasenzeiten, LaMa-Jobs). `--no-debug-images`. | keine (bestätigt) |
+| 2 | `fill_repair` auf Ausschnitt um die Maske (bitgleich); Zeit je IOPaint-Batch in `run_stats.json`. | keine (bestätigt) |
+| 3 | Audit mit `--no-visuals` (Pipeline setzt es immer); `LAMA_BATCH_SIZE` 25 → 100. | keine (bestätigt) |
+| 4 | `LAMA_PARALLEL_PROCESSES = 2` (`--lama-processes`): Eingaben reihum auf N Shard-Ordner, N IOPaint-Prozesse gleichzeitig, gleicher Ausgabeordner. | keine (bestätigt für 2) |
+| 5 | `POSTPROCESS_WORKERS = 6` (`--postprocess-workers`): Thread-Pool über die Bilder eines Batches (Reihenfolge bleibt); OpenCV-Threads während des Pools auf 1. | keine (bestätigt) |
+
+`run_stats.json` zählt `composite_and_postprocess`, `fill_repair` und
+`scoring_and_debug_images` als **Summe der Thread-Sekunden**; die echte Dauer
+des Blocks steht in `postprocess_wall_clock`. `fill_repair` ist in
+`composite_and_postprocess` enthalten (nicht addieren).
+
+### 11.3 Messwerte (40-Bilder-Stichprobe, Bestätigt aus Nutzerausgaben)
+
+| Lauf | Stand | Gesamt (`total_wall_clock`) | LaMa |
+|---|---|---|---|
+| A | Original-Verhalten (`--no-dedup`, Batch 25) | 456 s | 316,5 s |
+| B | + Dedup (LaMa-Läufe 880 → 610, −30,7 %) | 401 s | 279,6 s |
+| C/D | + `fill_repair`-Ausschnitt | 386 / 390 s | 271 / 277 s |
+| E | ein Batch (40) | 347 s | 231,1 s |
+| F | + Audit ohne Visuals, Batch 100 | 351 s | 237,6 s |
+| H | wie F, `--no-debug-images` | real 5m29 | – |
+| I_p2 | + 2 IOPaint-Prozesse | 243 s | 145,7 s |
+| K_pp1 | wie I_p2, 1 Nachbearb.-Thread | 243 s | 145,6 s |
+| K_pp6 | + 6 Nachbearb.-Threads | **183 s** | 150,8 s |
+
+Rauschen zwischen identischen Läufen: etwa 2–3 % (C vs. D). Der erste Lauf A
+war vermutlich durch kalte Dateicaches leicht erhöht (auch das unveränderte
+YOLO-Audit war dort ~10 % langsamer als in B). Der Gewinn durch Dedup allein
+ist deshalb nicht sauber von diesem Effekt zu trennen.
+
+Phasenverteilung Lauf A (Anteile): LaMa 69 %, `fill_repair` 16 %, Scoring +
+Debug-Bilder 6,5 %, YOLO-Audit 5,5 %, Maskenbau 1,6 %.
+Debug-Bilder speichern kostet ~7,5 s je 40 Bilder (24,1 → 16,6 s).
+`yolo_routing_audit` fiel in den späteren Läufen von ~22 s auf ~6 s;
+**Ursache offen** (Hypothese: warmer MIOpen-Kernelcache).
+
+GPU-Auslastung im Lauf F (sysfs, 1-s-Takt, Bestätigt): Gesamtlauf im Mittel
+25 %; im LaMa-Fenster (198 s) im Mittel 42 % und 42 % der Zeit unter 10 %;
+87 s nach dem LaMa-Fenster Leerlauf (CPU-Nachbearbeitung); VRAM-Spitze
+1,56 GB bei ~0,6 GB Grundlast.
+
+**Vollständiger Lauf `FULL_stage5` (716 Bilder, Stufe 5, 2 IOPaint-Prozesse,
+Batch 100):** `real 52m20,6s`. IOPaint je Batch:
+
+| Batch | Bilder | Eingaben | Zeit | s/Eingabe |
+|---|---|---|---|---|
+| 1 | 1–100 | 1658 | 517,9 s | 0,31 |
+| 2 | 101–200 | 1630 | 481,0 s | 0,30 |
+| 3 | 201–300 | 1672 | 237,3 s | 0,14 |
+| 4 | 301–400 | 2112 | 805,6 s | 0,38 |
+| 5 | 401–500 | 1504 | 206,0 s | 0,14 |
+| 6 | 501–600 | 1366 | 151,6 s | 0,11 |
+| 7 | 601–700 | 1326 | 126,4 s | 0,10 |
+| 8 | 701–716 | 230 | 97,4 s | 0,42 (Startzeit dominiert) |
+
+Summe IOPaint ≈ 2622 s (≈ 43,7 min, ~83 % des Laufs). Die Zeit je Eingabe
+schwankt zwischen Batches um mehr als Faktor 3 (Batches 1, 2, 4 deutlich
+langsamer). **Ursache offen** (Hypothesen: größere Bilder in diesen Batches
+wegen der Crop-Strategie; Fremdlast auf der GPU; nicht geprüft).
+Ursprüngliche Hochrechnung des Ausgangsstands: ≈ 136 min (aus der
+40-Bilder-Messung A extrapoliert, **kein** gemessener Wert); Hochrechnung der
+Stufe 5: 50–60 min, gemessen 52,3 min.
+
+### 11.4 Was wenig brachte / Einordnung
+
+- `fill_repair`-Ausschnitt: nur ~11 % weniger `fill_repair`-Zeit, weil die
+  Maskenbereiche meist fast das ganze Bild abdecken (siehe 9.3). Profil an
+  einem Bild: ~96 ms je Aufruf; Medianfilter ≈ die Hälfte, Dilatationen/
+  Erosionen (~220 Aufrufe) und Gaußfilter der Rest.
+- Audit ohne Visuals: ~6 % der Audit-Zeit.
+- Ein IOPaint-Start kostet geschätzt ~44 s Fixzeit (Dreipunktschätzung aus
+  Läufen mit 1 bzw. 2 Batches, grob).
+
+### 11.5 Betriebshinweise (wichtig)
+
+- **Die GPU muss während des Laufs frei sein.** Zwei Testläufe mit
+  `--lama-processes 2` und `3` brachen ab, während der Nutzer nebenher ein
+  anderes GPU-Programm nutzte (VRAM-Spitze 16,2 GB, kein
+  `candidate_scores.csv`). Die Fehlermeldung wurde nicht gesehen (die Ausgabe
+  war gefiltert); die Wiederholung mit freier GPU lief fehlerfrei und lieferte
+  identische Ergebnisse. Ursache daher **sehr wahrscheinlich
+  Speicherknappheit durch die Fremdlast** (Hypothese, nicht durch die
+  Fehlermeldung belegt).
+- Der Test mit `--lama-processes 3` steht aus (laut Nutzer reichen zwei
+  vorerst).
+- Bei einem Fehler in einem IOPaint-Prozess bricht der Lauf ab (kein
+  stilles Weiterarbeiten).
+- Größere Batches bedeuten größeren Verlust bei Abbruch (CSV-Reports werden
+  nach jedem Batch geschrieben, ein Batch hat jetzt bis zu 100 Bilder).
+- `/tmp` ist ein tmpfs (31 GB, im RAM); Staging-Daten eines Batches liegen
+  deutlich darunter, sind aber nicht kostenlos.
+- Für Läufe, die mit `label_tool.py` bewertet werden sollen, **nicht**
+  `--no-debug-images` verwenden.
+
+### 11.6 Migrationsskripte `optimize_cleanup/`
+
+`optimize_cleanup.py` (Stufe 1) sowie `optimize_cleanup_stage2.py` bis
+`optimize_cleanup_stage5.py`. Jede Datei ist eigenständig (Patch eingebettet),
+benötigt nur die Standardbibliothek und läuft von jedem Verzeichnis:
+
+```bash
+uv run python optimize_cleanup/optimize_cleanup_stageN.py            # Dry-Run, ändert nichts
+uv run python optimize_cleanup/optimize_cleanup_stageN.py --apply    # Backup, Patch, Validierung
+uv run python optimize_cleanup/optimize_cleanup_stageN.py --restore <BACKUP_DIR>
+```
+
+Eigenschaften (Bestätigt im Test gegen eine Kopie des Ausgangsstands; alle
+fünf Stufen wurden vom Nutzer erfolgreich angewendet):
+- Stufen müssen **in Reihenfolge** angewendet werden; jede prüft per SHA-256,
+  dass die Zieldateien exakt dem erwarteten Stand entsprechen, und bricht
+  sonst ab (keine heuristischen Textersetzungen). **Folge:** Wer eine dieser
+  Dateien (`pipeline.py`, `config.py`, `cli.py`, `candidate_masks.py`,
+  `fill_repair.py`, `yolo_mask_routing_audit.py`, die Testdatei
+  `test_dedup_and_fill_repair.py`) von Hand ändert, blockiert spätere
+  Stufen; nicht ausgeführte Stufen dann neu abgleichen.
+- Backup vor dem Patch nach `~/cleanup_backups/<Projekt>_backup_<Zeitstempel>`
+  (außerhalb des Repositorys, nie überschrieben); ausgenommen sind `.venv`,
+  `.git`, `test_runs/`, `diagnostics/`, `yolo_mask_winners/`.
+- Bericht je Ausführung in `optimization_reports/<Zeitstempel>/`
+  (`inventory.json`: AST-Bestandsaufnahme, `report.md`).
+- Die Skripte ändern weder Originalbilder noch Ergebnisordner noch `.venv`.
+
+### 11.7 Neue Ausgabedateien und Spalten
+
+- `<Ausgabe>/run_stats.json`: Phasenzeiten, Zähler (`candidates_total`,
+  `candidates_deduplicated`, `lama_mask_jobs`), `lama_runs_rgb_plus_alpha`,
+  `lama_runs_without_dedup`, `lama_batches` (Eingaben, Prozesse, Sekunden),
+  `postprocess_workers`, Schalterstände.
+- `<Ausgabe>/mask_dedup_report.csv`: je zusammengelegtem Kandidaten
+  `image`, `candidate`, `identical_to`, `mask_pixels`.
+- `candidate_scores.csv`: neue Spalten `mask_is_duplicate` (0/1) und
+  `fill_repair_*`; `winner_report.csv`: `fill_repair_*`.
+  Spaltenvergleiche mit älteren Läufen müssen diese Spalten ausnehmen.
+
+### 11.8 Offene Punkte (priorisiert)
+
+1. **Ergebnisse von `FULL_stage5` auswerten** (Gewinnerhäufigkeit je Kandidat,
+   Dedup-Quote über alle 716 Bilder, Bildtypen, Zeit je Phase) und mit einem
+   früheren vollständigen Lauf vergleichen, z. B. dem Lauf
+   `full_recheck_after_alpha_island_025_20261025_022053` (nur vergleichen,
+   wenn Dateien aus demselben Lauf stammen; Codestand und Konfiguration
+   können sich unterscheiden).
+2. **Sichtprüfung der fünf Problembilder** (Abschnitt 9.6).
+3. **Kandidaten- und Scoring-Analyse** (Auftrag Abschnitt 3/4): welche
+   Methoden gewinnen wie oft, welche Masken sind identisch bzw. fast
+   identisch, welche Metriken ändern Gewinner, Kosten je Metrik. Grundlage
+   sollten die Daten aus Punkt 1 sein; `scoring.py` (1525 Zeilen) wurde bisher
+   nur im Überblick gelesen, nicht analysiert. Keine Methode entfernen oder
+   Gewichte ändern ohne diese Daten.
+4. **Weitere Laufzeit:** IOPaint macht ~83 % der Zeit. Optionen: Ursache der
+   stark schwankenden Zeit je Eingabe klären (Batches 1, 2, 4); Nachbearbeitung
+   eines Batches mit dem LaMa-Lauf des nächsten überlappen (die GPU wartet
+   sonst während der Nachbearbeitung); `--lama-processes 3` testen; weniger
+   Kandidaten (nur nach Punkt 3).
+5. **Umstrukturierung** nach dem Zielbild des Projektauftrags
+   (`src/cleanup/`, Pakete `pipeline/masks/cleaning/scoring/io/debug`,
+   `tests/`, `scripts/`, `tools/`): **noch nicht begonnen.** Erst nach
+   Punkt 1–3, da Dateiverschiebungen die hashgeschützte Stufenkette brechen
+   und die Analyse auf dem aktuellen Code aufbaut.
+6. **Dependency-Verwaltung** (`pyproject.toml`/`uv.lock`, ROCm-Besonderheiten,
+   IOPaint): **noch nicht begonnen.** `requirements-before-iopaint.txt` ist
+   weiterhin nur ein historischer Snapshot. Die funktionierende
+   ROCm-Umgebung nicht anfassen.
+7. **Entscheidung über Debug-Standardwerte:** `DEBUG_SAVE_*` stehen weiter auf
+   `True` (Standardverhalten unverändert), weil `label_tool.py` und
+   `build_final_picks.py` die Kandidatenbilder lesen; `--no-debug-images`
+   existiert als Produktivschalter.
+8. Die Aufräumarbeiten aus dem Auftrag (Dateiumbenennungen, zentrale Pfade,
+   Handoff nach der Umstrukturierung erneut anpassen) sind offen.

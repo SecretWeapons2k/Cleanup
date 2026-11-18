@@ -9,7 +9,9 @@ import shutil
 import subprocess
 import sys
 import tempfile
+import threading
 import types
+from concurrent.futures import ThreadPoolExecutor
 import time
 from collections import defaultdict
 from pathlib import Path
@@ -51,9 +53,14 @@ class RunStats:
     """Wall-clock per pipeline phase plus job counters (written to run_stats.json)."""
 
     def __init__(self) -> None:
+        self._lock = threading.Lock()
         self.seconds: dict[str, float] = defaultdict(float)
         self.counts: dict[str, int] = defaultdict(int)
         self.batch_log: list[dict[str, Any]] = []
+
+    def add(self, phase: str, seconds: float) -> None:
+        with self._lock:
+            self.seconds[phase] += seconds
 
     def timer(self, phase: str):
         stats = self
@@ -63,7 +70,7 @@ class RunStats:
                 self_inner.t0 = time.perf_counter()
 
             def __exit__(self_inner, *exc):
-                stats.seconds[phase] += time.perf_counter() - self_inner.t0
+                stats.add(phase, time.perf_counter() - self_inner.t0)
 
         return _Timer()
 
@@ -395,7 +402,13 @@ def main() -> int:
                     print(f"ERROR: IOPaint failed in Batch {b_idx + 1} with code {proc.returncode}", file=sys.stderr)
                     return proc.returncode or 1
 
-                for name in batch_names:
+                def _process_image(name):
+                    """Composite, score and select one image; returns (score_rows, report_rows, log_line).
+
+                    Side effects are limited to this image's own output files, so images can run concurrently.
+                    """
+                    all_debug_score_rows: list[dict[str, Any]] = []
+                    all_report_rows: list[dict[str, Any]] = []
                     original_rgb, original_alpha = rgb_array(source_paths[name])
                     mask_set = batch_sets.pop(name)
                     groups = batch_groups.pop(name)
@@ -445,7 +458,7 @@ def main() -> int:
                         ))
                         final_composites[cid] = (f_rgb, f_alpha)
                         alpha_postprocess_by_candidate[cid] = a_meta
-                    stats.seconds["composite_and_postprocess"] += time.perf_counter() - t_comp
+                    stats.add("composite_and_postprocess", time.perf_counter() - t_comp)
 
                     t_score = time.perf_counter()
                     metrics_by_rep: dict[int | str, dict[str, float]] = {}
@@ -500,7 +513,7 @@ def main() -> int:
                             ov_path.parent.mkdir(parents=True, exist_ok=True)
                             Image.fromarray(ov, mode="RGB").save(ov_path)
 
-                    stats.seconds["scoring_and_debug_images"] += time.perf_counter() - t_score
+                    stats.add("scoring_and_debug_images", time.perf_counter() - t_score)
                     with stats.timer("winner_selection"):
                         winner, best_text_score, text_tolerance = select_candidate(scored)
                     best_score, best_candidate_id, best_mask, best_metrics = winner
@@ -619,7 +632,25 @@ def main() -> int:
                     })
 
                     score_text = " | ".join(f"{cid}:text={m['text_quality_score']:.3f},inside={m['residual_inside_box_ratio']:.3f},shape={m['structure_score']:.3f}" for _score, cid, _mask, m in scored)
-                    print(f"  {name}: {score_text} -> WINNER {best_candidate_id}")
+                    return all_debug_score_rows, all_report_rows, f"  {name}: {score_text} -> WINNER {best_candidate_id}"
+
+                t_pp = time.perf_counter()
+                pp_workers = max(1, min(int(args.postprocess_workers), len(batch_names)))
+                if pp_workers == 1:
+                    image_results = [_process_image(n_) for n_ in batch_names]
+                else:
+                    cv2_threads = cv2.getNumThreads()
+                    cv2.setNumThreads(1)   # parallelism comes from the images; avoids oversubscription
+                    try:
+                        with ThreadPoolExecutor(max_workers=pp_workers) as pool:
+                            image_results = list(pool.map(_process_image, batch_names))  # keeps input order
+                    finally:
+                        cv2.setNumThreads(cv2_threads)
+                stats.add("postprocess_wall_clock", time.perf_counter() - t_pp)
+                for rows_debug, rows_report, log_line in image_results:
+                    all_debug_score_rows.extend(rows_debug)
+                    all_report_rows.extend(rows_report)
+                    print(log_line)
 
                 # CSVs nach jedem Batch aktualisieren (Crash-Schutz)
                 cols = list(dict.fromkeys(key for row in all_report_rows for key in row.keys()))
@@ -652,6 +683,7 @@ def main() -> int:
                 "lama_runs_without_dedup": 2 * stats.counts["candidates_total"],
                 "counts": dict(stats.counts),
                 "lama_batches": stats.batch_log,
+                "postprocess_workers": max(1, int(args.postprocess_workers)),
                 "seconds": {k: round(v, 3) for k, v in stats.seconds.items()},
                 "fill_repair_enabled": use_fill_repair,
                 "dedup_enabled": use_dedup,

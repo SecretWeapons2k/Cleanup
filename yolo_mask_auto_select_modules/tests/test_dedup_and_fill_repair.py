@@ -65,23 +65,29 @@ class FillRepairTests(unittest.TestCase):
 _INVOCATIONS: list[int] = []   # one entry per fake IOPaint process start
 
 
-def _fake_environment(tmp: Path):
+def _fake_environment(tmp: Path, n_images: int = 1):
     h, w = 90, 140
     yy, xx = np.mgrid[0:h, 0:w]
-    rgb = np.stack([(xx * 1.5 + 30) % 256, (yy * 2 + 60) % 256, np.full((h, w), 120)], -1).astype(np.uint8)
-    rgb[30:50, 40:100] = 15                       # "text" block
-    rgb[38:42, 45:95] = 240
     images = tmp / "images"; images.mkdir()
-    Image.fromarray(rgb).save(images / "t001_000.png")
+    names, lines = [], ["image,type,x1,y1,x2,y2"]
+    for i in range(n_images):
+        rgb = np.stack([(xx * (1.5 + 0.3 * i) + 30 + 17 * i) % 256, (yy * 2 + 60 + 11 * i) % 256,
+                        np.full((h, w), 120 + 9 * i)], -1).astype(np.uint8)
+        rgb[30:50, 40:100] = 15 + 5 * i                 # "text" block
+        rgb[38:42, 45:95 - 4 * i] = 240
+        name = f"t{i + 1:03d}_000.png"
+        Image.fromarray(rgb).save(images / name)
+        names.append(name)
+        lines.append(f"{name},body,40,30,100,50")
     anchors = tmp / "anchors.csv"
-    anchors.write_text("image,type,x1,y1,x2,y2\nt001_000.png,body,40,30,100,50\n", encoding="utf-8")
+    anchors.write_text("\n".join(lines) + "\n", encoding="utf-8")
     weights = tmp / "w.pt"; weights.write_bytes(b"x")
-    return images, anchors, weights, rgb
+    return images, anchors, weights, names
 
 
-def _run_main(tmp: Path, extra: list[str], lama_calls: list[int]):
-    images, anchors, weights, rgb = _fake_environment(tmp)
-    h, w = rgb.shape[:2]
+def _run_main(tmp: Path, extra: list[str], lama_calls: list[int], n_images: int = 1):
+    images, anchors, weights, names = _fake_environment(tmp, n_images)
+    h, w = 90, 140
     out = tmp / "out"
 
     def fake_run(cmd, cwd=None, check=False):
@@ -89,17 +95,19 @@ def _run_main(tmp: Path, extra: list[str], lama_calls: list[int]):
         if cmd[0] == sys.executable:               # routing audit
             audit_out = Path(cmd[cmd.index("--output") + 1]) / "run"
             box = np.zeros((h, w), np.uint8); box[30:51, 40:101] = 255
-            for d in (0, 2, 4, 6, 8, 10):          # D6/D8/D10 saturate -> identical masks
-                dd = min(d, 6)
-                m = cv2.dilate(box, np.ones((2 * dd + 1, 2 * dd + 1), np.uint8)) if dd else box
-                path = audit_out / "conf_005" / f"distance_{d:02d}" / "masks" / "t001_000.png"
-                path.parent.mkdir(parents=True, exist_ok=True)
-                Image.fromarray(m).save(path)
-            bpath = audit_out / "box_only" / "masks" / "t001_000.png"
-            bpath.parent.mkdir(parents=True, exist_ok=True)
-            Image.fromarray(box).save(bpath)
-            (audit_out / "routing_report.csv").write_text(
-                "confidence_threshold,image,route_suggestion\n0.05,t001_000.png,TEST\n", encoding="utf-8")
+            rows = ["confidence_threshold,image,route_suggestion"]
+            for nm in names:
+                for d in (0, 2, 4, 6, 8, 10):          # D6/D8/D10 saturate -> identical masks
+                    dd = min(d, 6)
+                    m = cv2.dilate(box, np.ones((2 * dd + 1, 2 * dd + 1), np.uint8)) if dd else box
+                    path = audit_out / "conf_005" / f"distance_{d:02d}" / "masks" / nm
+                    path.parent.mkdir(parents=True, exist_ok=True)
+                    Image.fromarray(m).save(path)
+                bpath = audit_out / "box_only" / "masks" / nm
+                bpath.parent.mkdir(parents=True, exist_ok=True)
+                Image.fromarray(box).save(bpath)
+                rows.append(f"0.05,{nm},TEST")
+            (audit_out / "routing_report.csv").write_text("\n".join(rows) + "\n", encoding="utf-8")
         else:                                       # fake IOPaint: deterministic fill
             _INVOCATIONS.append(1)
             img_dir = Path([c for c in cmd if c.startswith("--image=")][0].split("=", 1)[1])
@@ -177,6 +185,25 @@ class PipelineDedupEquivalenceTests(unittest.TestCase):
         self.assertEqual(results[1][0], results[3][0])
         self.assertEqual(results[1][1], results[3][1])
         self.assertTrue(np.array_equal(results[1][2], results[3][2]))
+
+    def test_threaded_postprocessing_matches_sequential_for_many_images(self):
+        results = {}
+        for n in (1, 4):
+            with tempfile.TemporaryDirectory() as tmp:
+                rc, out = _run_main(Path(tmp), ["--postprocess-workers", str(n)], [], n_images=6)
+                self.assertEqual(rc, 0)
+                masks = {f.name: np.asarray(Image.open(f)) for f in sorted((out / "masks").glob("*.png"))}
+                results[n] = (_read(out / "debug_candidates" / "candidate_scores.csv"),
+                              _read(out / "winner_report.csv"), masks,
+                              json.loads((out / "run_stats.json").read_text())["postprocess_workers"])
+        self.assertEqual(len(results[1][1]), 6)
+        self.assertEqual(results[1][0], results[4][0])          # every metric of every candidate
+        self.assertEqual(results[1][1], results[4][1])
+        self.assertEqual(results[1][2].keys(), results[4][2].keys())
+        for k in results[1][2]:
+            self.assertTrue(np.array_equal(results[1][2][k], results[4][2][k]), k)
+        self.assertEqual((results[1][3], results[4][3]), (1, 4))
+        self.assertEqual([r["image"] for r in results[4][1]], sorted(r["image"] for r in results[4][1]))
 
     def test_failing_worker_aborts_run(self):
         with tempfile.TemporaryDirectory() as tmp:

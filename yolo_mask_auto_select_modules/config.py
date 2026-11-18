@@ -42,6 +42,10 @@ LAMA_BATCH_SIZE = 100
 # PNG-Lesen/Schreiben); VRAM-Bedarf ~1 GB je Prozess. 1 = altes Verhalten.
 LAMA_PARALLEL_PROCESSES = 2
 
+# Bilder, die gleichzeitig zusammengesetzt/bewertet werden (Threads; Ergebnis identisch, Reihenfolge bleibt).
+# Zeit pro Bild war einthreadig ~2,1 s bei leerer GPU. 1 = altes Verhalten.
+POSTPROCESS_WORKERS = 6
+
 # Hauptschalter für Debugging:
 DEBUG_SAVE_CANDIDATES = True
 
