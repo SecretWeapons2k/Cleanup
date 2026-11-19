@@ -77,6 +77,15 @@ PROTECTED_ZONE_MARGIN_PX = 0
 # Kandidaten-IDs und Reports bleiben erhalten). False = altes Verhalten.
 DEDUPLICATE_IDENTICAL_MASKS = True
 
+# Auswahl pro Textbox-Region statt pro Bild: Anchors, deren Abstand < 2*REGION_MERGE_PX ist, bilden
+# eine Region; jede Region bekommt ihren eigenen Gewinner-Kandidaten. Bilder mit nur einer Region
+# laufen unverändert über den alten Ganzbild-Pfad. False = altes Verhalten für alle Bilder.
+PER_REGION_SELECTION_ENABLED = True
+REGION_MERGE_PX = 8
+# Rand (px) um die Region-Boxen, in dem die Region bewertet wird (alle Metriken sind lokal;
+# größer als Box-Ring 10 + Maskenüberstand + Blob-Ring 8).
+REGION_SCORE_MARGIN_PX = 48
+
 # fill_repair.py (Median-Reparatur dunkler Artefakte in LaMa-Füllungen) ein-/ausschalten.
 FILL_REPAIR_ENABLED = True
 

@@ -13,6 +13,7 @@ from .config import (
     DEFAULT_OUTPUT_DIR,
     DEFAULT_PROTECTED_ZONES_CSV,
     DEFAULT_WEIGHTS,
+    REGION_MERGE_PX,
 )
 
 def parse_args(project: Path) -> argparse.Namespace:
@@ -59,5 +60,9 @@ def parse_args(project: Path) -> argparse.Namespace:
                    help="Disable fill_repair.py for this run (A/B comparison)")
     p.add_argument("--no-dedup", action="store_true",
                    help="Process identical candidate masks separately (old behaviour)")
+    p.add_argument("--no-per-region", action="store_true",
+                   help="Ein Gewinner pro Bild statt pro Textbox-Region (altes Verhalten)")
+    p.add_argument("--region-merge-px", type=int, default=REGION_MERGE_PX,
+                   help="Anchors mit Abstand < 2*N px bilden eine gemeinsame Region (0 = nur sich berührende Boxen)")
     p.add_argument("--dry-run", action="store_true")
     return p.parse_args()
