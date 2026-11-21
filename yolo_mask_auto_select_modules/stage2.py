@@ -46,6 +46,8 @@ from .geometry import boxes_union_mask, protected_mask, read_protected_zones, re
 from .io_utils import (
     choose_output_dir, discover_sources, find_iopaint, read_anchor_csv, remove_small_alpha_islands, rgb_array,
 )
+from .cells import USE_CELL_WINDOWS, detect_cell_grid, region_windows
+from .donor import DonorBank, find_donors, stamp
 from .regions import plan_regions, region_window
 from .reports import write_csv_with_union_fields
 from .scoring import make_contrast_mask, make_smart_ink_mask
@@ -64,9 +66,11 @@ METHODS: dict[str, tuple[str, MaskFn]] = {
     "SMART_INK_R4": ("lama", lambda rgb, a, b: make_smart_ink_mask(rgb, b, dilation_radius=4)),
     "SMART_INK_T10": ("lama", lambda rgb, a, b: make_smart_ink_mask(rgb, b, contrast_threshold=0.10, dilation_radius=3)),
     "CONTRAST_T38": ("lama", lambda rgb, a, b: make_contrast_mask(rgb, a, b, 0.38)),
-    "SMART_TELEA": ("telea", lambda rgb, a, b: make_smart_ink_mask(rgb, b)),
-    "SMART_R4_TELEA": ("telea", lambda rgb, a, b: make_smart_ink_mask(rgb, b, dilation_radius=4)),
+    # Stamp from an identical, text-free copy elsewhere in the image (see donor.py). The mask is the
+    # whole box; regions without a verified clean donor get no tile.
+    "DONOR": ("donor", lambda rgb, a, b: boxes_union_mask(b, rgb.shape[1], rgb.shape[0])),
 }
+# SMART_TELEA / SMART_R4_TELEA were removed after the stage-2 ranking: they never rescued a region.
 
 
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
@@ -89,6 +93,10 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     p.add_argument("--no-fill-repair", action="store_true")
     p.add_argument("--output", type=Path, default=DEFAULT_OUTPUT_DIR.parent / "stage2_runs")
     p.add_argument("--dry-run", action="store_true")
+    p.add_argument("--donor-bank", type=Path, default=None,
+                   help="Folder of the donor bank: clean donors remembered across images (see donor.py)")
+    p.add_argument("--donor-bank-learn", action="store_true",
+                   help="Also save newly found clean donors into the bank (used from the NEXT run on)")
     return p.parse_args(argv)
 
 
@@ -133,13 +141,14 @@ def _telea(rgb: np.ndarray, alpha: np.ndarray, mask: np.ndarray) -> tuple[np.nda
 def process_image(
     *, name: str, stem: str, source_path: Path, protected: np.ndarray, plan, selected: dict[int, dict[str, str]],
     masks: dict[str, np.ndarray], groups: dict[str, str], staged: dict[str, tuple[str, str]], raw: Path,
-    out_dir: Path, stage1_run: Path, use_fill_repair: bool,
+    out_dir: Path, stage1_run: Path, use_fill_repair: bool, bank: DonorBank | None = None,
 ) -> tuple[list[dict[str, Any]], int]:
     original_rgb, original_alpha = rgb_array(source_path)
     height, width = original_rgb.shape[:2]
     results: dict[str, tuple[np.ndarray, np.ndarray]] = {}
     integrity: dict[str, dict[str, float]] = {}
     repair_meta: dict[str, float] = {}
+    donor_meta: dict[int, dict[str, Any]] = {}
 
     for method, mask in masks.items():
         filler = METHODS[method][0]
@@ -167,6 +176,40 @@ def process_image(
                 f_rgb, _ = repair_flat_fill_artifacts(original_rgb, f_rgb, mask, protected)
             f_alpha = original_alpha.copy()
             f_alpha[mask] = pred_alpha[mask]
+        elif filler == "donor":
+            f_rgb, f_alpha = original_rgb.copy(), original_alpha.copy()
+            stamped = np.zeros(mask.shape, dtype=bool)
+            for k in selected:
+                region_m = mask & (plan.territory == k)
+                if not region_m.any():
+                    continue
+                donors = find_donors(original_rgb, original_alpha, region_m)
+                got = stamp(original_rgb, original_alpha, region_m, donors)
+                meta: dict[str, Any] = {}
+                if got is not None:                  # clean copy in the same image
+                    s_rgb, s_alpha, d = got
+                    meta = {"donor_source": "image", "donor_dx": d.dx, "donor_dy": d.dy,
+                            "donor_ring_msd": f"{d.ring_msd:.4f}", "donor_bg_de_p95": f"{d.bg_de_p95:.2f}",
+                            "donor_bg_pixels": d.bg_pixels, "donor_color_checked": int(d.color_checked)}
+                    if bank is not None:
+                        meta["donor_entry_id"] = bank.add(original_rgb, original_alpha, region_m, d,
+                                                          source_image=name, region=k) or ""
+                elif bank is not None:               # clean copy remembered from another image
+                    usable = [x for x in bank.match(original_rgb, original_alpha, region_m) if x.usable]
+                    if usable:
+                        b = usable[0]
+                        s_rgb, s_alpha = bank.stamp(original_rgb, original_alpha, region_m, b)
+                        meta = {"donor_source": "bank", "donor_entry_id": b.entry_id,
+                                "donor_ring_msd": f"{b.ring_msd:.4f}", "donor_bg_de_p95": f"{b.bg_de_p95:.2f}",
+                                "donor_bg_pixels": b.bg_pixels, "donor_color_checked": int(b.color_checked)}
+                if not meta:
+                    continue                         # no verified clean donor for this region
+                f_rgb[region_m] = s_rgb[region_m]
+                f_alpha[region_m] = s_alpha[region_m]
+                stamped |= region_m
+                donor_meta[k] = meta
+            masks[method] = stamped              # only regions that really got a stamp keep a tile
+            integrity[method] = {"lama_size_mismatch": 0.0, "lama_outside_mean": 0.0, "lama_outside_frac_gt8": 0.0}
         else:
             t_rgb, t_alpha = _telea(original_rgb, original_alpha, mask)
             f_rgb, f_alpha = original_rgb.copy(), original_alpha.copy()
@@ -178,27 +221,38 @@ def process_image(
         results[method] = (f_rgb, f_alpha)
 
     reg_dir = out_dir / "debug_candidates" / "regions"
+    # Same cell windows as stage 1 (both detect the grid from the same pixels, so they agree).
+    grid = detect_cell_grid(original_rgb, original_alpha) if USE_CELL_WINDOWS else None
+    windows = region_windows(plan.core_labels, plan.bboxes, grid, REGION_SCORE_MARGIN_PX)
     index: dict[str, Any] = {"image": name, "regions": []}
     rows: list[dict[str, Any]] = []
     for k, info in sorted(selected.items()):
         bbox = plan.bboxes[k - 1]
-        win = region_window(bbox, REGION_SCORE_MARGIN_PX, width, height)
+        rw = windows[k - 1]
+        win = rw.rect
         x1, y1, x2, y2 = win
         sl = (slice(y1, y2 + 1), slice(x1, x2 + 1))
         terr = plan.territory[sl] == k
-        entry: dict[str, Any] = {"region": k, "bbox": list(bbox), "window": list(win), "auto_winner": "BOX_ONLY",
+        entry: dict[str, Any] = {"region": k, "bbox": list(bbox), "window": list(win), "window_source": rw.source, "auto_winner": "BOX_ONLY",
                                  "candidates": {}, "stage1_label": info["stage1_label"], "context_type": info["context_type"]}
         entry["skipped_box_like"] = []
         box_px = int((plan.core_labels[sl] == k).sum())
         stage1_crop = stage1_run / "labeling" / f"{stem}__r{k}__result.png"
         if stage1_crop.is_file():
-            shutil.copyfile(stage1_crop, reg_dir / f"{stem}__r{k}__BOX_ONLY.png")
-            entry["candidates"]["BOX_ONLY"] = f"{stem}__r{k}__BOX_ONLY.png"
+            with Image.open(stage1_crop) as _im1:
+                same_window = _im1.size == (x2 - x1 + 1, y2 - y1 + 1)
+            if same_window:
+                shutil.copyfile(stage1_crop, reg_dir / f"{stem}__r{k}__BOX_ONLY.png")
+                entry["candidates"]["BOX_ONLY"] = f"{stem}__r{k}__BOX_ONLY.png"
+            else:
+                # Stage 1 was run with another window (older code): its tile does not line up with
+                # the new tiles. Re-run stage 1 with the current code to get the reference tile.
+                entry["box_only_window_mismatch"] = True
         for method, (res_rgb_full, res_alpha_full) in results.items():
             region_mask = masks[method][sl] & terr
             if not region_mask.any():
                 continue                         # this method changes nothing here: no tile
-            if box_px and int(region_mask.sum()) >= BOX_LIKE_COVERAGE * box_px:
+            if box_px and METHODS[method][0] != "donor" and int(region_mask.sum()) >= BOX_LIKE_COVERAGE * box_px:
                 entry["skipped_box_like"].append(method)
                 continue                         # Box-only in disguise: no new information
             other = masks[method][sl] & ~terr
@@ -215,6 +269,7 @@ def process_image(
                 "image": name, "region": k, "method": method, "filler": METHODS[method][0],
                 "context_type": info["context_type"], "stage1_label": info["stage1_label"],
                 **integrity[method],
+                **(donor_meta.get(k, {}) if method == "DONOR" else {}),
                 **{key: f"{value:.6f}" if isinstance(value, float) else value for key, value in feats.items()},
             })
         orig_name = f"{stem}__r{k}__original.png"
@@ -268,6 +323,9 @@ def main(argv: list[str] | None = None) -> int:
 
     all_rows: list[dict[str, Any]] = []
     box_like_skipped = 0
+    bank = DonorBank(args.donor_bank, learn=args.donor_bank_learn) if args.donor_bank else None
+    if bank is not None:
+        print(f"Donor bank: {len(bank)} entries from {bank.path}" + (" (learning)" if bank.learn else ""))
     seconds: dict[str, float] = defaultdict(float)
     t_run = time.perf_counter()
     batches = math.ceil(len(names) / max(1, args.batch_size))
@@ -334,7 +392,7 @@ def main(argv: list[str] | None = None) -> int:
                 return process_image(
                     name=name, stem=pr["stem"], source_path=sources[name], protected=pr["prot"], plan=pr["plan"],
                     selected=pr["sel"], masks=pr["masks"], groups=pr["groups"], staged=pr["staged"], raw=raw,
-                    out_dir=output_dir, stage1_run=stage1_run, use_fill_repair=use_fill_repair,
+                    out_dir=output_dir, stage1_run=stage1_run, use_fill_repair=use_fill_repair, bank=bank,
                 )
 
             with ThreadPoolExecutor(max_workers=max(1, args.workers)) as pool:
@@ -349,7 +407,10 @@ def main(argv: list[str] | None = None) -> int:
     no_alternative = sorted((img, k) for img, regs in selection.items() for k in regs if (img, k) not in have)
     (output_dir / "regions_without_alternative.csv").write_text(
         "image,region\n" + "".join(f"{img},{k}\n" for img, k in no_alternative), encoding="utf-8")
-    stats = {"images": len(names), "regions": n_regions, "methods": methods, "rows": len(all_rows),
+    bank_new = bank.save() if bank is not None else 0
+    stats = {"donor_bank": str(bank.path) if bank is not None else None,
+             "donor_bank_entries_at_start": len(bank) if bank is not None else 0, "donor_bank_entries_learned": bank_new,
+             "images": len(names), "regions": n_regions, "methods": methods, "rows": len(all_rows),
              "regions_without_alternative": len(no_alternative),
              "select": args.select, "region_merge_px": merge_px, "method_tiles_skipped_box_like": box_like_skipped,
              "seconds": {k: round(v, 2) for k, v in seconds.items()}, "total_seconds": round(time.perf_counter() - t_run, 2)}

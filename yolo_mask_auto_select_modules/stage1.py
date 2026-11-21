@@ -42,6 +42,7 @@ from .io_utils import (
     choose_output_dir, choose_random_sample, discover_sources, find_iopaint,
     read_anchor_csv, remove_small_alpha_islands, rgb_array,
 )
+from .cells import USE_CELL_WINDOWS, detect_cell_grid, region_windows
 from .regions import plan_regions, region_window
 from .reports import write_csv_with_union_fields
 
@@ -144,15 +145,22 @@ def process_image(
 
     height, width = original_rgb.shape[:2]
     plan = plan_regions(mask, merge_px)
+    # Windows follow the sprite cells (union of the cells a region touches); without a detectable
+    # grid they fall back to bbox +- REGION_SCORE_MARGIN_PX exactly as before.
+    grid = detect_cell_grid(original_rgb, original_alpha) if USE_CELL_WINDOWS else None
+    windows = region_windows(plan.core_labels, plan.bboxes, grid, REGION_SCORE_MARGIN_PX)
+    grid_label = grid.summary() if grid else ""
     rows: list[dict[str, Any]] = []
-    index: dict[str, Any] = {"image": name, "imageSize": [width, height], "full": f"{stem}__full.png", "regions": []}
+    index: dict[str, Any] = {"image": name, "imageSize": [width, height], "full": f"{stem}__full.png", "regions": [],
+                             "cellGrid": grid_label}
     thumb = Image.fromarray(np.ascontiguousarray(np.dstack((original_rgb, original_alpha)).astype(np.uint8)), mode="RGBA")
     thumb.thumbnail((480, 480), Image.Resampling.LANCZOS)
     thumb.save(out_dir / "labeling" / f"{stem}__full.png")
     img_feats = image_features(original_rgb, original_alpha)
     for k in range(1, plan.count + 1):
         bbox = plan.bboxes[k - 1]
-        win = region_window(bbox, REGION_SCORE_MARGIN_PX, width, height)
+        rw = windows[k - 1]
+        win = rw.rect
         x1, y1, x2, y2 = win
         sl = (slice(y1, y2 + 1), slice(x1, x2 + 1))
         terr = plan.territory[sl] == k
@@ -171,11 +179,12 @@ def process_image(
             out_dir / "labeling" / f"{base}__result.png")
         _overlay_crop(original_rgb, mask & (plan.territory == k), win).save(out_dir / "labeling" / f"{base}__overlay.png")
         index["regions"].append({
-            "region": k, "bbox": list(bbox), "window": list(win),
+            "region": k, "bbox": list(bbox), "window": list(win), "windowSource": rw.source,
             "original": f"{base}__orig.png", "result": f"{base}__result.png", "overlay": f"{base}__overlay.png",
         })
         rows.append({
             "image": name, "region": k, "region_count": plan.count,
+            "window_source": rw.source, "cell_grid": grid_label,
             "bbox_x1": bbox[0], "bbox_y1": bbox[1], "bbox_x2": bbox[2], "bbox_y2": bbox[3],
             "asset_type": img_feats["asset_type"],
             "context_type": context_type(float(feats.get("ring_flat_frac", 1.0))),
