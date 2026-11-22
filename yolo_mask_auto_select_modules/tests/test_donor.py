@@ -169,3 +169,107 @@ def test_ranker_labels_update_the_bank(tmp_path):
     ok, bad, _ = donor.apply_labels(donor.DonorBank(tmp_path / "bank"), rank, feats)
     assert (ok, bad) == (1, 0)
     assert donor.DonorBank(tmp_path / "bank").entries()[0]["ok"] == 1
+
+
+# ---- diagnosis -----------------------------------------------------------------------------
+
+def test_explain_no_donor_names_the_reason():
+    rgb, alpha = _strip(empty=())
+    assert donor.explain_no_donor(rgb, alpha, _mask(alpha.shape, 0))["reason"] == "donor_not_clean"
+    flat = np.full((60, 480, 3), 20, np.uint8)
+    assert donor.explain_no_donor(flat, alpha, _mask(alpha.shape, 0))["reason"] == "ring_flat"
+    ok_rgb, ok_alpha = _strip()
+    tinted = ok_rgb.copy()
+    tinted[10:-10, 370:470, 2] += 6
+    assert donor.explain_no_donor(tinted, ok_alpha, _mask(ok_alpha.shape, 0))["reason"] == "colour_mismatch"
+    assert donor.explain_no_donor(ok_rgb, ok_alpha, _mask(ok_alpha.shape, 0))["reason"] == "usable_donor_exists"
+    assert donor.explain_no_donor(ok_rgb, ok_alpha, np.zeros(ok_alpha.shape, bool))["reason"] == "no_mask"
+
+
+def test_ring_msd_is_never_negative():
+    rgb, alpha = _strip()
+    assert all(d.ring_msd >= 0.0 for d in donor.find_donors(rgb, alpha, _mask(alpha.shape, 0)))
+
+
+# ---- near-exact tier -----------------------------------------------------------------------
+
+def _outer_edge_differs(rgb, cols):
+    """The empty copy (cell 3) differs at some columns of its left outer edge (far ring, not the seam)."""
+    out = rgb.copy()
+    out[:, 360 + cols[0]:360 + cols[1]] = 90
+    return out
+
+
+def test_near_tier_is_off_by_default_and_accepts_an_edge_that_differs():
+    rgb, alpha = _strip()
+    edge = _outer_edge_differs(rgb, (0, 1))                 # column 0: far from the mask seam (starts at 10), ~2 % of the ring
+    m = _mask(alpha.shape, 0)
+    assert donor.stamp(edge, alpha, m, donor.find_donors(edge, alpha, m)) is None          # strict: rejected
+    near = donor.find_donors(edge, alpha, m, allow_near=True)
+    got = donor.stamp(edge, alpha, m, near)
+    assert got is not None and got[2].tier == "near" and got[2].seam_bad_frac == 0.0
+    assert np.array_equal(got[0][m], rgb[_mask(alpha.shape, 3)])
+
+
+def test_near_tier_rejects_differences_at_the_seam():
+    rgb, alpha = _strip()
+    bad = _outer_edge_differs(rgb, (8, 10))                 # columns 8-9: directly next to the mask
+    m = _mask(alpha.shape, 0)
+    assert donor.stamp(bad, alpha, m, donor.find_donors(bad, alpha, m, allow_near=True)) is None
+
+
+def test_near_tier_rejects_a_ring_that_differs_too_much():
+    rgb, alpha = _strip()
+    bad = rgb.copy()
+    bad[:, 360:360 + 5] = 90                                # ~8 % of the ring differs, outside the seam
+    m = _mask(alpha.shape, 0)
+    assert donor.stamp(bad, alpha, m, donor.find_donors(bad, alpha, m, allow_near=True)) is None
+
+
+def test_exact_donor_is_preferred_over_near():
+    rgb, alpha = _strip(empty=(2, 3))
+    edge = rgb.copy()
+    edge[:, 240:242] = 90                                   # cell 2 is only "near", cell 3 is exact
+    m = _mask(alpha.shape, 0)
+    got = donor.stamp(edge, alpha, m, donor.find_donors(edge, alpha, m, allow_near=True))
+    assert got[2].tier == "exact" and got[2].dx == 360
+
+
+# ---- cell bounds and frame glow -----------------------------------------------------------
+
+def _with_glow(rgb):
+    """Frame glow: brightness decaying over the first columns inside every cell (the box edge)."""
+    out = rgb.copy().astype(int)
+    for i in range(rgb.shape[1] // 120):
+        for c, v in zip(range(3, 10), (90, 60, 40, 25, 12, 5, 0)):
+            out[:, i * 120 + c] = np.maximum(out[:, i * 120 + c], v)
+    return np.clip(out, 0, 255).astype(np.uint8)
+
+
+def test_ring_is_cut_at_the_cell_so_the_neighbour_cannot_break_the_match():
+    rgb, alpha = _strip()
+    rgb[:, 118:120] = 77                                    # right edge of cell 0 is special
+    m = np.zeros(alpha.shape, bool)
+    m[10:50, 120 + 4:240 - 4] = True                        # mask of cell 1 reaches 4 px from its edge: the
+    cell = (120, 0, 239, 59)                                # 10 px ring would overlap the special neighbour edge
+    assert not any(d.usable for d in donor.find_donors(rgb, alpha, m))
+    cut = donor.find_donors(rgb, alpha, m, bounds=cell)
+    assert any(d.usable and d.tier == "exact" for d in cut)
+
+
+def test_frame_glow_inside_the_mask_does_not_make_a_clean_donor_unclean():
+    rgb, alpha = _strip()
+    rgb = _with_glow(rgb)
+    m = np.zeros(alpha.shape, bool)
+    m[10:50, 4:116] = True                                  # reaches into the glow (columns 4-9)
+    got = donor.stamp(rgb, alpha, m, donor.find_donors(rgb, alpha, m, bounds=(0, 0, 119, 59)))
+    assert got is not None and got[2].dx == 360
+
+
+def test_text_near_the_mask_edge_is_still_text():
+    rgb, alpha = _strip()
+    rgb = _with_glow(rgb)
+    rgb[20:50, 360 + 6:360 + 40] = 230                      # a real blob in the "empty" copy, 2 px inside the mask edge
+    m = np.zeros(alpha.shape, bool)
+    m[10:50, 4:116] = True
+    assert donor.stamp(rgb, alpha, m, donor.find_donors(rgb, alpha, m, bounds=(0, 0, 119, 59))) is None

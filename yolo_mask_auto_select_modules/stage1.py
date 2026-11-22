@@ -42,7 +42,8 @@ from .io_utils import (
     choose_output_dir, choose_random_sample, discover_sources, find_iopaint,
     read_anchor_csv, remove_small_alpha_islands, rgb_array,
 )
-from .cells import USE_CELL_WINDOWS, detect_cell_grid, region_windows
+from .cells import (CELLS_VERSION, SPLIT_REGIONS_BY_CELLS, USE_CELL_WINDOWS, detect_cell_grid, region_windows,
+                    split_plan_by_cells)
 from .regions import plan_regions, region_window
 from .reports import write_csv_with_union_fields
 
@@ -148,6 +149,9 @@ def process_image(
     # Windows follow the sprite cells (union of the cells a region touches); without a detectable
     # grid they fall back to bbox +- REGION_SCORE_MARGIN_PX exactly as before.
     grid = detect_cell_grid(original_rgb, original_alpha) if USE_CELL_WINDOWS else None
+    split_origin: dict[int, int] = {}
+    if SPLIT_REGIONS_BY_CELLS:     # one region per sprite cell (a whole strip is no useful unit)
+        plan, split_origin = split_plan_by_cells(plan, grid)
     windows = region_windows(plan.core_labels, plan.bboxes, grid, REGION_SCORE_MARGIN_PX)
     grid_label = grid.summary() if grid else ""
     rows: list[dict[str, Any]] = []
@@ -179,12 +183,12 @@ def process_image(
             out_dir / "labeling" / f"{base}__result.png")
         _overlay_crop(original_rgb, mask & (plan.territory == k), win).save(out_dir / "labeling" / f"{base}__overlay.png")
         index["regions"].append({
-            "region": k, "bbox": list(bbox), "window": list(win), "windowSource": rw.source,
+            "region": k, "bbox": list(bbox), "window": list(win), "windowSource": rw.source, "splitFrom": split_origin.get(k, ""),
             "original": f"{base}__orig.png", "result": f"{base}__result.png", "overlay": f"{base}__overlay.png",
         })
         rows.append({
             "image": name, "region": k, "region_count": plan.count,
-            "window_source": rw.source, "cell_grid": grid_label,
+            "window_source": rw.source, "cell_grid": grid_label, "split_from": split_origin.get(k, ""),
             "bbox_x1": bbox[0], "bbox_y1": bbox[1], "bbox_x2": bbox[2], "bbox_y2": bbox[3],
             "asset_type": img_feats["asset_type"],
             "context_type": context_type(float(feats.get("ring_flat_frac", 1.0))),
@@ -302,6 +306,7 @@ def main(argv: list[str] | None = None) -> int:
         "images": len(ordered), "regions": len(all_rows), "images_without_mask": skipped_no_mask,
         "seconds": {k: round(v, 2) for k, v in seconds.items()}, "total_seconds": round(time.perf_counter() - t_run, 2),
         "region_merge_px": args.region_merge_px, "fill_repair": use_fill_repair,
+        "split_regions_by_cells": bool(USE_CELL_WINDOWS and SPLIT_REGIONS_BY_CELLS), "cells_version": CELLS_VERSION,
     }
     (output_dir / "stage1_run_stats.json").write_text(json.dumps(stats, indent=2), encoding="utf-8")
     misaligned = sum(1 for r in all_rows if float(r["lama_aligned"]) == 0.0 or float(r["lama_outside_frac_gt8"]) > 0.02)

@@ -19,6 +19,7 @@ from __future__ import annotations
 
 import argparse
 import csv
+import threading
 import json
 import math
 import shutil
@@ -46,8 +47,9 @@ from .geometry import boxes_union_mask, protected_mask, read_protected_zones, re
 from .io_utils import (
     choose_output_dir, discover_sources, find_iopaint, read_anchor_csv, remove_small_alpha_islands, rgb_array,
 )
-from .cells import USE_CELL_WINDOWS, detect_cell_grid, region_windows
-from .donor import DonorBank, find_donors, stamp
+from .cells import USE_CELL_WINDOWS, detect_cell_grid, region_windows, split_plan_for_image
+from .cells import CELLS_VERSION, SPLIT_REGIONS_BY_CELLS
+from .donor import MISS_FIELDS, DonorBank, explain_no_donor, find_donors, stamp
 from .regions import plan_regions, region_window
 from .reports import write_csv_with_union_fields
 from .scoring import make_contrast_mask, make_smart_ink_mask
@@ -95,6 +97,8 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     p.add_argument("--dry-run", action="store_true")
     p.add_argument("--donor-bank", type=Path, default=None,
                    help="Folder of the donor bank: clean donors remembered across images (see donor.py)")
+    p.add_argument("--donor-near", action="store_true",
+                   help="Also allow donors whose ring differs slightly (marked donor_tier=near); seam must still match")
     p.add_argument("--donor-bank-learn", action="store_true",
                    help="Also save newly found clean donors into the bank (used from the NEXT run on)")
     return p.parse_args(argv)
@@ -130,6 +134,22 @@ def read_selection(stage1_run: Path, labels_path: Path | None, mode: str) -> tup
     return dict(selected), merge_px
 
 
+def stage1_cells_version(stage1_run: Path) -> int:
+    """Version of the cell detection stage 1 was run with (older runs did not record it: 0)."""
+    stats = stage1_run / "stage1_run_stats.json"
+    if not stats.is_file():
+        return 0
+    return int(json.loads(stats.read_text(encoding="utf-8")).get("cells_version", 0))
+
+
+def stage1_split_flag(stage1_run: Path) -> bool:
+    """Was stage 1 run with regions split by cells? (older runs did not record it: False)"""
+    stats = stage1_run / "stage1_run_stats.json"
+    if not stats.is_file():
+        return False
+    return bool(json.loads(stats.read_text(encoding="utf-8")).get("split_regions_by_cells", False))
+
+
 def _telea(rgb: np.ndarray, alpha: np.ndarray, mask: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
     m = mask.astype(np.uint8) * 255
     bgr = cv2.cvtColor(np.ascontiguousarray(rgb), cv2.COLOR_RGB2BGR)
@@ -138,13 +158,33 @@ def _telea(rgb: np.ndarray, alpha: np.ndarray, mask: np.ndarray) -> tuple[np.nda
     return out, out_alpha
 
 
+_MISS_LOCK = threading.Lock()
+
+
+def _log_donor_miss(out_dir: Path, image: str, region: int, info: dict[str, Any]) -> None:
+    """One row per region that got no stamp, with the reason (donor_misses.csv in the run folder)."""
+    path = out_dir / "donor_misses.csv"
+    with _MISS_LOCK:
+        new = not path.exists()
+        with path.open("a", encoding="utf-8", newline="") as f:
+            w = csv.DictWriter(f, fieldnames=["image", "region", *MISS_FIELDS])
+            if new:
+                w.writeheader()
+            w.writerow({"image": image, "region": region, **info})
+
+
 def process_image(
     *, name: str, stem: str, source_path: Path, protected: np.ndarray, plan, selected: dict[int, dict[str, str]],
     masks: dict[str, np.ndarray], groups: dict[str, str], staged: dict[str, tuple[str, str]], raw: Path,
     out_dir: Path, stage1_run: Path, use_fill_repair: bool, bank: DonorBank | None = None,
+    donor_near: bool = False,
 ) -> tuple[list[dict[str, Any]], int]:
     original_rgb, original_alpha = rgb_array(source_path)
     height, width = original_rgb.shape[:2]
+    # Same cell windows as stage 1 (both detect the grid from the same pixels, so they agree). Needed
+    # before the fill loop: the donor stamp cuts its ring at the cell.
+    grid = detect_cell_grid(original_rgb, original_alpha) if USE_CELL_WINDOWS else None
+    windows = region_windows(plan.core_labels, plan.bboxes, grid, REGION_SCORE_MARGIN_PX)
     results: dict[str, tuple[np.ndarray, np.ndarray]] = {}
     integrity: dict[str, dict[str, float]] = {}
     repair_meta: dict[str, float] = {}
@@ -183,26 +223,32 @@ def process_image(
                 region_m = mask & (plan.territory == k)
                 if not region_m.any():
                     continue
-                donors = find_donors(original_rgb, original_alpha, region_m)
+                rw_k = windows[k - 1]
+                bounds = rw_k.rect if rw_k.source == "cell" else None      # ring ends at the sprite cell
+                donors = find_donors(original_rgb, original_alpha, region_m, allow_near=donor_near, bounds=bounds)
                 got = stamp(original_rgb, original_alpha, region_m, donors)
                 meta: dict[str, Any] = {}
                 if got is not None:                  # clean copy in the same image
                     s_rgb, s_alpha, d = got
                     meta = {"donor_source": "image", "donor_dx": d.dx, "donor_dy": d.dy,
                             "donor_ring_msd": f"{d.ring_msd:.4f}", "donor_bg_de_p95": f"{d.bg_de_p95:.2f}",
-                            "donor_bg_pixels": d.bg_pixels, "donor_color_checked": int(d.color_checked)}
-                    if bank is not None:
+                            "donor_bg_pixels": d.bg_pixels, "donor_color_checked": int(d.color_checked),
+                            "donor_tier": d.tier, "donor_ring_bad_frac": f"{d.ring_bad_frac:.4f}"}
+                    if bank is not None and d.tier == "exact":              # only exact donors are remembered
                         meta["donor_entry_id"] = bank.add(original_rgb, original_alpha, region_m, d,
                                                           source_image=name, region=k) or ""
                 elif bank is not None:               # clean copy remembered from another image
-                    usable = [x for x in bank.match(original_rgb, original_alpha, region_m) if x.usable]
+                    usable = [x for x in bank.match(original_rgb, original_alpha, region_m,
+                                                    allow_near=donor_near, bounds=bounds) if x.usable]
                     if usable:
                         b = usable[0]
                         s_rgb, s_alpha = bank.stamp(original_rgb, original_alpha, region_m, b)
                         meta = {"donor_source": "bank", "donor_entry_id": b.entry_id,
                                 "donor_ring_msd": f"{b.ring_msd:.4f}", "donor_bg_de_p95": f"{b.bg_de_p95:.2f}",
-                                "donor_bg_pixels": b.bg_pixels, "donor_color_checked": int(b.color_checked)}
+                                "donor_bg_pixels": b.bg_pixels, "donor_color_checked": int(b.color_checked),
+                                "donor_tier": b.tier, "donor_ring_bad_frac": f"{b.ring_bad_frac:.4f}"}
                 if not meta:
+                    _log_donor_miss(out_dir, name, k, explain_no_donor(original_rgb, original_alpha, region_m, bank, bounds=bounds))
                     continue                         # no verified clean donor for this region
                 f_rgb[region_m] = s_rgb[region_m]
                 f_alpha[region_m] = s_alpha[region_m]
@@ -221,9 +267,6 @@ def process_image(
         results[method] = (f_rgb, f_alpha)
 
     reg_dir = out_dir / "debug_candidates" / "regions"
-    # Same cell windows as stage 1 (both detect the grid from the same pixels, so they agree).
-    grid = detect_cell_grid(original_rgb, original_alpha) if USE_CELL_WINDOWS else None
-    windows = region_windows(plan.core_labels, plan.bboxes, grid, REGION_SCORE_MARGIN_PX)
     index: dict[str, Any] = {"image": name, "regions": []}
     rows: list[dict[str, Any]] = []
     for k, info in sorted(selected.items()):
@@ -297,6 +340,17 @@ def main(argv: list[str] | None = None) -> int:
         merge_px = args.region_merge_px if args.region_merge_px is not None else (stage1_merge if stage1_merge is not None else 8)
         if stage1_merge is not None and merge_px != stage1_merge:
             raise ValueError(f"--region-merge-px {merge_px} differs from the stage-1 run ({stage1_merge}); region numbers would not match")
+        now_split = bool(USE_CELL_WINDOWS and SPLIT_REGIONS_BY_CELLS)
+        if stage1_split_flag(stage1_run) != now_split:
+            raise ValueError(
+                f"The stage-1 run was made {'with' if stage1_split_flag(stage1_run) else 'without'} splitting regions "
+                f"by cells, this code does {'' if now_split else 'not '}split: region numbers would not match. "
+                "Re-run stage 1 with the current code (or set SPLIT_REGIONS_BY_CELLS in cells.py accordingly).")
+        if now_split and stage1_cells_version(stage1_run) != CELLS_VERSION:
+            raise ValueError(
+                f"The stage-1 run used cell detection version {stage1_cells_version(stage1_run)}, this code has "
+                f"version {CELLS_VERSION}: regions would be split differently and the region numbers would not match. "
+                "Re-run stage 1 with the current code.")
         _f, _r, anchors_by_image = read_anchor_csv(anchors_path)
         names = sorted(selection, key=str.casefold)
         missing = [n for n in names if n not in anchors_by_image]
@@ -348,6 +402,7 @@ def main(argv: list[str] | None = None) -> int:
                 prot = protected_mask(zones_by_image.get(name, []), w, h, PROTECTED_ZONE_MARGIN_PX)
                 box_mask = boxes_union_mask(boxes, w, h) & ~prot
                 plan = plan_regions(box_mask, max(0, merge_px))
+                plan, _split_origin = split_plan_for_image(plan, rgb, alpha)    # same split as stage 1
                 sel = {k: v for k, v in selection[name].items() if 1 <= k <= plan.count}
                 if len(sel) != len(selection[name]):
                     print(f"WARN: {name}: Regionsnummern passen nicht zum Stage-1-Lauf (merge_px?)", file=sys.stderr)
@@ -393,6 +448,7 @@ def main(argv: list[str] | None = None) -> int:
                     name=name, stem=pr["stem"], source_path=sources[name], protected=pr["prot"], plan=pr["plan"],
                     selected=pr["sel"], masks=pr["masks"], groups=pr["groups"], staged=pr["staged"], raw=raw,
                     out_dir=output_dir, stage1_run=stage1_run, use_fill_repair=use_fill_repair, bank=bank,
+                    donor_near=args.donor_near,
                 )
 
             with ThreadPoolExecutor(max_workers=max(1, args.workers)) as pool:

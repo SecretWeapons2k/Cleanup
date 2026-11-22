@@ -52,12 +52,24 @@ MIN_RING_STRUCTURE = 0.03    # share of ring pixels with structure; a flat ring 
 CLEAN_CONTRAST_LEVELS = 14   # thin-stroke contrast that counts as text/structure in a donor
 CLEAN_LARGE_LEVELS = 40      # thick-shape contrast (25 px median) that counts as structure in a donor
 CLEAN_MAX_FRACTION = 0.002   # share of donor mask pixels above that level allowed
+# Structure at the very edge of the mask that is identical in donor and target belongs to the sprite
+# (frame glow reaches ~10 px into a box), not to text: it does not count against the donor.
+SHARED_EDGE_PX = 4           # distance from the mask outline (inside the mask) in which this applies
+SHARED_LEVELS = 2            # donor and target pixel must agree within this many levels
 BG_INK_LEVEL = 8             # target pixels above this thin-stroke contrast are "text"
 BG_INK_LARGE_LEVEL = 20      # ... or above this thick-shape contrast
 BG_INK_DIST = 9              # px around text that are not compared as background
 MIN_BG_PIXELS = 80           # fewer background pixels: colour cannot be verified (flag only)
 BG_DE_MAX = 2.5              # CIE76 delta-E, 95th percentile, target background vs donor
 MAX_DONORS = 12
+# Near-exact tier (opt-in, allow_near=True): the ring may differ a little, e.g. the outer edge of a
+# strip, but the seam directly around the mask must still be (almost) identical.
+NEAR_MSD_MAX = 600.0         # candidates above this are never examined
+NEAR_CANDIDATES = 40         # only the best relaxed candidates are examined
+NEAR_RING_BAD_MAX = 0.03     # share of ring pixels that may differ clearly
+SEAM_PX = 2                  # the band directly around the mask
+SEAM_BAD_MAX = 0.005         # share of seam pixels that may differ clearly
+BAD_LEVEL = 8                # difference (any channel) that counts as "differs clearly"
 BANK_VERSION = 1
 BANK_PAD_PX = RING_PX + 2    # context stored around the mask in a bank entry
 
@@ -73,6 +85,9 @@ class Donor:
     bg_de_p95: float = 0.0   # colour difference of those pixels to the donor (CIE76 delta-E)
     color_ok: bool = True    # False = same form, different colours
     color_checked: bool = False
+    tier: str = "exact"      # "exact" (ring identical) or "near" (see NEAR_* constants)
+    ring_bad_frac: float = 0.0
+    seam_bad_frac: float = 0.0
 
     @property
     def usable(self) -> bool:
@@ -124,19 +139,47 @@ def _colour_check(target_rgb: np.ndarray, donor_rgb_at, bg: np.ndarray) -> tuple
     return int(len(ys)), p95, p95 <= BG_DE_MAX, True
 
 
-def _prepare(mask: np.ndarray, ring_px: int):
-    """Window around the mask plus its ring; None when the ring cannot prove an alignment."""
+def _prepare(mask: np.ndarray, ring_px: int, bounds: tuple[int, int, int, int] | None = None):
+    """Window around the mask plus its ring; None when the ring cannot prove an alignment.
+
+    ``bounds`` (x1, y1, x2, y2 inclusive, e.g. the sprite cell from cells.py) cuts the ring off at
+    the cell edge: beyond it lie pixels of the neighbouring cell, which say nothing about this sprite
+    (and may not even exist at the donor's position, e.g. at the edge of the image)."""
     h, w = mask.shape
     x1, y1, x2, y2 = _bbox(mask)
     wx1, wy1 = max(0, x1 - ring_px), max(0, y1 - ring_px)
     wx2, wy2 = min(w - 1, x2 + ring_px), min(h - 1, y2 + ring_px)
+    if bounds is not None:
+        bx1, by1, bx2, by2 = bounds
+        wx1, wy1 = max(wx1, bx1), max(wy1, by1)
+        wx2, wy2 = min(wx2, bx2), min(wy2, by2)
+        if wx1 > x1 or wy1 > y1 or wx2 < x2 or wy2 < y2:
+            bounds = None                                  # the mask leaves its cell: do not cut
+            wx1, wy1 = max(0, x1 - ring_px), max(0, y1 - ring_px)
+            wx2, wy2 = min(w - 1, x2 + ring_px), min(h - 1, y2 + ring_px)
     sl = (slice(wy1, wy2 + 1), slice(wx1, wx2 + 1))
     k = 2 * ring_px + 1
     ring = cv2.dilate(mask.astype(np.uint8), cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (k, k))).astype(bool) & ~mask
     ring_w = ring[sl]
     if int(ring_w.sum()) < MIN_RING_PIXELS:
         return None
-    return wx1, wy1, wx2, wy2, sl, ring_w
+    ks = 2 * SEAM_PX + 1
+    seam = cv2.dilate(mask.astype(np.uint8), cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (ks, ks))).astype(bool) & ~mask
+    return wx1, wy1, wx2, wy2, sl, ring_w, seam[sl]
+
+
+def _classify(value: float, diff_fn, ring_w: np.ndarray, seam_w: np.ndarray, max_msd: float, allow_near: bool):
+    """("exact" | "near", ring_bad, seam_bad) for a candidate, or None when it does not qualify."""
+    if value <= max_msd:
+        return "exact", 0.0, 0.0
+    if not allow_near or value > NEAR_MSD_MAX:
+        return None
+    diff = diff_fn()
+    ring_bad = float((diff[ring_w] > BAD_LEVEL).mean())
+    seam_bad = float((diff[seam_w] > BAD_LEVEL).mean()) if seam_w.any() else 0.0
+    if seam_bad <= SEAM_BAD_MAX and ring_bad <= NEAR_RING_BAD_MAX:
+        return "near", ring_bad, seam_bad
+    return None
 
 
 def _ring_informative(rgb_window: np.ndarray, ring_w: np.ndarray) -> bool:
@@ -149,22 +192,26 @@ def _ring_informative(rgb_window: np.ndarray, ring_w: np.ndarray) -> bool:
 
 def find_donors(
     rgb: np.ndarray, alpha: np.ndarray, mask: np.ndarray,
-    *, ring_px: int = RING_PX, max_msd: float = MAX_RING_MSD,
+    *, ring_px: int = RING_PX, max_msd: float = MAX_RING_MSD, allow_near: bool = False,
+    bounds: tuple[int, int, int, int] | None = None,
 ) -> list[Donor]:
-    """Donor positions whose ring around ``mask`` equals the target's ring; usable ones first."""
+    """Donor positions whose ring around ``mask`` equals the target's ring; usable ones first.
+
+    With ``allow_near`` also positions whose ring differs a little (tier "near", see NEAR_*)."""
     mask = np.asarray(mask, dtype=bool)
     if not mask.any():
         return []
     h, w = mask.shape
-    prep = _prepare(mask, ring_px)
+    prep = _prepare(mask, ring_px, bounds)
     if prep is None:
         return []
-    wx1, wy1, wx2, wy2, sl, ring_w = prep
+    wx1, wy1, wx2, wy2, sl, ring_w, seam_w = prep
     if not _ring_informative(rgb[sl], ring_w):
         return []
 
     img = np.dstack((rgb, alpha)).astype(np.float32)
     templ = np.ascontiguousarray(img[sl])
+    th, tw = templ.shape[:2]
     tmask = np.repeat(ring_w[..., None].astype(np.float32), 4, axis=2)
     msd = cv2.matchTemplate(img, templ, cv2.TM_SQDIFF, mask=tmask) / (int(ring_w.sum()) * 4.0)
 
@@ -172,8 +219,10 @@ def find_donors(
     flagged = _text_like(maps, CLEAN_CONTRAST_LEVELS, CLEAN_LARGE_LEVELS)
     bg = _background_pixels(maps, mask)
     my, mx = np.nonzero(mask)
+    near_outline = cv2.distanceTransform(mask.astype(np.uint8), cv2.DIST_L2, 3)[my, mx] <= SHARED_EDGE_PX
     donors: list[Donor] = []
-    ys, xs = np.nonzero(msd <= max_msd)
+    ys, xs = np.nonzero(msd <= (NEAR_MSD_MAX if allow_near else max_msd))
+    relaxed_seen = 0
     for idx in np.argsort(msd[ys, xs]):
         px, py = int(xs[idx]), int(ys[idx])
         dx, dy = px - wx1, py - wy1
@@ -181,16 +230,26 @@ def find_donors(
             continue
         if any(abs(dx - d.dx) <= 1 and abs(dy - d.dy) <= 1 for d in donors):
             continue                                   # neighbour of an accepted donor position
+        value = max(0.0, float(msd[py, px]))
+        if value > max_msd:
+            relaxed_seen += 1
+            if relaxed_seen > NEAR_CANDIDATES:
+                break
+        cls = _classify(value, lambda: np.abs(img[py:py + th, px:px + tw] - templ).max(axis=2),
+                        ring_w, seam_w, max_msd, allow_near)
+        if cls is None:
+            continue
         ty, tx = my + dy, mx + dx
         if ty.min() < 0 or tx.min() < 0 or ty.max() >= h or tx.max() >= w:
             continue                                   # donor would reach outside the image
-        frac = float(flagged[ty, tx].mean())
+        same = np.abs(rgb[my, mx].astype(np.int16) - rgb[ty, tx].astype(np.int16)).max(axis=1) <= SHARED_LEVELS
+        frac = float((flagged[ty, tx] & ~(same & near_outline)).mean())
         n_bg, p95, c_ok, c_checked = _colour_check(rgb, lambda yy, xx: rgb[yy + dy, xx + dx], bg)
-        donors.append(Donor(dx, dy, float(msd[py, px]), frac, frac <= CLEAN_MAX_FRACTION,
-                            n_bg, p95, c_ok, c_checked))
+        donors.append(Donor(dx, dy, value, frac, frac <= CLEAN_MAX_FRACTION,
+                            n_bg, p95, c_ok, c_checked, cls[0], cls[1], cls[2]))
         if len(donors) >= MAX_DONORS:
             break
-    donors.sort(key=lambda d: (not d.usable, not d.clean, d.ring_msd, abs(d.dx) + abs(d.dy)))
+    donors.sort(key=lambda d: (not d.usable, not d.clean, d.tier != "exact", d.ring_msd, abs(d.dx) + abs(d.dy)))
     return donors
 
 
@@ -209,6 +268,72 @@ def stamp(
     return out_rgb, out_alpha, d
 
 
+# ----------------------------------------------------------------------------- diagnosis
+
+MISS_FIELDS = ["reason", "ring_pixels", "ring_structure", "best_ring_msd", "best_ring_bad_frac", "best_seam_bad_frac",
+               "best_dx", "best_dy", "best_structure_frac", "bank_best_msd"]
+
+
+def explain_no_donor(rgb: np.ndarray, alpha: np.ndarray, mask: np.ndarray,
+                     bank: "DonorBank | None" = None, *, ring_px: int = RING_PX,
+                     bounds: tuple[int, int, int, int] | None = None) -> dict:
+    """Why did this region get no stamp? Returns the fields of MISS_FIELDS (for a report only).
+
+    reason: ring_too_small | ring_flat | no_ring_match | donor_not_clean | colour_mismatch | no_mask
+    best_ring_bad_frac is the share of ring pixels that differ clearly (> 8 levels) at the best
+    offset: a small value means "almost identical" (e.g. only the strip's outer edge differs).
+    """
+    out: dict = {k: "" for k in MISS_FIELDS}
+    mask = np.asarray(mask, dtype=bool)
+    if not mask.any():
+        out["reason"] = "no_mask"
+        return out
+    prep = _prepare(mask, ring_px, bounds)
+    if prep is None:
+        out["reason"] = "ring_too_small"
+        return out
+    wx1, wy1, wx2, wy2, sl, ring_w, seam_w = prep
+    n_ring = int(ring_w.sum())
+    out["ring_pixels"] = n_ring
+    gray = cv2.cvtColor(rgb[sl], cv2.COLOR_RGB2GRAY).astype(np.float32)
+    mag = cv2.magnitude(cv2.Sobel(gray, cv2.CV_32F, 1, 0, ksize=3), cv2.Sobel(gray, cv2.CV_32F, 0, 1, ksize=3))
+    out["ring_structure"] = round(float((mag[ring_w] > RING_GRAD_LEVEL).mean()), 4)
+    if not _ring_informative(rgb[sl], ring_w):
+        out["reason"] = "ring_flat"
+        return out
+    img = np.dstack((rgb, alpha)).astype(np.float32)
+    templ = np.ascontiguousarray(img[sl])
+    tmask = np.repeat(ring_w[..., None].astype(np.float32), 4, axis=2)
+    msd = cv2.matchTemplate(img, templ, cv2.TM_SQDIFF, mask=tmask) / (n_ring * 4.0)
+    msd = np.maximum(msd, 0.0)
+    msd[max(0, wy1 - 1):wy1 + 2, max(0, wx1 - 1):wx1 + 2] = np.inf        # the target itself
+    py, px = np.unravel_index(int(np.argmin(msd)), msd.shape)
+    if np.isfinite(msd[py, px]):
+        diff = np.abs(img[py:py + templ.shape[0], px:px + templ.shape[1]] - templ).max(axis=2)
+        out.update(best_ring_msd=round(float(msd[py, px]), 3), best_dx=int(px - wx1), best_dy=int(py - wy1),
+                   best_ring_bad_frac=round(float((diff[ring_w] > BAD_LEVEL).mean()), 4),
+                   best_seam_bad_frac=round(float((diff[seam_w] > BAD_LEVEL).mean()), 4) if seam_w.any() else 0.0)
+    if bank is not None and len(bank):
+        best = np.inf
+        for eid in list(bank._entries):
+            patch, _clean = bank._load_patch(eid)
+            if patch.shape[0] >= templ.shape[0] and patch.shape[1] >= templ.shape[1]:
+                r = cv2.matchTemplate(patch.astype(np.float32), templ, cv2.TM_SQDIFF, mask=tmask) / (n_ring * 4.0)
+                best = min(best, float(np.maximum(r, 0.0).min()))
+        if np.isfinite(best):
+            out["bank_best_msd"] = round(best, 3)
+    donors = find_donors(rgb, alpha, mask, ring_px=ring_px, bounds=bounds)
+    if not donors:
+        out["reason"] = "no_ring_match"
+    else:
+        out.update(best_structure_frac=round(min(d.structure_frac for d in donors), 4))
+        if any(d.usable for d in donors):
+            out["reason"] = "usable_donor_exists"
+        else:
+            out["reason"] = "colour_mismatch" if any(d.clean for d in donors) else "donor_not_clean"
+    return out
+
+
 # ----------------------------------------------------------------------------- bank
 
 @dataclass
@@ -223,6 +348,8 @@ class BankMatch:
     py: int
     wx1: int                 # top-left of the target window in the target image
     wy1: int
+    tier: str = "exact"
+    ring_bad_frac: float = 0.0
 
     @property
     def usable(self) -> bool:
@@ -331,15 +458,16 @@ class DonorBank:
 
     # -- matching
     def match(self, rgb: np.ndarray, alpha: np.ndarray, mask: np.ndarray,
-              *, ring_px: int = RING_PX, max_msd: float = MAX_RING_MSD) -> list[BankMatch]:
+              *, ring_px: int = RING_PX, max_msd: float = MAX_RING_MSD, allow_near: bool = False,
+              bounds: tuple[int, int, int, int] | None = None) -> list[BankMatch]:
         """Entries that fit ``mask`` in this image (form identical, colour ok); best first."""
         mask = np.asarray(mask, dtype=bool)
         if not mask.any() or not self._entries:
             return []
-        prep = _prepare(mask, ring_px)
+        prep = _prepare(mask, ring_px, bounds)
         if prep is None:
             return []
-        wx1, wy1, wx2, wy2, sl, ring_w = prep
+        wx1, wy1, wx2, wy2, sl, ring_w, seam_w = prep
         if not _ring_informative(rgb[sl], ring_w):
             return []
         templ = np.ascontiguousarray(np.dstack((rgb, alpha)).astype(np.float32)[sl])
@@ -355,17 +483,23 @@ class DonorBank:
             patch, clean = self._load_patch(eid)
             if patch.shape[0] < th or patch.shape[1] < tw:
                 continue
-            res = cv2.matchTemplate(patch.astype(np.float32), templ, cv2.TM_SQDIFF, mask=tmask) / (n_ring * 4.0)
-            ys, xs = np.nonzero(res <= max_msd)
-            for idx in np.argsort(res[ys, xs])[:4]:
+            patch_f = patch.astype(np.float32)
+            res = cv2.matchTemplate(patch_f, templ, cv2.TM_SQDIFF, mask=tmask) / (n_ring * 4.0)
+            ys, xs = np.nonzero(res <= (NEAR_MSD_MAX if allow_near else max_msd))
+            for idx in np.argsort(res[ys, xs])[:6]:
                 px, py = int(xs[idx]), int(ys[idx])
+                value = max(0.0, float(res[py, px]))
+                cls = _classify(value, lambda: np.abs(patch_f[py:py + th, px:px + tw] - templ).max(axis=2),
+                                ring_w, seam_w, max_msd, allow_near)
+                if cls is None:
+                    continue
                 qy, qx = my - wy1 + py, mx - wx1 + px
                 if not clean[qy, qx].all():
                     continue                              # the entry is only verified under its own mask
                 n_bg, p95, c_ok, c_checked = _colour_check(
                     rgb, lambda yy, xx: patch[yy - wy1 + py, xx - wx1 + px, :3], bg)
-                found.append(BankMatch(eid, float(res[py, px]), n_bg, p95, c_ok, c_checked, px, py, wx1, wy1))
-        found.sort(key=lambda m: (not m.usable, m.ring_msd, -int(self._entries[m.entry_id].get("ok", 0))))
+                found.append(BankMatch(eid, value, n_bg, p95, c_ok, c_checked, px, py, wx1, wy1, cls[0], cls[1]))
+        found.sort(key=lambda m: (not m.usable, m.tier != "exact", m.ring_msd, -int(self._entries[m.entry_id].get("ok", 0))))
         return found
 
     def stamp(self, rgb: np.ndarray, alpha: np.ndarray, mask: np.ndarray,
