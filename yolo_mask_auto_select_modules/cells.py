@@ -25,8 +25,11 @@ from dataclasses import dataclass, field
 
 import numpy as np
 
-CELLS_VERSION = 2          # raise whenever detection changes: stage 2 refuses a stage-1 run made with another version
+CELLS_VERSION = 3          # raise whenever detection changes: stage 2 refuses a stage-1 run made with another version
 USE_CELL_WINDOWS = True    # False = always the old bbox +- margin window
+# Which detection decides: "grid_detector" = the project's detector (grid_gate.py, incl. its exclusions
+# X_ALPHA / X_NOBOX / X_SINGLE / X_CV_*); "legacy" = the two own detectors below (equal tiles, sprites).
+CELL_DETECTOR = "grid_detector"
 SPLIT_REGIONS_BY_CELLS = True  # False = keep regions that span several cells (old numbering for those)
 EDGE_RATIO_MIN = 3.0       # boundary edge energy / median edge energy needed for "edge" evidence
 GAP_FRACTION_MIN = 0.90    # fraction of transparent pixels on the line needed for "gap" evidence
@@ -77,6 +80,7 @@ class CellGrid:
     height: int
     col_index: np.ndarray = field(repr=False, default=None)  # per x: column number
     row_index: np.ndarray = field(repr=False, default=None)  # per y: row number
+    source: str = "tiles"                  # "grid" / "lalpha" / "leiste" (grid_detector) or "tiles" (legacy)
 
     @property
     def n_cols(self) -> int:
@@ -292,8 +296,8 @@ def _detect_sprites(alpha: np.ndarray) -> SpriteCells | None:
     return SpriteCells(rects, ids, w, h, n_cols, n_rows)
 
 
-def detect_cell_grid(rgb: np.ndarray, alpha: np.ndarray) -> "CellGrid | SpriteCells | None":
-    """Cells of a sprite sheet: an equal-tile grid, else sprites as connected opaque areas, else None.
+def _detect_legacy(rgb: np.ndarray, alpha: np.ndarray) -> "CellGrid | SpriteCells | None":
+    """Own detection (no exclusion rules): equal tiles, else sprites as connected opaque areas.
 
     When both exist the one with more cells wins; on a tie the grid (exact tiles).
     """
@@ -313,6 +317,51 @@ def detect_cell_grid(rgb: np.ndarray, alpha: np.ndarray) -> "CellGrid | SpriteCe
         if off_x > SPRITE_CENTRE_TOLERANCE:        # only sideways: rows are rarely of exactly equal height
             return sprites
     return grid
+
+
+def _grid_from_bounds(col_b: list[int], row_b: list[int], w: int, h: int, source: str) -> CellGrid | None:
+    """CellGrid from column/row boundaries; the outer cells reach to the image edge."""
+    def clean(bounds: list[int], length: int) -> list[int]:
+        b = sorted({int(round(x)) for x in bounds if 0 < int(round(x)) < length})
+        return [0] + b + [length]
+    cols, rows = clean(col_b[1:-1], w), clean(row_b[1:-1], h)
+    if len(cols) < 2 or len(rows) < 2 or (len(cols) - 1) * (len(rows) - 1) < 2:
+        return None
+    col_index = np.zeros(w, np.int32)
+    row_index = np.zeros(h, np.int32)
+    for i in range(len(cols) - 1):
+        col_index[cols[i]:cols[i + 1]] = i
+    for i in range(len(rows) - 1):
+        row_index[rows[i]:rows[i + 1]] = i
+    return CellGrid(cols, rows, 0.0, 0.0, w, h, col_index, row_index, source)
+
+
+def gate_reason(rgb: np.ndarray, alpha: np.ndarray) -> str:
+    """Verdict of the project's grid detector for this image: its category or the exclusion (X_...)."""
+    from .grid_gate import analyze_grid_from_contours
+
+    bgra = np.dstack((rgb[..., ::-1], alpha)).astype(np.uint8)
+    data, reason = analyze_grid_from_contours(alpha, bgra)
+    return data["category"] if data else str(reason)
+
+
+def detect_cell_grid(rgb: np.ndarray, alpha: np.ndarray, detector: str | None = None) -> "CellGrid | SpriteCells | None":
+    """Cells of a sprite sheet, or None. ``detector`` defaults to CELL_DETECTOR.
+
+    "grid_detector": the project's detector decides, including its exclusions; an image it rejects
+    (X_ALPHA, X_NOBOX, X_SINGLE, X_CV_W, X_CV_A) gets no grid. "legacy": the own detectors.
+    """
+    mode = detector or CELL_DETECTOR
+    if mode == "legacy":
+        return _detect_legacy(rgb, alpha)
+    from .grid_gate import analyze_grid_from_contours
+
+    h, w = alpha.shape
+    bgra = np.dstack((rgb[..., ::-1], alpha)).astype(np.uint8)
+    data, _reason = analyze_grid_from_contours(alpha, bgra)
+    if data is None:
+        return None
+    return _grid_from_bounds(data["col_bounds"], data["row_bounds"], w, h, str(data["category"]))
 
 
 def region_windows(

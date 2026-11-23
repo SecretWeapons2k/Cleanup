@@ -39,7 +39,7 @@ def _sheet(cols: int, rows: int, cw: int, ch: int, *, gap: int = 0, seed: int = 
 
 def test_detects_opaque_grid():
     rgb, alpha = _sheet(4, 5, 90, 40)
-    grid = cells.detect_cell_grid(rgb, alpha)
+    grid = cells.detect_cell_grid(rgb, alpha, detector="legacy")
     assert grid is not None and (grid.n_cols, grid.n_rows) == (4, 5)
     assert grid.col_bounds == [0, 90, 180, 270, 360]
     assert grid.row_bounds == [0, 40, 80, 120, 160, 200]
@@ -47,13 +47,13 @@ def test_detects_opaque_grid():
 
 def test_detects_transparent_gap_grid():
     rgb, alpha = _sheet(3, 5, 116, 57, gap=4)
-    grid = cells.detect_cell_grid(rgb, alpha)
+    grid = cells.detect_cell_grid(rgb, alpha, detector="legacy")
     assert grid is not None and (grid.n_cols, grid.n_rows) == (3, 5)
 
 
 def test_single_cell_and_noise_give_none():
     rgb, alpha = _sheet(1, 1, 141, 57)
-    assert cells.detect_cell_grid(rgb, alpha) is None
+    assert cells.detect_cell_grid(rgb, alpha, detector="legacy") is None
     rng = np.random.default_rng(1)
     noise = rng.integers(0, 255, (240, 360, 3), dtype=np.uint8)
     assert cells.detect_cell_grid(noise, np.full((240, 360), 255, np.uint8)) is None
@@ -64,19 +64,19 @@ def test_single_button_with_one_text_line_gets_no_grid():
     # wrongly in 12-32 % of synthetic cases; with one text blob (a normal button) never.
     for seed in range(40):
         rgb, alpha = _sheet(1, 1, 141, 57, seed=seed, blobs=1)
-        assert cells.detect_cell_grid(rgb, alpha) is None
+        assert cells.detect_cell_grid(rgb, alpha, detector="legacy") is None
 
 
 def test_strip_with_very_clear_boundaries_is_detected():
     rgb, alpha = _sheet(4, 1, 264, 72)
     rgb[:, 264::264, :] = 255                       # bright 1px separators = very clear boundaries
-    grid = cells.detect_cell_grid(rgb, alpha)
+    grid = cells.detect_cell_grid(rgb, alpha, detector="legacy")
     assert grid is not None and (grid.n_cols, grid.n_rows) == (4, 1)
 
 
 def test_single_column_of_states_is_detected():
     rgb, alpha = _sheet(1, 5, 120, 45)
-    grid = cells.detect_cell_grid(rgb, alpha)
+    grid = cells.detect_cell_grid(rgb, alpha, detector="legacy")
     assert grid is not None and (grid.n_cols, grid.n_rows) == (1, 5)
 
 
@@ -84,12 +84,12 @@ def test_mostly_transparent_image_gives_none():
     rgb = np.zeros((200, 300, 3), np.uint8)
     alpha = np.zeros((200, 300), np.uint8)
     alpha[90:110, 140:160] = 255
-    assert cells.detect_cell_grid(rgb, alpha) is None
+    assert cells.detect_cell_grid(rgb, alpha, detector="legacy") is None
 
 
 def test_region_window_is_union_of_touched_cells():
     rgb, alpha = _sheet(3, 2, 100, 50)
-    grid = cells.detect_cell_grid(rgb, alpha)
+    grid = cells.detect_cell_grid(rgb, alpha, detector="legacy")
     core = np.zeros(alpha.shape, np.int32)
     core[10:20, 120:160] = 1                       # region 1: inside cell (row 0, col 1)
     core[10:20, 80:130] = 2                        # region 2: spans columns 0 and 1
@@ -103,7 +103,7 @@ def test_region_window_is_union_of_touched_cells():
 
 def test_sliver_in_neighbour_cell_is_ignored():
     rgb, alpha = _sheet(2, 2, 100, 50)
-    grid = cells.detect_cell_grid(rgb, alpha)
+    grid = cells.detect_cell_grid(rgb, alpha, detector="legacy")
     assert grid is not None and (grid.n_cols, grid.n_rows) == (2, 2)
     core = np.zeros(alpha.shape, np.int32)
     core[10:30, 40:101] = 1                        # 1 px column leaks into cell 1
@@ -137,7 +137,7 @@ def _plan_one_region_over(shape, boxes):
 
 def test_region_over_several_cells_is_split_into_one_region_per_cell():
     rgb, alpha = _sheet(3, 2, 100, 50)
-    grid = cells.detect_cell_grid(rgb, alpha)
+    grid = cells.detect_cell_grid(rgb, alpha, detector="legacy")
     plan = _plan_one_region_over(alpha.shape, [(10, 10, 89, 39), (110, 10, 189, 39), (210, 10, 289, 39)])
     new, origin = cells.split_plan_by_cells(plan, grid)
     assert new.count == 3 and origin == {1: 1, 2: 1, 3: 1}
@@ -150,7 +150,7 @@ def test_region_over_several_cells_is_split_into_one_region_per_cell():
 
 def test_unsplit_regions_keep_their_number_and_split_pieces_get_new_ones():
     rgb, alpha = _sheet(3, 2, 100, 50)
-    grid = cells.detect_cell_grid(rgb, alpha)
+    grid = cells.detect_cell_grid(rgb, alpha, detector="legacy")
     core = np.zeros(alpha.shape, np.int32)
     core[10:40, 10:190] = 1                       # region 1 spans cells 0 and 1
     core[60:90, 210:290] = 2                      # region 2: one cell (row 1, col 2)
@@ -191,14 +191,14 @@ def _ragged_sheet(cols, rows, sw=120, sh=40, gap=10, shift=(0, 7, 14), used_cols
 
 def test_ragged_sprites_with_shifted_rows_are_found():
     rgb, alpha = _ragged_sheet(4, 3)
-    grid = cells.detect_cell_grid(rgb, alpha)
+    grid = cells.detect_cell_grid(rgb, alpha, detector="legacy")
     assert isinstance(grid, cells.SpriteCells) and grid.n_cells == 12 and grid.summary() == "4x3s"
     assert len(np.unique(grid.cell_ids())) == 12 and grid.cell_ids().min() >= 0
 
 
 def test_sprites_with_an_empty_column_are_found():
     rgb, alpha = _ragged_sheet(4, 3, used_cols=3)                         # like m004_004: 4th column empty
-    grid = cells.detect_cell_grid(rgb, alpha)
+    grid = cells.detect_cell_grid(rgb, alpha, detector="legacy")
     assert isinstance(grid, cells.SpriteCells) and grid.n_cells == 9 and grid.summary() == "3x3s"
 
 
@@ -216,7 +216,7 @@ def test_few_or_unequal_islands_are_no_sprite_sheet():
 
 def test_region_window_and_split_follow_sprites():
     rgb, alpha = _ragged_sheet(4, 2, shift=(0, 7))
-    grid = cells.detect_cell_grid(rgb, alpha)
+    grid = cells.detect_cell_grid(rgb, alpha, detector="legacy")
     sw = 120 + 10
     core = np.zeros(alpha.shape, np.int32)
     core[15:30, 20:230] = 1                         # one region over sprites 0 and 1 of row 0
@@ -233,6 +233,76 @@ def test_region_window_and_split_follow_sprites():
 
 def test_tiles_win_a_tie_only_when_no_sprite_crosses_a_tile_boundary():
     rgb, alpha = _sheet(3, 5, 116, 57, gap=4)                              # separated tiles, same cell count both ways
-    assert isinstance(cells.detect_cell_grid(rgb, alpha), cells.CellGrid)
+    assert isinstance(cells.detect_cell_grid(rgb, alpha, detector="legacy"), cells.CellGrid)
     rgb, alpha = _ragged_sheet(4, 3, shift=(0, 7, 14))                     # rows shifted: tile lines cut sprites
-    assert isinstance(cells.detect_cell_grid(rgb, alpha), cells.SpriteCells)
+    assert isinstance(cells.detect_cell_grid(rgb, alpha, detector="legacy"), cells.SpriteCells)
+
+
+# ---- the project's grid detector as authority (grid_gate.py) -----------------------------------
+
+def _alpha_sheet(cols, rows, cw=100, ch=40, gap=8, margin=4):
+    """Opaque button tiles separated by transparent gaps (what grid_detector.py recognises)."""
+    w, h = cols * (cw + gap) - gap + 2 * margin, rows * (ch + gap) - gap + 2 * margin
+    rgb = np.full((h, w, 3), 60, np.uint8)
+    alpha = np.zeros((h, w), np.uint8)
+    for r in range(rows):
+        for c in range(cols):
+            x, y = margin + c * (cw + gap), margin + r * (ch + gap)
+            alpha[y:y + ch, x:x + cw] = 255
+    return rgb, alpha
+
+
+def test_gate_detects_a_button_grid_with_transparent_gaps():
+    rgb, alpha = _alpha_sheet(4, 3)
+    grid = cells.detect_cell_grid(rgb, alpha)
+    assert grid is not None and (grid.n_cols, grid.n_rows) == (4, 3) and grid.source == "grid"
+    assert grid.col_bounds[0] == 0 and grid.col_bounds[-1] == alpha.shape[1]      # outer cells reach the edge
+    assert grid.row_bounds[0] == 0 and grid.row_bounds[-1] == alpha.shape[0]
+
+
+def test_gate_detects_a_strip_of_buttons_as_one_row():
+    rgb, alpha = _alpha_sheet(4, 1, cw=120, ch=40)
+    grid = cells.detect_cell_grid(rgb, alpha)
+    assert grid is not None and (grid.n_cols, grid.n_rows) == (4, 1) and grid.source == "lalpha"
+
+
+def test_gate_excludes_mostly_transparent_images():
+    rgb, alpha = _alpha_sheet(5, 4, cw=12, ch=12, gap=40)
+    assert cells.gate_reason(rgb, alpha).startswith("X_ALPHA")
+    assert cells.detect_cell_grid(rgb, alpha) is None
+
+
+def test_gate_excludes_concave_shapes():
+    # Solidity uses the OUTER contour, so rings count as solid; U shapes (large notch) do not.
+    rgb = np.full((200, 400, 3), 60, np.uint8)
+    alpha = np.zeros((200, 400), np.uint8)
+    for r in range(2):
+        for c in range(4):
+            x, y = 10 + c * 95, 10 + r * 95
+            alpha[y:y + 80, x:x + 80] = 255
+            alpha[y:y + 55, x + 20:x + 60] = 0                             # notch open at the top: solidity ~0.6
+    assert cells.gate_reason(rgb, alpha).startswith("X_NOBOX")
+    assert cells.detect_cell_grid(rgb, alpha) is None
+
+
+def test_gate_excludes_a_single_non_strip_object_and_uneven_cell_widths():
+    rgb = np.full((200, 200, 3), 60, np.uint8)
+    alpha = np.zeros((200, 200), np.uint8)
+    alpha[20:180, 20:180] = 255                                            # one square object: not a strip
+    assert cells.gate_reason(rgb, alpha).startswith("X_SINGLE")
+    rgb2, alpha2 = _alpha_sheet(3, 1, cw=100, ch=40)
+    alpha2[:, 112:182] = 0                                                 # middle button only 30 px wide
+    assert cells.gate_reason(rgb2, alpha2).startswith("X_CV_W")
+    assert cells.detect_cell_grid(rgb2, alpha2) is None
+
+
+def test_gate_result_feeds_windows_and_splitting():
+    rgb, alpha = _alpha_sheet(3, 2)
+    grid = cells.detect_cell_grid(rgb, alpha)
+    core = np.zeros(alpha.shape, np.int32)
+    core[10:30, 10:290] = 1                                                # one region over all 3 buttons of row 0
+    ys, xs = np.nonzero(core)
+    plan = _Plan(1, core, np.ones(alpha.shape, np.int32), [(int(xs.min()), int(ys.min()), int(xs.max()), int(ys.max()))])
+    new, origin = cells.split_plan_by_cells(plan, grid)
+    assert new.count == 3 and set(origin) == {1, 2, 3}
+    assert all(len(w.cells) == 1 for w in cells.region_windows(new.core_labels, new.bboxes, grid, 48))
