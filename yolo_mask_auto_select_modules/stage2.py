@@ -45,11 +45,13 @@ from .fill_repair import repair_flat_fill_artifacts
 from .gate_features import context_type, lama_integrity, region_features
 from .geometry import boxes_union_mask, protected_mask, read_protected_zones, resolve_protected_zones_csv
 from .io_utils import (
-    choose_output_dir, discover_sources, find_iopaint, read_anchor_csv, remove_small_alpha_islands, rgb_array,
+    choose_output_dir, discover_sources, find_iopaint, make_box_only_mask, read_anchor_csv, remove_small_alpha_islands,
+    rgb_array,
 )
 from .cells import USE_CELL_WINDOWS, detect_cell_grid, region_windows, split_plan_for_image
 from .cells import CELLS_VERSION, SPLIT_REGIONS_BY_CELLS
 from .donor import MISS_FIELDS, DonorBank, explain_no_donor, find_donors, stamp
+from .siblings import SiblingBank, SiblingResult, find_tiles, sibling_fill
 from .regions import plan_regions, region_window
 from .reports import write_csv_with_union_fields
 from .scoring import make_contrast_mask, make_smart_ink_mask
@@ -71,6 +73,9 @@ METHODS: dict[str, tuple[str, MaskFn]] = {
     # Stamp from an identical, text-free copy elsewhere in the image (see donor.py). The mask is the
     # whole box; regions without a verified clean donor get no tile.
     "DONOR": ("donor", lambda rgb, a, b: boxes_union_mask(b, rgb.shape[1], rgb.shape[0])),
+    # Consensus of sibling cells (same frame, different text): see siblings.py. Whole box as mask; regions
+    # without enough clean-voting siblings get no tile (reason in sibling_misses.csv).
+    "SIBLING": ("sibling", lambda rgb, a, b: boxes_union_mask(b, rgb.shape[1], rgb.shape[0])),
 }
 # SMART_TELEA / SMART_R4_TELEA were removed after the stage-2 ranking: they never rescued a region.
 
@@ -101,6 +106,10 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
                    help="Also allow donors whose ring differs slightly (marked donor_tier=near); seam must still match")
     p.add_argument("--donor-bank-learn", action="store_true",
                    help="Also save newly found clean donors into the bank (used from the NEXT run on)")
+    p.add_argument("--sibling-bank", type=Path, default=None,
+                   help="Folder of the sibling bank: frames whose background the sibling vote verified, remembered across images (see siblings.py)")
+    p.add_argument("--sibling-bank-learn", action="store_true",
+                   help="Also save newly verified frame pixels into the sibling bank (used from the NEXT run on)")
     return p.parse_args(argv)
 
 
@@ -173,11 +182,28 @@ def _log_donor_miss(out_dir: Path, image: str, region: int, info: dict[str, Any]
             w.writerow({"image": image, "region": region, **info})
 
 
+def _log_sibling_miss(out_dir: Path, image: str, region: int, reason: str, meta: dict[str, Any]) -> None:
+    """One row per region the sibling method refused (sibling_misses.csv in the run folder)."""
+    path = out_dir / "sibling_misses.csv"
+    fields = ["image", "region", "reason", "sibling_count", "sibling_same_size_tiles", "sibling_alpha_rejected",
+              "sibling_colour_rejected", "sibling_gate_pixels_min", "sibling_voted_frac", "sibling_hole_frac",
+              "sibling_changed_frac", "sibling_entry_id", "sibling_bank_frac", "sibling_parts", "sibling_off_tile_frac",
+              "sibling_tiles_in_image", "sibling_region_visible_frac", "sibling_biggest_tile_px", "sibling_region_px",
+              "sibling_ink_px", "sibling_shared_ink_frac"]
+    with _MISS_LOCK:
+        new = not path.exists()
+        with path.open("a", encoding="utf-8", newline="") as f:
+            w = csv.DictWriter(f, fieldnames=fields, extrasaction="ignore")
+            if new:
+                w.writeheader()
+            w.writerow({"image": image, "region": region, "reason": reason, **meta})
+
+
 def process_image(
     *, name: str, stem: str, source_path: Path, protected: np.ndarray, plan, selected: dict[int, dict[str, str]],
     masks: dict[str, np.ndarray], groups: dict[str, str], staged: dict[str, tuple[str, str]], raw: Path,
     out_dir: Path, stage1_run: Path, use_fill_repair: bool, bank: DonorBank | None = None,
-    donor_near: bool = False,
+    donor_near: bool = False, sibling_bank: SiblingBank | None = None, body_mask: np.ndarray | None = None,
 ) -> tuple[list[dict[str, Any]], int]:
     original_rgb, original_alpha = rgb_array(source_path)
     height, width = original_rgb.shape[:2]
@@ -189,6 +215,7 @@ def process_image(
     integrity: dict[str, dict[str, float]] = {}
     repair_meta: dict[str, float] = {}
     donor_meta: dict[int, dict[str, Any]] = {}
+    sibling_meta: dict[int, dict[str, Any]] = {}
 
     for method, mask in masks.items():
         filler = METHODS[method][0]
@@ -256,6 +283,27 @@ def process_image(
                 donor_meta[k] = meta
             masks[method] = stamped              # only regions that really got a stamp keep a tile
             integrity[method] = {"lama_size_mismatch": 0.0, "lama_outside_mean": 0.0, "lama_outside_frac_gt8": 0.0}
+        elif filler == "sibling":
+            f_rgb, f_alpha = original_rgb.copy(), original_alpha.copy()
+            stamped = np.zeros(mask.shape, dtype=bool)
+            zone = plan.core_labels > 0                       # every text box of the image: the colour gate looks outside them
+            tiles = find_tiles(original_alpha)
+            if len(tiles) < 3 and grid is not None and grid.n_cells >= 3:
+                tiles = [grid.rect_of(i) for i in range(grid.n_cells)]      # opaque sheet: the grid cells are the tiles
+            for k in selected:
+                region_m = mask & (plan.territory == k)
+                if not region_m.any():
+                    continue
+                res = sibling_fill(original_rgb, original_alpha, region_m, zone, tiles,
+                                   bank=sibling_bank, source_image=name, region=k, body_mask=body_mask)
+                if not isinstance(res, SiblingResult):
+                    _log_sibling_miss(out_dir, name, k, res.reason, res.meta)
+                    continue
+                f_rgb[region_m] = res.rgb[region_m]
+                stamped |= region_m
+                sibling_meta[k] = res.meta
+            masks[method] = stamped                          # only regions that really got a fill keep a tile
+            integrity[method] = {"lama_size_mismatch": 0.0, "lama_outside_mean": 0.0, "lama_outside_frac_gt8": 0.0}
         else:
             t_rgb, t_alpha = _telea(original_rgb, original_alpha, mask)
             f_rgb, f_alpha = original_rgb.copy(), original_alpha.copy()
@@ -295,7 +343,7 @@ def process_image(
             region_mask = masks[method][sl] & terr
             if not region_mask.any():
                 continue                         # this method changes nothing here: no tile
-            if box_px and METHODS[method][0] != "donor" and int(region_mask.sum()) >= BOX_LIKE_COVERAGE * box_px:
+            if box_px and METHODS[method][0] not in ("donor", "sibling") and int(region_mask.sum()) >= BOX_LIKE_COVERAGE * box_px:
                 entry["skipped_box_like"].append(method)
                 continue                         # Box-only in disguise: no new information
             other = masks[method][sl] & ~terr
@@ -313,6 +361,7 @@ def process_image(
                 "context_type": info["context_type"], "stage1_label": info["stage1_label"],
                 **integrity[method],
                 **(donor_meta.get(k, {}) if method == "DONOR" else {}),
+                **(sibling_meta.get(k, {}) if method == "SIBLING" else {}),
                 **{key: f"{value:.6f}" if isinstance(value, float) else value for key, value in feats.items()},
             })
         orig_name = f"{stem}__r{k}__original.png"
@@ -378,6 +427,9 @@ def main(argv: list[str] | None = None) -> int:
     all_rows: list[dict[str, Any]] = []
     box_like_skipped = 0
     bank = DonorBank(args.donor_bank, learn=args.donor_bank_learn) if args.donor_bank else None
+    sibling_bank = SiblingBank(args.sibling_bank, learn=args.sibling_bank_learn) if args.sibling_bank else None
+    if sibling_bank is not None:
+        print(f"Sibling bank: {len(sibling_bank)} entries from {sibling_bank.path}" + (" (learning)" if sibling_bank.learn else ""))
     if bank is not None:
         print(f"Donor bank: {len(bank)} entries from {bank.path}" + (" (learning)" if bank.learn else ""))
     seconds: dict[str, float] = defaultdict(float)
@@ -429,8 +481,10 @@ def main(argv: list[str] | None = None) -> int:
                     mi.save(masks_stage / f_alpha)
                     staged[m] = (f_rgb, f_alpha)
                     n_lama_jobs += 1
+                body_boxes = [bx for bx in boxes if str(bx.get("type", "")).casefold() == "body"]
+                body_mask = (np.asarray(make_box_only_mask(w, h, body_boxes), dtype=bool) & box_mask) if body_boxes else None
                 prepared[name] = {"stem": stem, "prot": prot, "plan": plan, "sel": sel, "masks": masks,
-                                  "groups": groups, "staged": staged}
+                                  "groups": groups, "staged": staged, "body": body_mask}
             seconds["staging"] += time.perf_counter() - t0
             if n_lama_jobs:
                 t0 = time.perf_counter()
@@ -448,7 +502,7 @@ def main(argv: list[str] | None = None) -> int:
                     name=name, stem=pr["stem"], source_path=sources[name], protected=pr["prot"], plan=pr["plan"],
                     selected=pr["sel"], masks=pr["masks"], groups=pr["groups"], staged=pr["staged"], raw=raw,
                     out_dir=output_dir, stage1_run=stage1_run, use_fill_repair=use_fill_repair, bank=bank,
-                    donor_near=args.donor_near,
+                    donor_near=args.donor_near, sibling_bank=sibling_bank, body_mask=pr.get("body"),
                 )
 
             with ThreadPoolExecutor(max_workers=max(1, args.workers)) as pool:
@@ -464,8 +518,12 @@ def main(argv: list[str] | None = None) -> int:
     (output_dir / "regions_without_alternative.csv").write_text(
         "image,region\n" + "".join(f"{img},{k}\n" for img, k in no_alternative), encoding="utf-8")
     bank_new = bank.save() if bank is not None else 0
+    sibling_new = sibling_bank.save() if sibling_bank is not None else 0
     stats = {"donor_bank": str(bank.path) if bank is not None else None,
              "donor_bank_entries_at_start": len(bank) if bank is not None else 0, "donor_bank_entries_learned": bank_new,
+             "sibling_bank": str(sibling_bank.path) if sibling_bank is not None else None,
+             "sibling_bank_entries_at_start": len(sibling_bank) if sibling_bank is not None else 0,
+             "sibling_bank_entries_learned": sibling_new,
              "images": len(names), "regions": n_regions, "methods": methods, "rows": len(all_rows),
              "regions_without_alternative": len(no_alternative),
              "select": args.select, "region_merge_px": merge_px, "method_tiles_skipped_box_like": box_like_skipped,
