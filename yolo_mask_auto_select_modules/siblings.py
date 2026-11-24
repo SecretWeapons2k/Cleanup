@@ -81,9 +81,12 @@ VOTE_TOL = 3                 # candidates closer than this (any channel) count a
 SMOOTH_SIGMA = 4.0
 SMOOTH_TOL = 12.0            # a lone candidate must be this close to the smooth estimate
 SUPPORT_WEIGHT = 30.0        # one extra supporter is worth this many levels of distance to the estimate
-HALO_TOL = 5.0              # next to a hole, a voted pixel must be this close to the estimate
+GLOW_TOL = 6.0              # a candidate counts as background only if it is this close to the smooth estimate (weaker glow than this is invisible)
+HALO_TOL = 3.0              # next to a hole, a voted pixel must be this close to the estimate
 INK_FAR = 12.0               # a winner farther than this from the estimate is ink (two cells may share a glyph)
-HOLE_SIGMA = 2.5            # smoothing of the hole fill
+HOLE_SIGMAS = (2.5, 5.0, 10.0, 20.0)   # scales of the hole fill: the smallest one with enough known pixels around is used
+HOLE_MIN_SUPPORT = 0.35     # share of the kernel that must lie on known pixels
+HOLE_GUARD_PX = 2.5         # decided pixels this close to a hole do not feed the fill (glow tail)
 MAX_HOLE_FRAC = 0.55         # more holes than this: refuse
 BANK_VERSION = 1
 MAX_OFF_TILE_FRAC = 0.10     # region pixels on no tile (transparent area) tolerated before the region is refused
@@ -265,20 +268,21 @@ def _fill_tile(rgb: np.ndarray, alpha: np.ndarray, region_mask: np.ndarray, zone
     members = agree[best, :, cols].T                        # N, n: who agrees with the pick
     cluster_mean = (V * members[..., None]).sum(axis=0) / np.maximum(members.sum(axis=0), 1)[:, None]
     value = np.rint(cluster_mean).astype(np.int16)
-    lone_ok = (best_support == 1) & est_ok & (dist[best, cols] <= SMOOTH_TOL)
-    far = est_ok & (dist[best, cols] > INK_FAR)
-    # Same text in (nearly) all cells: the share of the target's own body ink that every cell agrees on is
-    # large. Then there is nothing to learn from the siblings; refuse instead of smoothing the text away.
-    own_ink = est_ok & body_here & (dist[0] > INK_FAR)
-    if own_ink.any():
-        shared_ink = float((own_ink & certain).sum()) / float(own_ink.sum())
-        meta["sibling_shared_ink_frac"] = round(shared_ink, 4)
-        if shared_ink > SAME_TEXT_SHARED_FRAC:
-            return SiblingMiss("sibling_same_text", meta)
+    # Text glow is an additive halo that differs from sibling to sibling and fades out over many levels: agreement
+    # between two siblings does not prove "background" (two faint halos can agree). Where the smooth estimate is
+    # known, the candidate CLOSEST to it is taken, and only if it is within GLOW_TOL; otherwise the pixel is a hole
+    # and gets the smooth estimate instead of a ghost. Without an estimate the vote by support is used.
+    arg = dist.argmin(axis=0)
+    dmin = dist[arg, cols]
+    closest = V[arg, cols]
+    glow_ok = est_ok & (dmin <= GLOW_TOL)
+    support_ok = ~est_ok & (best_support >= 2)
+    far = est_ok & (dist[0] > INK_FAR)                       # the target's own pixel stands out from the background
+    value = np.where(glow_ok[:, None], closest, np.where((best_support == 1)[:, None], pick, value))
     # What ALL cells share stays as it is (e.g. a header label) - except inside a body box: there it is text
     # (the same glyph at the same place in every cell, e.g. a final "?") and is treated like text.
-    decided = ((best_support >= 2) & ~far) | lone_ok | (certain & ~(far & body_here))
-    value = np.where((best_support == 1)[:, None], pick, value)
+    decided = glow_ok | support_ok | (certain & ~(far & body_here))
+    dsel = np.where(glow_ok, dmin, dist[best, cols])
 
     # Halo guard: a voted pixel right next to a hole that is not shared by all cells and is not
     # very close to the smooth estimate may still carry the faint edge of a glyph: make it a hole too.
@@ -286,7 +290,7 @@ def _fill_tile(rgb: np.ndarray, alpha: np.ndarray, region_mask: np.ndarray, zone
     hmap = np.zeros((h, w), np.uint8)
     hmap[ty[holes_flat], tx[holes_flat]] = 1
     near_hole = (cv2.dilate(hmap, np.ones((3, 3), np.uint8)) > 0)[ty, tx]
-    halo = near_hole & decided & ~certain & est_ok & (dist[best, cols] > HALO_TOL)
+    halo = near_hole & decided & ~certain & est_ok & (dsel > HALO_TOL)
     voted_ok = decided & ~halo
 
     # bank pixels: verified background wins; ink the frame itself carries is kept when the target shows it too
@@ -302,7 +306,7 @@ def _fill_tile(rgb: np.ndarray, alpha: np.ndarray, region_mask: np.ndarray, zone
             k_new = np.zeros((h, w), bool)
             sh_new = np.zeros((h, w), bool)
             val_tile = tile_rgb.copy()
-            good = (best_support >= 2) & ~far & ~halo
+            good = (glow_ok | support_ok) & ~halo
             k_new[ty[good], tx[good]] = True
             val_tile[ty[good], tx[good]] = np.clip(value[good], 0, 255).astype(np.uint8)
             sh = certain & far & ~body_here
@@ -328,19 +332,32 @@ def _fill_tile(rgb: np.ndarray, alpha: np.ndarray, region_mask: np.ndarray, zone
     if hole_frac > MAX_HOLE_FRAC:
         return SiblingMiss("too_many_holes", meta)
 
-    if holes.any():                                          # holes: smooth estimate from the decided pixels and the ring
+    if holes.any():                                          # holes: smooth multi-scale estimate from clean decided pixels
         voted_t = voted[tile[1]:tile[3] + 1, tile[0]:tile[2] + 1]
         holes_t = holes[tile[1]:tile[3] + 1, tile[0]:tile[2] + 1]
         known2 = (voted_t | ring) & ~holes_t & ~kept_ink_t
-        est2, den2 = _smooth_estimate(_crop(out_rgb, tile), known2, HOLE_SIGMA)
-        fill = np.clip(np.rint(est2), 0, 255).astype(np.uint8)
-        use = holes_t & (den2 > 0.02)
+        # The fading tail of the glow lies right next to the holes: it must not feed the fill (that is the "ghost").
+        dist_hole = cv2.distanceTransform((~holes_t).astype(np.uint8), cv2.DIST_L2, 3)
+        guarded = known2 & (dist_hole > HOLE_GUARD_PX)
+        src = guarded if guarded.sum() >= 50 else known2
+        base = _crop(out_rgb, tile)
+        fill = np.zeros((h, w, 3), np.float32)
+        todo = holes_t.copy()
+        for sigma in HOLE_SIGMAS:                            # smallest scale with enough support wins
+            est2, den2 = _smooth_estimate(base, src, sigma)
+            ok = todo & (den2 >= HOLE_MIN_SUPPORT)
+            fill[ok] = est2[ok]
+            todo &= ~ok
+        est2, den2 = _smooth_estimate(base, src, HOLE_SIGMAS[-1])
+        last = todo & (den2 > 0.02)
+        fill[last] = est2[last]
+        todo &= ~last
+        use = holes_t & ~todo
         patch = _crop(out_rgb, tile)
-        patch[use] = fill[use]
-        rest = holes_t & ~use                                # no known pixel nearby at all: Telea
-        if rest.any():
-            fixed = cv2.inpaint(np.ascontiguousarray(patch), rest.astype(np.uint8), 3, cv2.INPAINT_TELEA)
-            patch[rest] = fixed[rest]
+        patch[use] = np.clip(np.rint(fill[use]), 0, 255).astype(np.uint8)
+        if todo.any():                                       # no known pixel anywhere near: Telea
+            fixed = cv2.inpaint(np.ascontiguousarray(patch), todo.astype(np.uint8), 3, cv2.INPAINT_TELEA)
+            patch[todo] = fixed[todo]
     return SiblingResult(out_rgb, alpha.copy(), voted, holes, meta)
 
 
@@ -554,6 +571,8 @@ class SiblingBank:
             sh |= shared & ~k
             meta = entries[target]
             meta["conflicts"] = int(meta.get("conflicts", 0)) + int(conflict.sum())
+            meta["merges"] = int(meta.get("merges", 0)) + 1
+            meta["compared_px"] = int(meta.get("compared_px", 0)) + int(both.sum())
             meta["seen"] = int(meta.get("seen", 1)) + 1
             meta.setdefault("sources", [])
             if len(meta["sources"]) < 30 and f"{src}#r{reg}" not in meta["sources"]:
@@ -677,9 +696,11 @@ def main(argv: list[str] | None = None) -> int:
     if args.cmd == "list":
         print(f"{len(bank)} Eintraege in {bank.path}")
         for e in sorted(bank.entries(), key=lambda e: e.get("created", "")):
+            cmp_px = int(e.get("compared_px", 0))
+            rate = f"{100.0 * int(e.get('conflicts', 0)) / cmp_px:.2f} %" if cmp_px else "?"
             print(f"  {e['id']}  Fenster {e.get('window')}  bekannt {e.get('known_px')}  geteilt {e.get('shared_px')}"
                   f"  gesehen {e.get('seen', 1)}  ok {e.get('ok', 0)}  schlecht {e.get('bad', 0)}  Konflikte {e.get('conflicts', 0)}"
-                  f"  Quellen {len(e.get('sources', []))}")
+                  f"  Merges {e.get('merges', '?')}  Konfliktrate {rate}  Quellen {len(e.get('sources', []))}")
         return 0
     ok, bad, skipped = apply_labels(bank, args.ranking, args.features)
     print(f"Urteile uebernommen: brauchbar {ok}, unbrauchbar {bad}, ohne SIBLING-Urteil {skipped}")

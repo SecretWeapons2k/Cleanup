@@ -52,6 +52,7 @@ from .cells import USE_CELL_WINDOWS, detect_cell_grid, region_windows, split_pla
 from .cells import CELLS_VERSION, SPLIT_REGIONS_BY_CELLS
 from .donor import MISS_FIELDS, DonorBank, explain_no_donor, find_donors, stamp
 from .siblings import SiblingBank, SiblingResult, find_tiles, sibling_fill
+from . import siblings_v1
 from .regions import plan_regions, region_window
 from .reports import write_csv_with_union_fields
 from .scoring import make_contrast_mask, make_smart_ink_mask
@@ -76,6 +77,8 @@ METHODS: dict[str, tuple[str, MaskFn]] = {
     # Consensus of sibling cells (same frame, different text): see siblings.py. Whole box as mask; regions
     # without enough clean-voting siblings get no tile (reason in sibling_misses.csv).
     "SIBLING": ("sibling", lambda rgb, a, b: boxes_union_mask(b, rgb.shape[1], rgb.shape[0])),
+    # Frozen earlier version of SIBLING (before the glow rework, no bank) to compare both in the ranker.
+    "SIBLING_V1": ("sibling_v1", lambda rgb, a, b: boxes_union_mask(b, rgb.shape[1], rgb.shape[0])),
 }
 # SMART_TELEA / SMART_R4_TELEA were removed after the stage-2 ranking: they never rescued a region.
 
@@ -182,21 +185,21 @@ def _log_donor_miss(out_dir: Path, image: str, region: int, info: dict[str, Any]
             w.writerow({"image": image, "region": region, **info})
 
 
-def _log_sibling_miss(out_dir: Path, image: str, region: int, reason: str, meta: dict[str, Any]) -> None:
+def _log_sibling_miss(out_dir: Path, image: str, region: int, reason: str, meta: dict[str, Any], method: str = "SIBLING") -> None:
     """One row per region the sibling method refused (sibling_misses.csv in the run folder)."""
     path = out_dir / "sibling_misses.csv"
-    fields = ["image", "region", "reason", "sibling_count", "sibling_same_size_tiles", "sibling_alpha_rejected",
+    fields = ["image", "region", "method", "reason", "sibling_count", "sibling_same_size_tiles", "sibling_alpha_rejected",
               "sibling_colour_rejected", "sibling_gate_pixels_min", "sibling_voted_frac", "sibling_hole_frac",
               "sibling_changed_frac", "sibling_entry_id", "sibling_bank_frac", "sibling_parts", "sibling_off_tile_frac",
               "sibling_tiles_in_image", "sibling_region_visible_frac", "sibling_biggest_tile_px", "sibling_region_px",
-              "sibling_ink_px", "sibling_shared_ink_frac"]
+              "sibling_ink_px", "sibling_shared_ink_frac", "sibling_skipped_px"]
     with _MISS_LOCK:
         new = not path.exists()
         with path.open("a", encoding="utf-8", newline="") as f:
             w = csv.DictWriter(f, fieldnames=fields, extrasaction="ignore")
             if new:
                 w.writeheader()
-            w.writerow({"image": image, "region": region, "reason": reason, **meta})
+            w.writerow({"image": image, "region": region, "method": method, "reason": reason, **meta})
 
 
 def process_image(
@@ -215,7 +218,7 @@ def process_image(
     integrity: dict[str, dict[str, float]] = {}
     repair_meta: dict[str, float] = {}
     donor_meta: dict[int, dict[str, Any]] = {}
-    sibling_meta: dict[int, dict[str, Any]] = {}
+    sibling_meta: dict[tuple[str, int], dict[str, Any]] = {}
 
     for method, mask in masks.items():
         filler = METHODS[method][0]
@@ -283,7 +286,7 @@ def process_image(
                 donor_meta[k] = meta
             masks[method] = stamped              # only regions that really got a stamp keep a tile
             integrity[method] = {"lama_size_mismatch": 0.0, "lama_outside_mean": 0.0, "lama_outside_frac_gt8": 0.0}
-        elif filler == "sibling":
+        elif filler in ("sibling", "sibling_v1"):
             f_rgb, f_alpha = original_rgb.copy(), original_alpha.copy()
             stamped = np.zeros(mask.shape, dtype=bool)
             zone = plan.core_labels > 0                       # every text box of the image: the colour gate looks outside them
@@ -294,14 +297,20 @@ def process_image(
                 region_m = mask & (plan.territory == k)
                 if not region_m.any():
                     continue
-                res = sibling_fill(original_rgb, original_alpha, region_m, zone, tiles,
-                                   bank=sibling_bank, source_image=name, region=k, body_mask=body_mask)
-                if not isinstance(res, SiblingResult):
-                    _log_sibling_miss(out_dir, name, k, res.reason, res.meta)
+                if filler == "sibling_v1":
+                    res = siblings_v1.sibling_fill(original_rgb, original_alpha, region_m, zone, tiles,
+                                                   source_image=name, region=k, body_mask=body_mask)
+                    ok_type = siblings_v1.SiblingResult
+                else:
+                    res = sibling_fill(original_rgb, original_alpha, region_m, zone, tiles,
+                                       bank=sibling_bank, source_image=name, region=k, body_mask=body_mask)
+                    ok_type = SiblingResult
+                if not isinstance(res, ok_type):
+                    _log_sibling_miss(out_dir, name, k, res.reason, res.meta, method)
                     continue
                 f_rgb[region_m] = res.rgb[region_m]
                 stamped |= region_m
-                sibling_meta[k] = res.meta
+                sibling_meta[(method, k)] = res.meta
             masks[method] = stamped                          # only regions that really got a fill keep a tile
             integrity[method] = {"lama_size_mismatch": 0.0, "lama_outside_mean": 0.0, "lama_outside_frac_gt8": 0.0}
         else:
@@ -343,7 +352,7 @@ def process_image(
             region_mask = masks[method][sl] & terr
             if not region_mask.any():
                 continue                         # this method changes nothing here: no tile
-            if box_px and METHODS[method][0] not in ("donor", "sibling") and int(region_mask.sum()) >= BOX_LIKE_COVERAGE * box_px:
+            if box_px and METHODS[method][0] not in ("donor", "sibling", "sibling_v1") and int(region_mask.sum()) >= BOX_LIKE_COVERAGE * box_px:
                 entry["skipped_box_like"].append(method)
                 continue                         # Box-only in disguise: no new information
             other = masks[method][sl] & ~terr
@@ -361,7 +370,7 @@ def process_image(
                 "context_type": info["context_type"], "stage1_label": info["stage1_label"],
                 **integrity[method],
                 **(donor_meta.get(k, {}) if method == "DONOR" else {}),
-                **(sibling_meta.get(k, {}) if method == "SIBLING" else {}),
+                **(sibling_meta.get((method, k), {}) if method in ("SIBLING", "SIBLING_V1") else {}),
                 **{key: f"{value:.6f}" if isinstance(value, float) else value for key, value in feats.items()},
             })
         orig_name = f"{stem}__r{k}__original.png"
