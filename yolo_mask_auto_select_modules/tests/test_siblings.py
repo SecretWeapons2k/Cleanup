@@ -202,3 +202,52 @@ def test_failing_sliver_is_skipped_but_failing_big_part_refuses():
     big = _region(zone, 1)
     res2 = S.sibling_fill(rgb, alpha, region | big, zone)
     assert isinstance(res2, (S.SiblingResult, S.SiblingMiss))
+
+
+# ----------------------------------------------------------------------------- approved frames / FRAME_DONOR
+
+def _approved_bank(tmp_path, tints=None):
+    """A bank holding one approved frame: the clean cell of a sheet."""
+    rgb, alpha, clean, zone = _sheet(1, tints=tints)
+    bank = S.SiblingBank(tmp_path / "bank")
+    bank.approve(alpha[:, :W], clean[:, :W], "approved:test")
+    assert bank.save() == 1
+    return S.SiblingBank(tmp_path / "bank"), clean
+
+
+def test_frame_donor_stamps_a_cell_with_other_text(tmp_path):
+    bank, clean = _approved_bank(tmp_path)
+    rgb, alpha, clean2, zone = _sheet(1, texts=[(40, 18, 95, 32)])
+    res = S.frame_donor_fill(rgb, alpha, _region(zone, 0), zone, None, bank)
+    assert isinstance(res, S.SiblingResult)
+    m = _region(zone, 0)
+    assert (np.abs(res.rgb[m].astype(int) - clean2[m].astype(int)).max(axis=1) <= 1).all()
+    assert (res.rgb[~m] == rgb[~m]).all()
+
+
+def test_frame_donor_needs_an_approved_entry(tmp_path):
+    rgb, alpha, clean, zone = _sheet(3)
+    learn = S.SiblingBank(tmp_path / "bank", learn=True)                 # learned, not approved
+    for i in range(3):
+        S.sibling_fill(rgb, alpha, _region(zone, i), zone, bank=learn, source_image="a", region=i + 1)
+    learn.save()
+    res = S.frame_donor_fill(rgb, alpha, _region(zone, 0), zone, None, S.SiblingBank(tmp_path / "bank"))
+    assert isinstance(res, S.SiblingMiss) and res.reason == "no_frame_donor"
+
+
+def test_frame_donor_ignores_other_colours(tmp_path):
+    bank, _ = _approved_bank(tmp_path)
+    rgb, alpha, clean2, zone = _sheet(1, tints=[(50, -20, 30)])
+    res = S.frame_donor_fill(rgb, alpha, _region(zone, 0), zone, None, bank)
+    assert isinstance(res, S.SiblingMiss) and res.reason == "no_frame_donor"
+
+
+def test_approving_again_replaces_the_frame_instead_of_adding_one(tmp_path):
+    bank, clean = _approved_bank(tmp_path)
+    rgb, alpha, clean2, zone = _sheet(1)
+    bank = S.SiblingBank(tmp_path / "bank")
+    better = clean[:, :W].copy(); better[40:44, 10:20] = (9, 9, 9)       # the person chose another version later
+    bank.approve(alpha[:, :W], better, "approved:v2")
+    assert bank.save() == 0 and len(S.SiblingBank(tmp_path / "bank")) == 1
+    res = S.frame_donor_fill(rgb, alpha, _region(zone, 0), zone, None, S.SiblingBank(tmp_path / "bank"))
+    assert isinstance(res, S.SiblingResult)

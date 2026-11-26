@@ -463,6 +463,67 @@ def sibling_fill(rgb: np.ndarray, alpha: np.ndarray, region_mask: np.ndarray, zo
     return SiblingResult(out_rgb, alpha.copy(), voted, holes, meta)
 
 
+# ----------------------------------------------------------------------------- frame donor (method FRAME_DONOR)
+
+def frame_donor_fill(rgb: np.ndarray, alpha: np.ndarray, region_mask: np.ndarray, zone_mask: np.ndarray | None,
+                     tiles: list[Rect] | None, bank: "SiblingBank", source_image: str = "",
+                     region: int = 0) -> SiblingResult | SiblingMiss:
+    """Stamp a frame a person approved (SiblingBank.approve) onto ``region_mask``.
+
+    The donor is a complete clean cell, so it also covers cells whose text sits somewhere else. A frame
+    qualifies only if shape and colours match (same gate as the sibling bank); a region on several tiles is
+    split per tile and every part needs its own donor (parts below MAX_SKIP_PART_FRAC may stay as they are)."""
+    region_mask = np.asarray(region_mask, dtype=bool)
+    if not region_mask.any():
+        return SiblingMiss("empty_mask")
+    zone = region_mask if zone_mask is None else (np.asarray(zone_mask, dtype=bool) | region_mask)
+    tiles = find_tiles(alpha) if tiles is None else tiles
+    total = int(region_mask.sum())
+    parts: list[tuple[Rect, np.ndarray]] = []
+    taken = np.zeros_like(region_mask)
+    for t in sorted(tiles, key=lambda r: _size(r)[0] * _size(r)[1]):          # a pixel on two tiles belongs to the smaller
+        sub = np.zeros_like(region_mask)
+        sub[t[1]:t[3] + 1, t[0]:t[2] + 1] = region_mask[t[1]:t[3] + 1, t[0]:t[2] + 1]
+        sub &= ~taken
+        if sub.any():
+            parts.append((t, sub))
+            taken |= sub
+    off = 1.0 - float(taken.sum()) / total
+    if not parts or off > MAX_OFF_TILE_FRAC:
+        return SiblingMiss("no_tile", {"sibling_off_tile_frac": round(off, 4), "sibling_tiles_in_image": len(tiles)})
+    out_rgb = rgb.copy()
+    stamped = np.zeros_like(region_mask)
+    ids: list[str] = []
+    agrees: list[float] = []
+    skipped = 0
+    first_miss: SiblingMiss | None = None
+    for t, sub in parts:
+        entry = bank.match(rgb, alpha, t, _crop(zone, t), approved_only=True)
+        if entry is None:
+            if first_miss is None:
+                first_miss = SiblingMiss("no_frame_donor", {"sibling_tile": f"{t[0]},{t[1]}"})
+            skipped += int(sub.sum())
+            continue
+        ys, xs = np.nonzero(sub)
+        ty, tx = ys - t[1], xs - t[0]
+        known = entry.known[ty, tx]
+        if not known.all():                                    # the donor does not cover the whole part: do not guess
+            return SiblingMiss("donor_incomplete", {"sibling_entry_id": entry.entry_id,
+                                                    "sibling_hole_frac": round(float(1.0 - known.mean()), 4)})
+        out_rgb[ys, xs] = entry.rgb[ty, tx]
+        stamped |= sub
+        ids.append(entry.entry_id)
+        agrees.append(entry.agree)
+    if not stamped.any():
+        return first_miss or SiblingMiss("no_frame_donor")
+    if skipped > MAX_SKIP_PART_FRAC * total:                  # a big part found no donor: refuse, never half clean
+        return first_miss or SiblingMiss("no_frame_donor")
+    meta = {"sibling_entry_id": "+".join(dict.fromkeys(ids)), "sibling_parts": len(parts), "sibling_skipped_px": skipped,
+            "sibling_donor_agree": round(float(min(agrees)), 4), "sibling_bank_frac": round(float(stamped.sum()) / total, 4),
+            "sibling_hole_frac": 0.0}
+    return SiblingResult(out_rgb, alpha.copy(), stamped, np.zeros_like(region_mask), meta)
+
+
 # ----------------------------------------------------------------------------- bank across images
 
 @dataclass
@@ -473,6 +534,7 @@ class BankMatch:
     shared: np.ndarray         # bool h, w: ink of the frame itself (all cells agreed)
     agree: float = 1.0
     gate_pixels: int = 0
+    approved: bool = False
 
 
 def _gate(entry_patch: np.ndarray, entry_known: np.ndarray, alpha: np.ndarray, rgb: np.ndarray,
@@ -501,6 +563,7 @@ class SiblingBank:
         self._entries: dict[str, dict] = self._read_index()      # frozen snapshot: used for matching
         self._cache: dict[str, tuple[np.ndarray, np.ndarray, np.ndarray]] = {}
         self._pending: list[tuple] = []                           # learned in this run: merged at save()
+        self._approved: list[tuple] = []                          # frames chosen by a person: written at save()
         self._seen: dict[str, int] = {}
         self._outcomes: dict[str, list[int]] = {}
 
@@ -525,11 +588,13 @@ class SiblingBank:
 
     def save(self) -> int:
         """Merge what was learned into the bank; returns the number of new entries. No-op without learn."""
-        if not self.learn and not self._outcomes:
+        if not self.learn and not self._outcomes and not self._approved:
             return 0
         with self._lock:
             pending = sorted(self._pending, key=lambda p: (p[4], p[5]))
             self._pending = []
+            approved = list(self._approved)
+            self._approved = []
         self.path.mkdir(parents=True, exist_ok=True)
         (self.path / "patches").mkdir(exist_ok=True)
         (self.path / "masks").mkdir(exist_ok=True)
@@ -577,6 +642,29 @@ class SiblingBank:
             meta.setdefault("sources", [])
             if len(meta["sources"]) < 30 and f"{src}#r{reg}" not in meta["sources"]:
                 meta["sources"].append(f"{src}#r{reg}")
+        for alpha, rgb, label in approved:                        # a person's choice replaces what was learned
+            opaque = alpha > TILE_ALPHA_LEVEL
+            target = None
+            for eid, meta in entries.items():
+                if tuple(meta.get("window", ())) != (alpha.shape[1], alpha.shape[0]):
+                    continue
+                p, k, _sh = get(eid)
+                if k.any():
+                    ok, _a, _n = _gate(p, k, alpha, rgb, opaque)
+                else:                                              # entry without known pixels: compare the silhouette only
+                    ok = (np.abs(p[..., 3].astype(np.int16) - alpha.astype(np.int16)) <= ALPHA_SAME_LEVEL).mean() >= ALPHA_SAME_FRAC
+                if ok:
+                    target = eid
+                    break
+            if target is None:
+                target = hashlib.sha1(b"approved" + alpha.tobytes() + rgb.tobytes()).hexdigest()[:12]
+                entries[target] = {"id": target, "window": [int(alpha.shape[1]), int(alpha.shape[0])],
+                                   "created": time.strftime("%Y-%m-%d %H:%M:%S"), "sources": [], "seen": 1, "ok": 0, "bad": 0,
+                                   "conflicts": 0}
+                n_new += 1
+            work[target] = [np.dstack((rgb, alpha)).astype(np.uint8), opaque.copy(), np.zeros(alpha.shape, bool)]
+            entries[target]["approved"] = True
+            entries[target]["sources"] = [label]
         for eid, (p, k, sh) in work.items():
             if eid not in entries:
                 continue
@@ -606,6 +694,12 @@ class SiblingBank:
         return patch, code == 255, code == 128
 
     # -- learning / matching
+    def approve(self, alpha: np.ndarray, rgb: np.ndarray, label: str = "") -> None:
+        """Remember a frame that a person picked as the best clean version: all its opaque pixels count as known.
+        It replaces what was learned for this frame; method FRAME_DONOR only uses such entries."""
+        with self._lock:
+            self._approved.append((alpha.copy(), rgb.copy(), label))
+
     def learn_pending(self) -> int:
         return len(self._pending)
 
@@ -614,7 +708,8 @@ class SiblingBank:
         with self._lock:
             self._pending.append((alpha.copy(), rgb.copy(), known.copy(), shared.copy(), source_image, int(region)))
 
-    def match(self, rgb: np.ndarray, alpha: np.ndarray, tile: Rect, zone_tile: np.ndarray) -> BankMatch | None:
+    def match(self, rgb: np.ndarray, alpha: np.ndarray, tile: Rect, zone_tile: np.ndarray,
+              approved_only: bool = False) -> BankMatch | None:
         """The remembered frame that fits this tile (same shape, same colours outside the text zones)."""
         if not self._entries:
             return None
@@ -625,14 +720,16 @@ class SiblingBank:
         for eid, meta in self._entries.items():
             if tuple(meta.get("window", ())) != (a_t.shape[1], a_t.shape[0]):
                 continue
+            if approved_only and not meta.get("approved"):
+                continue
             if int(meta.get("bad", 0)) > int(meta.get("ok", 0)):
                 continue                                          # labelled unusable more often than usable
             patch, known, shared = self._load(eid)
             ok, agree, n = _gate(patch, known, a_t, t_rgb, ~zd)
             if not ok:
                 continue
-            if best is None or (agree, n) > (best.agree, best.gate_pixels):
-                best = BankMatch(eid, patch[..., :3], known, shared, agree, n)
+            if best is None or (bool(meta.get("approved")), agree, n) > (best.approved, best.agree, best.gate_pixels):
+                best = BankMatch(eid, patch[..., :3], known, shared, agree, n, bool(meta.get("approved")))
         if best is not None:
             with self._lock:
                 self._seen[best.entry_id] = self._seen.get(best.entry_id, 0) + 1
@@ -700,7 +797,8 @@ def main(argv: list[str] | None = None) -> int:
             rate = f"{100.0 * int(e.get('conflicts', 0)) / cmp_px:.2f} %" if cmp_px else "?"
             print(f"  {e['id']}  Fenster {e.get('window')}  bekannt {e.get('known_px')}  geteilt {e.get('shared_px')}"
                   f"  gesehen {e.get('seen', 1)}  ok {e.get('ok', 0)}  schlecht {e.get('bad', 0)}  Konflikte {e.get('conflicts', 0)}"
-                  f"  Merges {e.get('merges', '?')}  Konfliktrate {rate}  Quellen {len(e.get('sources', []))}")
+                  f"  Merges {e.get('merges', '?')}  Konfliktrate {rate}  Quellen {len(e.get('sources', []))}"
+                  + ("  FREIGEGEBEN" if e.get("approved") else ""))
         return 0
     ok, bad, skipped = apply_labels(bank, args.ranking, args.features)
     print(f"Urteile uebernommen: brauchbar {ok}, unbrauchbar {bad}, ohne SIBLING-Urteil {skipped}")

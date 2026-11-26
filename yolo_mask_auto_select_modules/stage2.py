@@ -51,8 +51,9 @@ from .io_utils import (
 from .cells import USE_CELL_WINDOWS, detect_cell_grid, region_windows, split_plan_for_image
 from .cells import CELLS_VERSION, SPLIT_REGIONS_BY_CELLS
 from .donor import MISS_FIELDS, DonorBank, explain_no_donor, find_donors, stamp
-from .siblings import SiblingBank, SiblingResult, find_tiles, sibling_fill
+from .siblings import SiblingBank, SiblingResult, find_tiles, frame_donor_fill, sibling_fill
 from . import siblings_v1
+from .lama_cell import make_jobs, merge_integrity, paste_region
 from .regions import plan_regions, region_window
 from .reports import write_csv_with_union_fields
 from .scoring import make_contrast_mask, make_smart_ink_mask
@@ -76,6 +77,12 @@ METHODS: dict[str, tuple[str, MaskFn]] = {
     "DONOR": ("donor", lambda rgb, a, b: boxes_union_mask(b, rgb.shape[1], rgb.shape[0])),
     # Consensus of sibling cells (same frame, different text): see siblings.py. Whole box as mask; regions
     # without enough clean-voting siblings get no tile (reason in sibling_misses.csv).
+    # LaMa on the sprite cell (window) instead of the whole image: see lama_cell.py. BOX_CELL uses the box mask
+    # like stage 1's BOX_ONLY, so the two are directly comparable.
+    "BOX_CELL": ("lama_cell", lambda rgb, a, b: boxes_union_mask(b, rgb.shape[1], rgb.shape[0])),
+    "SMART_INK_CELL": ("lama_cell", lambda rgb, a, b: make_smart_ink_mask(rgb, b)),
+    # Approved frames (frame_donors.py approve): stamps the best clean version of a frame onto every cell of it.
+    "FRAME_DONOR": ("frame_donor", lambda rgb, a, b: boxes_union_mask(b, rgb.shape[1], rgb.shape[0])),
     "SIBLING": ("sibling", lambda rgb, a, b: boxes_union_mask(b, rgb.shape[1], rgb.shape[0])),
     # Frozen earlier version of SIBLING (before the glow rework, no bank) to compare both in the ranker.
     "SIBLING_V1": ("sibling_v1", lambda rgb, a, b: boxes_union_mask(b, rgb.shape[1], rgb.shape[0])),
@@ -89,7 +96,9 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     p.add_argument("--labels", type=Path, default=None, help="gate_labels CSV; regions labelled 'unusable' are always included")
     p.add_argument("--select", choices=("nonflat", "all", "unusable"), default="nonflat",
                    help="nonflat: structured+mixed surroundings (+ labelled unusable); all: every region; unusable: labelled only")
-    p.add_argument("--methods", default=",".join(METHODS), help="Comma-separated subset of: " + ", ".join(METHODS))
+    DEFAULT_METHODS = [m for m in METHODS if not m.startswith("SIBLING") and m != "FRAME_DONOR"]      # SIBLING* are opt-in (experimental, see siblings.py)
+    p.add_argument("--methods", default=",".join(DEFAULT_METHODS),
+                   help="Comma-separated subset of: " + ", ".join(METHODS) + " (default: all except SIBLING, SIBLING_V1, FRAME_DONOR)")
     p.add_argument("--images-dir", type=Path, default=DEFAULT_IMAGES_DIR)
     p.add_argument("--anchors", type=Path, default=DEFAULT_ANCHORS_CSV)
     p.add_argument("--protected-zones", type=Path, default=DEFAULT_PROTECTED_ZONES_CSV)
@@ -204,7 +213,7 @@ def _log_sibling_miss(out_dir: Path, image: str, region: int, reason: str, meta:
 
 def process_image(
     *, name: str, stem: str, source_path: Path, protected: np.ndarray, plan, selected: dict[int, dict[str, str]],
-    masks: dict[str, np.ndarray], groups: dict[str, str], staged: dict[str, tuple[str, str]], raw: Path,
+    masks: dict[str, np.ndarray], groups: dict[str, str], staged: dict[str, Any], raw: Path,
     out_dir: Path, stage1_run: Path, use_fill_repair: bool, bank: DonorBank | None = None,
     donor_near: bool = False, sibling_bank: SiblingBank | None = None, body_mask: np.ndarray | None = None,
 ) -> tuple[list[dict[str, Any]], int]:
@@ -246,6 +255,26 @@ def process_image(
                 f_rgb, _ = repair_flat_fill_artifacts(original_rgb, f_rgb, mask, protected)
             f_alpha = original_alpha.copy()
             f_alpha[mask] = pred_alpha[mask]
+        elif filler == "lama_cell":
+            f_rgb, f_alpha = original_rgb.copy(), original_alpha.copy()
+            stamped = np.zeros(mask.shape, dtype=bool)
+            parts: list[dict[str, float]] = []
+            for k, (s_name, a_name, win) in staged.get(method, {}).items():
+                sl = (slice(win[1], win[3] + 1), slice(win[0], win[2] + 1))
+                pred_rgb = pred_alpha = None
+                if (raw / s_name).is_file():
+                    with Image.open(raw / s_name) as im:
+                        pred_rgb = np.asarray(im.convert("RGB"), dtype=np.uint8)
+                if (raw / a_name).is_file():
+                    with Image.open(raw / a_name) as im:
+                        pred_alpha = np.asarray(im.convert("RGB").convert("L"), dtype=np.uint8)
+                own = mask[sl] & (plan.territory[sl] == k)
+                parts.append(lama_integrity(original_rgb[sl], pred_rgb, own))
+                paste_region(win, own, pred_rgb, pred_alpha, f_rgb, f_alpha, stamped)
+            if use_fill_repair and stamped.any():
+                f_rgb, _ = repair_flat_fill_artifacts(original_rgb, f_rgb, stamped, protected)
+            integrity[method] = merge_integrity(parts) if parts else {"lama_size_mismatch": 0.0, "lama_outside_mean": 0.0, "lama_outside_frac_gt8": 0.0}
+            masks[method] = stamped              # only regions that really got a fill keep a tile
         elif filler == "donor":
             f_rgb, f_alpha = original_rgb.copy(), original_alpha.copy()
             stamped = np.zeros(mask.shape, dtype=bool)
@@ -285,6 +314,25 @@ def process_image(
                 stamped |= region_m
                 donor_meta[k] = meta
             masks[method] = stamped              # only regions that really got a stamp keep a tile
+            integrity[method] = {"lama_size_mismatch": 0.0, "lama_outside_mean": 0.0, "lama_outside_frac_gt8": 0.0}
+        elif filler == "frame_donor":
+            f_rgb, f_alpha = original_rgb.copy(), original_alpha.copy()
+            stamped = np.zeros(mask.shape, dtype=bool)
+            zone = plan.core_labels > 0
+            tiles = find_tiles(original_alpha)
+            for k in selected:
+                region_m = mask & (plan.territory == k)
+                if not region_m.any():
+                    continue
+                res = frame_donor_fill(original_rgb, original_alpha, region_m, zone, tiles, sibling_bank,
+                                       source_image=name, region=k)
+                if not isinstance(res, SiblingResult):
+                    _log_sibling_miss(out_dir, name, k, res.reason, res.meta, method)
+                    continue
+                f_rgb[region_m] = res.rgb[region_m]
+                stamped |= region_m
+                sibling_meta[(method, k)] = res.meta
+            masks[method] = stamped                          # only regions that really got a donor keep a tile
             integrity[method] = {"lama_size_mismatch": 0.0, "lama_outside_mean": 0.0, "lama_outside_frac_gt8": 0.0}
         elif filler in ("sibling", "sibling_v1"):
             f_rgb, f_alpha = original_rgb.copy(), original_alpha.copy()
@@ -352,7 +400,7 @@ def process_image(
             region_mask = masks[method][sl] & terr
             if not region_mask.any():
                 continue                         # this method changes nothing here: no tile
-            if box_px and METHODS[method][0] not in ("donor", "sibling", "sibling_v1") and int(region_mask.sum()) >= BOX_LIKE_COVERAGE * box_px:
+            if box_px and METHODS[method][0] not in ("donor", "sibling", "sibling_v1", "frame_donor") and method != "BOX_CELL" and int(region_mask.sum()) >= BOX_LIKE_COVERAGE * box_px:
                 entry["skipped_box_like"].append(method)
                 continue                         # Box-only in disguise: no new information
             other = masks[method][sl] & ~terr
@@ -370,7 +418,7 @@ def process_image(
                 "context_type": info["context_type"], "stage1_label": info["stage1_label"],
                 **integrity[method],
                 **(donor_meta.get(k, {}) if method == "DONOR" else {}),
-                **(sibling_meta.get((method, k), {}) if method in ("SIBLING", "SIBLING_V1") else {}),
+                **(sibling_meta.get((method, k), {}) if method in ("SIBLING", "SIBLING_V1", "FRAME_DONOR") else {}),
                 **{key: f"{value:.6f}" if isinstance(value, float) else value for key, value in feats.items()},
             })
         orig_name = f"{stem}__r{k}__original.png"
@@ -392,6 +440,8 @@ def main(argv: list[str] | None = None) -> int:
         unknown = [m for m in methods if m not in METHODS]
         if unknown or not methods:
             raise ValueError(f"Unknown/empty --methods: {unknown or args.methods!r}; available: {', '.join(METHODS)}")
+        if "FRAME_DONOR" in methods and not args.sibling_bank:
+            raise ValueError("FRAME_DONOR needs --sibling-bank DIR with approved frames (python -m yolo_mask_auto_select_modules.frame_donors approve ...)")
         selection, stage1_merge = read_selection(stage1_run, args.labels, args.select)
         if not selection:
             raise ValueError("No regions selected (check --select / --labels).")
@@ -490,6 +540,22 @@ def main(argv: list[str] | None = None) -> int:
                     mi.save(masks_stage / f_alpha)
                     staged[m] = (f_rgb, f_alpha)
                     n_lama_jobs += 1
+                cell_methods = [m for m in masks if METHODS[m][0] == "lama_cell"]
+                if cell_methods:                              # one small LaMa job per region: its window only
+                    grid_c = detect_cell_grid(rgb, alpha) if USE_CELL_WINDOWS else None
+                    wins_c = [rw.rect for rw in region_windows(plan.core_labels, plan.bboxes, grid_c, REGION_SCORE_MARGIN_PX)]
+                    for m in cell_methods:
+                        staged[m] = {}
+                        for job in make_jobs(rgb, alpha, masks[m], plan.territory, list(sel), wins_c):
+                            f_rgb = f"{stem}__{m.lower()}_r{job.region}_rgb.png"
+                            f_alpha = f"{stem}__{m.lower()}_r{job.region}_alpha.png"
+                            Image.fromarray(job.rgb, mode="RGB").save(images_stage / f_rgb)
+                            Image.fromarray(job.alpha_rgb, mode="RGB").save(images_stage / f_alpha)
+                            mi = Image.fromarray(job.mask, mode="L")
+                            mi.save(masks_stage / f_rgb)
+                            mi.save(masks_stage / f_alpha)
+                            staged[m][job.region] = (f_rgb, f_alpha, job.win)
+                            n_lama_jobs += 1
                 body_boxes = [bx for bx in boxes if str(bx.get("type", "")).casefold() == "body"]
                 body_mask = (np.asarray(make_box_only_mask(w, h, body_boxes), dtype=bool) & box_mask) if body_boxes else None
                 prepared[name] = {"stem": stem, "prot": prot, "plan": plan, "sel": sel, "masks": masks,
