@@ -89,6 +89,9 @@ HOLE_MIN_SUPPORT = 0.35     # share of the kernel that must lie on known pixels
 HOLE_GUARD_PX = 2.5         # decided pixels this close to a hole do not feed the fill (glow tail)
 MAX_HOLE_FRAC = 0.55         # more holes than this: refuse
 BANK_VERSION = 1
+ASSIGNED_ALPHA_CORE_MAX = 0.02   # an approved donor given to a cell by its group: share of the tile whose hard shape (alpha >= 128) may differ
+ASSIGNED_RIM_MEDIAN_MAX = 8.0    # safety net: a group's donor is dropped if its colours differ from the cell by more than this (median, outside the text zones)
+ASSIGNED_ALPHA_MEAN_MAX = 3.0    # ... and the mean alpha difference (soft edges are smoothed a little differently between sheets)
 MAX_OFF_TILE_FRAC = 0.10     # region pixels on no tile (transparent area) tolerated before the region is refused
 MAX_SKIP_PART_FRAC = 0.03    # a failing part this small (share of the region) is left as it is instead of refusing the region
 MIN_INK_PX = 20              # a part with less ink than this has nothing to remove: it passes unchanged
@@ -467,8 +470,12 @@ def sibling_fill(rgb: np.ndarray, alpha: np.ndarray, region_mask: np.ndarray, zo
 
 def frame_donor_fill(rgb: np.ndarray, alpha: np.ndarray, region_mask: np.ndarray, zone_mask: np.ndarray | None,
                      tiles: list[Rect] | None, bank: "SiblingBank", source_image: str = "",
-                     region: int = 0) -> SiblingResult | SiblingMiss:
+                     region: int = 0, assigned: "BankMatch | None" = None) -> SiblingResult | SiblingMiss:
     """Stamp a frame a person approved (SiblingBank.approve) onto ``region_mask``.
+
+    ``assigned``: the approved frame the donor ranker's group gave to this cell (SiblingBank.assigned_entry). It is
+    used for a tile of the same size whose shape is close (_alpha_close) even where the strict colour gate of
+    bank.match would refuse; any other tile falls back to bank.match as before.
 
     The donor is a complete clean cell, so it also covers cells whose text sits somewhere else. A frame
     qualifies only if shape and colours match (same gate as the sibling bank); a region on several tiles is
@@ -497,8 +504,21 @@ def frame_donor_fill(rgb: np.ndarray, alpha: np.ndarray, region_mask: np.ndarray
     agrees: list[float] = []
     skipped = 0
     first_miss: SiblingMiss | None = None
+    used_assigned = False
     for t, sub in parts:
-        entry = bank.match(rgb, alpha, t, _crop(zone, t), approved_only=True)
+        entry = None
+        if assigned is not None and assigned.alpha is not None and assigned.rgb.shape[:2] == (_size(t)[1], _size(t)[0]) \
+                and _alpha_close(assigned.alpha, _crop(alpha, t)):
+            zd = cv2.dilate(_crop(zone, t).astype(np.uint8), np.ones((2 * BANK_ZONE_DILATE_PX + 1,) * 2, np.uint8)) > 0
+            cmp_px = ~zd & assigned.known & (_crop(alpha, t) > TILE_ALPHA_LEVEL)
+            if int(cmp_px.sum()) >= MIN_GATE_PIXELS:
+                diff = np.abs(assigned.rgb[cmp_px].astype(np.int16) - _crop(rgb, t)[cmp_px].astype(np.int16)).max(axis=1)
+                if float(np.median(diff)) <= ASSIGNED_RIM_MEDIAN_MAX:         # the group's donor, colours agree
+                    entry = BankMatch(assigned.entry_id, assigned.rgb, assigned.known, assigned.shared,
+                                      float((diff <= GATE_LEVEL).mean()), int(cmp_px.sum()), True, assigned.alpha)
+                    used_assigned = True
+        if entry is None:
+            entry = bank.match(rgb, alpha, t, _crop(zone, t), approved_only=True)
         if entry is None:
             if first_miss is None:
                 first_miss = SiblingMiss("no_frame_donor", {"sibling_tile": f"{t[0]},{t[1]}"})
@@ -520,7 +540,7 @@ def frame_donor_fill(rgb: np.ndarray, alpha: np.ndarray, region_mask: np.ndarray
         return first_miss or SiblingMiss("no_frame_donor")
     meta = {"sibling_entry_id": "+".join(dict.fromkeys(ids)), "sibling_parts": len(parts), "sibling_skipped_px": skipped,
             "sibling_donor_agree": round(float(min(agrees)), 4), "sibling_bank_frac": round(float(stamped.sum()) / total, 4),
-            "sibling_hole_frac": 0.0}
+            "sibling_hole_frac": 0.0, "sibling_donor_assigned": int(used_assigned)}
     return SiblingResult(out_rgb, alpha.copy(), stamped, np.zeros_like(region_mask), meta)
 
 
@@ -535,6 +555,19 @@ class BankMatch:
     agree: float = 1.0
     gate_pixels: int = 0
     approved: bool = False
+    alpha: np.ndarray | None = None   # h, w uint8: alpha of the remembered frame (set for approved frames)
+
+
+def _alpha_close(a_entry: np.ndarray, a_tile: np.ndarray) -> bool:
+    """Same hard shape and about the same soft edge. Looser than the colour gate's alpha test on purpose: a donor
+    that a person's group assigned to a cell only stamps RGB, the cell keeps its own alpha."""
+    if a_entry.shape != a_tile.shape:
+        return False
+    ins = (a_entry > TILE_ALPHA_LEVEL) | (a_tile > TILE_ALPHA_LEVEL)
+    n = max(int(ins.sum()), 1)
+    core = float(((a_entry >= 128) != (a_tile >= 128)).sum()) / n
+    mean = float(np.abs(a_entry.astype(np.int16) - a_tile.astype(np.int16))[ins].mean()) if ins.any() else 0.0
+    return core <= ASSIGNED_ALPHA_CORE_MAX and mean <= ASSIGNED_ALPHA_MEAN_MAX
 
 
 def _gate(entry_patch: np.ndarray, entry_known: np.ndarray, alpha: np.ndarray, rgb: np.ndarray,
@@ -665,6 +698,9 @@ class SiblingBank:
             work[target] = [np.dstack((rgb, alpha)).astype(np.uint8), opaque.copy(), np.zeros(alpha.shape, bool)]
             entries[target]["approved"] = True
             entries[target]["sources"] = [label]
+            labels = entries[target].setdefault("labels", [])          # all approved donors that ended up in this entry
+            if label and label not in labels:
+                labels.append(label)
         for eid, (p, k, sh) in work.items():
             if eid not in entries:
                 continue
@@ -734,6 +770,25 @@ class SiblingBank:
             with self._lock:
                 self._seen[best.entry_id] = self._seen.get(best.entry_id, 0) + 1
         return best
+
+    def assigned_entry(self, source_image: str, region: int) -> BankMatch | None:
+        """The approved frame that the donor ranker's group gave to this cell (frame_donor_members.json, written by
+        ``frame_donors approve`` next to bank.json), or None. Nothing is read when the file is missing."""
+        if not hasattr(self, "_member_label"):
+            self._member_label: dict[str, str] = {}
+            f = self.path / "frame_donor_members.json"
+            if f.is_file():
+                for label, info in json.loads(f.read_text(encoding="utf-8")).items():
+                    for cell in info.get("members", []):
+                        self._member_label.setdefault(cell, label)
+        label = self._member_label.get(f"{source_image}#r{int(region)}")
+        if not label:
+            return None
+        for eid, meta in self._entries.items():
+            if meta.get("approved") and (label in meta.get("labels", []) or label in meta.get("sources", [])):
+                patch, known, shared = self._load(eid)
+                return BankMatch(eid, patch[..., :3], known, shared, 1.0, int(known.sum()), True, patch[..., 3])
+        return None
 
     def record_outcome(self, entry_id: str, usable: bool) -> None:
         with self._lock:

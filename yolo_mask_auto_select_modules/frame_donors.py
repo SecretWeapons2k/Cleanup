@@ -626,22 +626,38 @@ def diagnose(run: Path, ranking_csv: Path | None, a: str, b: str, dump: Path | N
 
 # ----------------------------------------------------------------------------- approve
 
-def approve(ranker_dir: Path, choices_csv: Path, bank_dir: Path) -> tuple[int, int]:
+def approve(ranker_dir: Path, choices_csv: Path, bank_dir: Path, dry_run: bool = False) -> tuple[int, int]:
     """Put every picked frame into the bank as an approved entry. Returns (approved, refused)."""
+    if not ranker_dir.is_dir():
+        raise SystemExit(f"Ranker-Ordner nicht gefunden: {ranker_dir}")
+    if not choices_csv.is_file():
+        near = sorted(choices_csv.parent.glob("donor_choices*.csv")) if choices_csv.parent.is_dir() else []
+        hint = ("\nGefunden im selben Ordner: " + ", ".join(p.name for p in near)) if near else ""
+        raise SystemExit(f"CSV nicht gefunden: {choices_csv}{hint}")
     bank = S.SiblingBank(bank_dir)
     ok = bad = 0
     # which cells each approved donor is meant for: the members of its group (from the ranker's donor_groups.json)
     members_of: dict[str, list[str]] = {}
+    tile_info: dict[str, tuple] = {}            # tile file -> (image, region, method) as this ranker built it
     gj = ranker_dir / "donor_groups.json"
     if gj.is_file():
         data = json.loads(gj.read_text(encoding="utf-8"))
         members_of = {g["id"]: g.get("members", []) for g in data.get("groups", [])}
+        for g in data.get("groups", []):
+            for c in g.get("candidates", []):
+                tile_info[c["file"]] = (c["image"], int(c["region"]), c["method"])
     donor_members: dict[str, dict] = {}
     with choices_csv.open(encoding="utf-8-sig", newline="") as f:
         for row in csv.DictReader(f):
             if row.get("status") != "pick" or not row.get("chosen_file"):
                 continue
             path = ranker_dir / row["chosen_file"]
+            # the CSV must come from THIS ranker folder: tile names and group numbers are reused by every build
+            if tile_info and tile_info.get(row["chosen_file"]) != (row["image"], int(row["region"]), row["method"]):
+                print(f"  Ranker passt nicht zur CSV: Gruppe {row.get('group')} {row['chosen_file']} ist hier "
+                      f"{tile_info.get(row['chosen_file'])}, die CSV nennt {(row['image'], int(row['region']), row['method'])}")
+                bad += 1
+                continue
             if not path.is_file():
                 print(f"  fehlt: {path}")
                 bad += 1
@@ -659,6 +675,9 @@ def approve(ranker_dir: Path, choices_csv: Path, bank_dir: Path) -> tuple[int, i
             donor_members[key] = {"group": gid, "donor": f"{row['image']}#r{row['region']}", "tile": row["chosen_file"],
                                   "members": members_of.get(gid, [])}
             ok += 1
+    if dry_run:
+        print(f"Pruefung ohne Schreiben: {ok} Rahmen waeren freigegeben, {bad} abgelehnt")
+        return ok, bad
     new = bank.save()
     if donor_members:
         out = Path(bank_dir) / "frame_donor_members.json"
@@ -714,6 +733,7 @@ def main(argv: list[str] | None = None) -> int:
     a.add_argument("--ranker", type=Path, required=True, help="donor_ranker folder")
     a.add_argument("--choices", type=Path, required=True, help="donor_choices.csv exported from the donor ranker")
     a.add_argument("--bank", type=Path, required=True)
+    a.add_argument("--dry-run", action="store_true", help="only check that CSV and ranker folder belong together, write nothing")
     args = p.parse_args(argv)
     if getattr(args, "fill_median_max", None) is not None:
         FILL_BY_RESULT_MEDIAN_MAX = args.fill_median_max
@@ -739,7 +759,7 @@ def main(argv: list[str] | None = None) -> int:
         diagnose(args.run.expanduser(), args.ranking.expanduser() if args.ranking else None, args.a, args.b,
                  args.dump.expanduser() if args.dump else None)
     else:
-        approve(args.ranker.expanduser(), args.choices.expanduser(), args.bank.expanduser())
+        approve(args.ranker.expanduser(), args.choices.expanduser(), args.bank.expanduser(), args.dry_run)
     return 0
 
 

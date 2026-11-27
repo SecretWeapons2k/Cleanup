@@ -325,7 +325,8 @@ def process_image(
                 if not region_m.any():
                     continue
                 res = frame_donor_fill(original_rgb, original_alpha, region_m, zone, tiles, sibling_bank,
-                                       source_image=name, region=k)
+                                       source_image=name, region=k,
+                                       assigned=sibling_bank.assigned_entry(name, k))      # the donor ranker's group donor
                 if not isinstance(res, SiblingResult):
                     _log_sibling_miss(out_dir, name, k, res.reason, res.meta, method)
                     continue
